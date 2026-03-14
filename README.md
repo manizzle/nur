@@ -27,7 +27,7 @@ Threat actors collaborate better than defenders. **oombra** fixes that by making
 <!-- Then upload: asciinema upload demo/oombra-demo.cast -->
 <!-- Replace XXXX below with the ID from the upload -->
 
-<a href="https://asciinema.org/a/XXXX" target="_blank"><img src="https://asciinema.org/a/XXXX.svg" width="700" /></a>
+<a href="https://asciinema.org/a/lO2fO71sDfj8My8U" target="_blank"><img src="https://asciinema.org/a/lO2fO71sDfj8My8U.svg" width="700" /></a>
 
 > *Or run it locally: `./demo/asciinema_demo.sh`*
 
