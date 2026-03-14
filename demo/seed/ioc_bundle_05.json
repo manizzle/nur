@@ -1,0 +1,215 @@
+{
+  "iocs": [
+    {
+      "ioc_type": "ip",
+      "value_raw": "137.184.38.192",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "178.16.52.58",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "f0b410ca0ba79d284cf7f88327818a62",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "d90e46cbdba6a5fae2cf4cdddd1764470a804924e00912e24308c71f79ebc622",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha1",
+      "value_raw": "d92091352af70ee224c79d751dea42bcc6609731",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "df77882b491689f9e5672f9be082dd390d979dff8a0f7839fb301d629c14b533",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "d49919f4d02f9166510fc18a681bb771",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha1",
+      "value_raw": "c4e09ca8c6ddd8342fe0a4e32f39a7e4613e0e43",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "35f2b6cf64cfe6e60064d9569a8c7ff37d232cdc982c8916531d44bb09319e96",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "46ec0e726253180d01acd57946844c06",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha1",
+      "value_raw": "09a7e710b4af69ef212ec812250ca72e9972e928",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "4c9d9e12a691c67939525cfbd4bd416ee027602113dd8159e847aaaab9bdd6de",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "71c1ac875c0c0b600caa5ac1a7f64aac",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha1",
+      "value_raw": "423e6a5f53e6ec8643a712812b0b3652fc2cc406",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.pikseltesisatci.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.sc88bet.net",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.sexhay001.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.sidesunberkhotel.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.spicensweet.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.turanklinik.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "sniper.vnsexdam.net",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "volatile-suppose.gl.joinmc.link",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "smtp1.sexhay001.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "smtp1.sidesunberkhotel.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "smtp1.spicensweet.com",
+      "threat_actor": "AsyncRAT",
+      "campaign": "win.asyncrat",
+      "detected_by": [],
+      "missed_by": []
+    }
+  ],
+  "tools_in_scope": [
+    "crowdstrike",
+    "sentinelone",
+    "palo-alto"
+  ],
+  "source": "threat-feed",
+  "notes": "Real IOCs associated with win.asyncrat from ThreatFox abuse.ch feed.",
+  "context": {
+    "industry": "financial",
+    "org_size": "5000-10000"
+  }
+}

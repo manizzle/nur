@@ -1,0 +1,335 @@
+{
+  "iocs": [
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "1253014a77e61610fa777d2b9e4735ca11352274fe38b65191aebcd5b6b5d147",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "6ba8cad8cbd71ddcbf2708fa838f566985a8976d680886d89da949b0c29141d6",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "302a9f9af9eda01fa968e300725a84252cb06c75f2066cd843222b64751a6956",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "78639b2b09d043493565eefb538d174a7db78b2cf1b9bd9cdf5a81e63995594d",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "82aaa56441fcb4ca4495c0f2e03eb8fe44df801abeb0aa0d4341d176fbd799ec",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "9aab893007c7dc97f98539b4a468bd978a6db7dff17a28fa9173e42252e8be55",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "c424cef8ade79dab30ad4e6b688ac8bb7c5099ebea863e072d7a745db0b58e88",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "312e42ea7b8edb0a61355c50c3c02a91cd5ada0fa6baec96ebd8197db2ea754a",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "60ca76c8721cac0b8fb9daac721242ae7ae708ca948d096d54c5cc18f31541b1",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "847d5f434315ba60695793f10e296fee855b2f214ad106cb58655dab2b2c064d",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "b5dce3c0d922012db229ba284121354730362cb11f4fedae4209cd264f9e7af1",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "b30aa1159a660f71f48c58c75e2844e3342108e4e3fbd72487aa0e2662da3d8a",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "c4c9d191f53e1f2a4a6c05a35d0354719b3797192b7d361375f475302c7d3c9b",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "51c497e9136a192e41c0d09508f45e7b016676bf63cc133980b7c53798aa01f0",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "4172ff83b7e93674b9eded28b00533b7f069d6704251ab80d29a3ad7d6b9e92d",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "dd068eed57c2238760f2f925cdb0ce1c016c44e9ded3b064a39961df200018de",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "67dc4775c7c3593825bc1f11d990032e3982f0064bde6bc30f52fc7f468e8acc",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "ae6404b3a71d8ef2ea5c8002cd4e5aec3c6643fb87baab9486d2420ec8d633c1",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "5ae4891f9868482897e45b85b24f5e5f58d40bda0c3bdcbc51a66f4de009e536",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "4e759caac13845a074e67c97f944a50e28f4749e647f5a2884c8f917bf3772d6",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "e806df0aa530bfebb8530895ae8b884df915c9e76a96cedf2d8d4ad1c3dc8b4e",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "34a86aef213adbbaf88f0432ec63df4ba6b105f78e813f400a464e7cdcab99f1",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "1f6f3611056873ae5d14d22887a4b285cad311b1e3ccce8c488d40bf7a0b5e61",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "01ad4ebf895082621ab065c9db739699c6f35b1174e343e49082a90feb492ad6",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "5e510b82cf1b2d9bac0e36097e210758ec2b872497eae5de38d51df23cb6ca94",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "e0dcf89f51f899264ba6e594793b482b84fb14a25a5712fc0616d46aeee2e65b",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "236fb06a5a1602da404031117c8e880d25d706b8c1c54522c93b4d2e48a0b1ac",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "cad71cd33bc35e6eefe1bfd43cedc39b2deb09057e29c81309fe2b87a1d7d405",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "b72b66fd622dbc007f49bd1a344192321258e1203885f1fd202b45c59d8c8a20",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "901d87af193a391a425bc2f001b0e98437f0761c80350046c89dd8ae1086cb42",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "38531e1859cc2035fe0e9ffc9c865e9393c4ff9c08dcad2bcecd48afef82f8aa",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "cbeabab922c21af994832f77f1a71e6ef7a004acecd133fa57379701a28cb498",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "8dcfc3264df4cb34f29f992dbcddb80813f6ca934fc817bab741554c5a347ad7",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "e2d2a26776466619bda41eadb5728cc12097c0c9839e60a2152254b895fdedf2",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "c3b55713df418e6bfc1862a39c99d4ee3ec5e0921d773850647ed772b5d2b4ba",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "963fa01f52ae4f66b40d01a87c76a73eb6bb3d56154f7707ba2d4bac9465ee1d",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "861cd0a2cf1381db7a8c559169dd9dbc2a7186dae24b272b6f771d01ad89c1d6",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "f967f1baa92ba0c63589a0277e4675d8ef8d2aa4cefcb35b45f3138dcf1e9d13",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "b0ad5cd8051572ef9860d239e3b5997b61e66735c0e3c564809ae28f0b64ea5f",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "f88d28cbfa74812d4bb276a9b2d18300a1e725dabca5cba1c4ad77719f1ffaeb",
+      "threat_actor": "malware",
+      "campaign": "recent-malware",
+      "detected_by": [],
+      "missed_by": []
+    }
+  ],
+  "tools_in_scope": [
+    "crowdstrike",
+    "sentinelone",
+    "carbon-black"
+  ],
+  "source": "threat-feed",
+  "notes": "Recent malware sample hashes from MalwareBazaar. 100 samples in last 24h.",
+  "context": {
+    "industry": "healthcare",
+    "org_size": "1000-5000"
+  }
+}

@@ -1,0 +1,6 @@
+# ThreatFox IOC Database Dump - CSV format
+# Columns: date, id, ioc, ioc_type, threat_type, malware, confidence, threat_actor, tags
+"2026-03-14 12:00:00", "12345", "evil-domain.com", "domain", "botnet_cc", "Emotet", "75", "TA542", "emotet"
+"2026-03-14 11:00:00", "12346", "192.168.1.100:8443", "ip:port", "botnet_cc", "QakBot", "90", "None", "qakbot"
+"2026-03-14 10:00:00", "12347", "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", "sha256_hash", "payload_delivery", "LockBit", "100", "LockBit", "lockbit"
+"2026-03-14 09:00:00", "12348", "http://malware-site.xyz/payload", "url", "payload_delivery", "IcedID", "80", "None", "icedid"

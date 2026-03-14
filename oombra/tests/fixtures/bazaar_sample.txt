@@ -1,0 +1,8 @@
+# MalwareBazaar SHA256 hashes - recent samples
+# Last updated: 2026-03-14
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+# this is a comment
+short
+dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd

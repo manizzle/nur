@@ -1,0 +1,215 @@
+{
+  "iocs": [
+    {
+      "ioc_type": "ip",
+      "value_raw": "136.119.81.0",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "virtual-cdncloud.sbs",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "https://virtual-cdncloud.sbs/api/css.js",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "https://mytaxclientcopy.com/xlab22.hta",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "https://vn.hugo-lapp.co/",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "vn.hugo-lapp.co",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "213.165.47.137",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "213.165.47.137",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "http://213.165.47.137:8080/payload",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "http://213.165.47.137:5000/api/i",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "2pumpservices.com",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "165.232.32.10",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "129.212.202.53",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "cyrexmods.to",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "cyrexmods.cc",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "https://access-allowed-01.t3.storage.dev/index.html?OLtWV_Msu1isgaOD25TCtd2mJVnudHgklyGO-D2DRfQh%B6SEPBi7jlti=R4BI9HruOxJps8V=XpcmFpgqHU4WUSA3gdHsSy=Bls-WgVIF9=t3PyMkQCjaFo1BHVjGwD",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "transfergocompany.com",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "defenceprodindia.sit",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "endpoint1-b0ecetbuabcdg9cp.z01.azurefd.net",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "iran.dashboard.1drvms.store",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "unityprogressall.org",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "iwsmailserver.com",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "else.u27v.me",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "118.122.8.155",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "45.92.1.133",
+      "threat_actor": "Unknown malware",
+      "campaign": "unknown",
+      "detected_by": [],
+      "missed_by": []
+    }
+  ],
+  "tools_in_scope": [
+    "crowdstrike",
+    "sentinelone",
+    "palo-alto"
+  ],
+  "source": "threat-feed",
+  "notes": "Real IOCs associated with unknown from ThreatFox abuse.ch feed.",
+  "context": {
+    "industry": "financial",
+    "org_size": "5000-10000"
+  }
+}

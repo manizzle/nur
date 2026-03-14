@@ -1,0 +1,215 @@
+{
+  "iocs": [
+    {
+      "ioc_type": "ip",
+      "value_raw": "185.241.208.20",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.zg92k9yc.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.y04bab68.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.do36ksjq.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.qaopv88w.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.0775c2nd.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.qsk6yxyo.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.00zxddm1.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "www.vhyafr5p.shop",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "unhookmerip-38294.portmap.host",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "dola789game.com",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "185.220.67.52",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "bj88games.how",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "rustomjeecleon.in.net",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "fly88-vn04.com",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "2010e044ac40927130d1f7f237815ced",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "cb36189885f26321e070ffef0be956476f40429410f1fd23f97dddac24b23c05",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha1",
+      "value_raw": "2458e4bc6d50ddecaba4a5307ee4344f7c849d58",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "OK8386.SE.NET",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "cm88.mex.com",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "cm88.ninja",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "cm889.it.com",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "open88-2.com",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "73c802a90f917e01f7841acceeb45b80",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha1",
+      "value_raw": "0d1bfd6eadff86a2cccf4b5e5d8d182a61c0db70",
+      "threat_actor": "Quasar RAT",
+      "campaign": "win.quasar_rat",
+      "detected_by": [],
+      "missed_by": []
+    }
+  ],
+  "tools_in_scope": [
+    "crowdstrike",
+    "sentinelone",
+    "palo-alto"
+  ],
+  "source": "threat-feed",
+  "notes": "Real IOCs associated with win.quasar_rat from ThreatFox abuse.ch feed.",
+  "context": {
+    "industry": "financial",
+    "org_size": "5000-10000"
+  }
+}

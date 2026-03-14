@@ -1,0 +1,215 @@
+{
+  "iocs": [
+    {
+      "ioc_type": "domain",
+      "value_raw": "novasanjose.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "novaesprojetos.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "notuniversal.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "notes.lexieowen.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "notaryinedmonton.ca",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "notarishoeve8.nl",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nossaarquitetura.com.br",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nonalaligne18.fr",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nomad-lille.fr",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nokcuisine.nokviews.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nodoublestandards.net",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nmz.valutheran.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nmrgroup.org",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nmbarbosa.com.br",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nkollpest.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nkoforward.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nirgua.com.ve",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "ninemotoring.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nilsonpaper.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nidderauerontour.de",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nico-hahn.de",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nickwedig.libraryofhighmoon.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nicegujarat.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nibarchitects.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "nhanghoavinh.com",
+      "threat_actor": "StrelaStealer",
+      "campaign": "win.strelastealer",
+      "detected_by": [],
+      "missed_by": []
+    }
+  ],
+  "tools_in_scope": [
+    "crowdstrike",
+    "sentinelone",
+    "palo-alto"
+  ],
+  "source": "threat-feed",
+  "notes": "Real IOCs associated with win.strelastealer from ThreatFox abuse.ch feed.",
+  "context": {
+    "industry": "financial",
+    "org_size": "5000-10000"
+  }
+}

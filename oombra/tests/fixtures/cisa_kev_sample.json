@@ -1,0 +1,33 @@
+{
+  "title": "CISA KEV Catalog",
+  "catalogVersion": "2026.03.14",
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2024-0001",
+      "vendorProject": "Microsoft",
+      "product": "Exchange Server",
+      "vulnerabilityName": "Microsoft Exchange RCE",
+      "shortDescription": "Remote code execution in Exchange Server",
+      "knownRansomwareCampaignUse": "Known",
+      "dateAdded": "2024-01-15"
+    },
+    {
+      "cveID": "CVE-2024-0002",
+      "vendorProject": "Fortinet",
+      "product": "FortiOS",
+      "vulnerabilityName": "FortiOS Auth Bypass",
+      "shortDescription": "Authentication bypass in FortiOS SSL VPN",
+      "knownRansomwareCampaignUse": "Known",
+      "dateAdded": "2024-02-20"
+    },
+    {
+      "cveID": "CVE-2024-0003",
+      "vendorProject": "Apache",
+      "product": "Log4j",
+      "vulnerabilityName": "Log4Shell",
+      "shortDescription": "Remote code execution via JNDI injection",
+      "knownRansomwareCampaignUse": "Unknown",
+      "dateAdded": "2021-12-10"
+    }
+  ]
+}

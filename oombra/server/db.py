@@ -228,6 +228,83 @@ class Database:
 
     # ── Aggregate refresh ────────────────────────────────────────────────
 
+    async def get_ioc_matches(
+        self, ioc_hashes: list[str], exclude_contribution_id: str | None = None,
+    ) -> list[dict]:
+        """Find IOC hashes that already exist in the DB. Returns matches with metadata."""
+        if not ioc_hashes:
+            return []
+        async with self.session() as s:
+            stmt = select(IOCHash).where(IOCHash.value_hash.in_(ioc_hashes))
+            if exclude_contribution_id:
+                stmt = stmt.where(IOCHash.contribution_id != exclude_contribution_id)
+            result = await s.execute(stmt)
+            return [
+                {
+                    "ioc_type": row.ioc_type,
+                    "value_hash": row.value_hash,
+                    "threat_actor": row.threat_actor,
+                    "campaign": row.campaign,
+                    "detected_by": json.loads(row.detected_by) if row.detected_by else [],
+                    "missed_by": json.loads(row.missed_by) if row.missed_by else [],
+                }
+                for row in result.scalars().all()
+            ]
+
+    async def get_techniques_for_tools(
+        self, tools: list[str], exclude_contribution_id: str | None = None,
+    ) -> list[dict]:
+        """Find techniques where the given tools appear in missed_by."""
+        if not tools:
+            return []
+        tools_lower = {t.lower() for t in tools}
+        async with self.session() as s:
+            stmt = select(AttackTechnique)
+            if exclude_contribution_id:
+                stmt = stmt.where(AttackTechnique.contribution_id != exclude_contribution_id)
+            result = await s.execute(stmt)
+            rows = result.scalars().all()
+        out = []
+        for row in rows:
+            missed = json.loads(row.missed_by) if row.missed_by else []
+            if any(m.lower() in tools_lower for m in missed):
+                out.append({
+                    "technique_id": row.technique_id,
+                    "technique_name": row.technique_name,
+                    "tactic": row.tactic,
+                    "detected_by": json.loads(row.detected_by) if row.detected_by else [],
+                    "missed_by": missed,
+                })
+        return out
+
+    async def get_category_average(self, category: str) -> float | None:
+        """Get the average score across all vendors in a category."""
+        if not category:
+            return None
+        async with self.session() as s:
+            result = await s.execute(
+                select(func.avg(AggregatedScore.avg_score))
+                .where(AggregatedScore.category == category)
+            )
+            return result.scalar()
+
+    async def get_vendor_gaps(self, vendor: str) -> list[str]:
+        """Find technique IDs where this vendor appears in missed_by."""
+        if not vendor:
+            return []
+        vendor_lower = vendor.lower()
+        async with self.session() as s:
+            result = await s.execute(select(AttackTechnique))
+            rows = result.scalars().all()
+        gaps = []
+        for row in rows:
+            missed = json.loads(row.missed_by) if row.missed_by else []
+            if any(m.lower() == vendor_lower for m in missed):
+                gaps.append(row.technique_id)
+        return list(set(gaps))
+
+    # ── Aggregate refresh ────────────────────────────────────────────────
+
     async def _refresh_aggregate(self, vendor: str | None) -> None:
         """Recompute aggregate for a vendor after new contribution."""
         if not vendor:

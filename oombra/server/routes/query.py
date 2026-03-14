@@ -4,9 +4,16 @@ No individual contribution is ever returned.
 """
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/query", tags=["query"])
+
+
+def _min_k() -> int:
+    """Read min-k at request time so env var changes take effect (e.g. in tests)."""
+    return int(os.environ.get("OOMBRA_MIN_K", "3"))
 
 
 @router.get("/vendor/{name}")
@@ -17,6 +24,14 @@ async def query_vendor(name: str):
     result = await db.get_vendor_aggregate(name)
     if result is None:
         return {"error": "vendor not found", "vendor": name}
+    min_k = _min_k()
+    count = result.get("contribution_count", 0)
+    if count < min_k:
+        return {
+            "error": "Insufficient contributors",
+            "min_required": min_k,
+            "current": count,
+        }
     return result
 
 
@@ -25,8 +40,10 @@ async def query_category(name: str):
     """All vendors in a category with aggregate scores."""
     from ..app import get_db
     db = get_db()
+    min_k = _min_k()
     vendors = await db.get_category_vendors(name)
-    return {"category": name, "vendors": vendors}
+    filtered = [v for v in vendors if v.get("contribution_count", 0) >= min_k]
+    return {"category": name, "vendors": filtered}
 
 
 @router.get("/techniques")

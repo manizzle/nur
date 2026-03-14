@@ -1,0 +1,255 @@
+{
+  "iocs": [
+    {
+      "ioc_type": "domain",
+      "value_raw": "58.255.45.207",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "58.255.45.207",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "158.94.208.7",
+      "threat_actor": "dropped-by-amadey",
+      "campaign": "dropped-by-amadey",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "158.94.208.7",
+      "threat_actor": "dropped-by-amadey",
+      "campaign": "dropped-by-amadey",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "work-flow-v0.mondolibre.in.net",
+      "threat_actor": "ClearFake",
+      "campaign": "ClearFake",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "110.37.39.88",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "110.37.39.88",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "123.11.77.92",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "123.11.77.92",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "42.235.7.78",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "42.235.7.78",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "power-link-z5.mondolibre.in.net",
+      "threat_actor": "ACRStealer",
+      "campaign": "ACRStealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "110.37.44.250",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "110.37.44.250",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "110.37.28.65",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "110.37.28.65",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "119.179.8.199",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "119.179.8.199",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "115.57.232.2",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "115.57.232.2",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "backend-node-v.stillewasser.in.net",
+      "threat_actor": "ACRStealer",
+      "campaign": "ACRStealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "222.141.43.157",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "222.141.43.157",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "app-data-hub.fortezzarossa.in.net",
+      "threat_actor": "ACRStealer",
+      "campaign": "ACRStealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "222.137.144.93",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "222.137.144.93",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "github.com",
+      "threat_actor": "SmartLoader",
+      "campaign": "SmartLoader",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "raw.githubusercontent.com",
+      "threat_actor": "SmartLoader",
+      "campaign": "SmartLoader",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "web-proxy-alt.fortezzarossa.in.net",
+      "threat_actor": "ACRStealer",
+      "campaign": "ACRStealer",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "115.55.244.62",
+      "threat_actor": "32-bit",
+      "campaign": "32-bit",
+      "detected_by": [],
+      "missed_by": []
+    }
+  ],
+  "tools_in_scope": [
+    "splunk",
+    "palo-alto",
+    "crowdstrike"
+  ],
+  "source": "threat-feed",
+  "notes": "Malicious domains from URLhaus. Active malware distribution infrastructure.",
+  "context": {
+    "industry": "tech",
+    "org_size": "500-1000"
+  }
+}

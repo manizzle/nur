@@ -1,29 +1,116 @@
 """CLI: oombra — privacy-preserving threat intelligence tool."""
 from __future__ import annotations
+import json
+import os
+from pathlib import Path
 import click
 from . import pipeline, load_file, anonymize, render
 from .models import ContribContext, Industry, OrgSize, Role
 
 
+_CONFIG_PATH = Path.home() / ".oombra" / "config.json"
+
+
+def _load_config() -> dict:
+    """Load saved config from ~/.oombra/config.json."""
+    if _CONFIG_PATH.exists():
+        try:
+            return json.loads(_CONFIG_PATH.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _get_api_url(explicit: str | None) -> str | None:
+    """Resolve API URL: explicit flag > env var > saved config."""
+    if explicit:
+        return explicit
+    env = os.environ.get("OOMBRA_API_URL")
+    if env:
+        return env
+    return _load_config().get("api_url")
+
+
+def _get_api_key(explicit: str | None) -> str | None:
+    """Resolve API key: explicit flag > env var > saved config."""
+    if explicit:
+        return explicit
+    env = os.environ.get("OOMBRA_API_KEY")
+    if env:
+        return env
+    return _load_config().get("api_key")
+
+
 @click.group()
 def main():
-    """oombra — privacy-preserving threat intelligence contribution tool."""
+    """oombra — share what you found, get back what everyone else found.
+
+    \b
+    Full loop:
+      oombra up                          # start server + scrape live feeds
+      oombra report incident_iocs.json   # give data, get intelligence
+    """
     pass
+
+
+# ── Init ────────────────────────────────────────────────────────────────────
+
+@main.command()
+def init():
+    """Set up oombra — save your server URL and API key so you never type them again."""
+    config = _load_config()
+
+    click.echo("\n  oombra setup")
+    click.echo("  " + "=" * 40)
+
+    current_url = config.get("api_url", "")
+    url = click.prompt(
+        "  Server URL",
+        default=current_url or "http://localhost:8000",
+        show_default=True,
+    )
+    config["api_url"] = url.rstrip("/")
+
+    current_key = config.get("api_key", "")
+    key = click.prompt(
+        "  API key (leave blank for none)",
+        default=current_key or "",
+        show_default=False,
+    )
+    if key:
+        config["api_key"] = key
+    elif "api_key" in config:
+        del config["api_key"]
+
+    _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _CONFIG_PATH.write_text(json.dumps(config, indent=2))
+
+    click.echo(f"\n  Saved to {_CONFIG_PATH}")
+    click.echo(f"  Server: {config['api_url']}")
+    click.echo(f"  API key: {'***' + config['api_key'][-4:] if config.get('api_key') else 'none'}")
+    click.echo(f"\n  You're ready. Try: oombra report <file>")
+    click.echo()
 
 
 # ── Upload ───────────────────────────────────────────────────────────────────
 
 @main.command()
 @click.argument("file", type=click.Path(exists=True))
-@click.option("--api-url", required=True, envvar="OOMBRA_API_URL", help="Target platform URL")
-@click.option("--api-key", default=None, envvar="OOMBRA_API_KEY")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
 @click.option("--industry", type=click.Choice([i.value for i in Industry]), default=None)
 @click.option("--org-size", type=click.Choice([s.value for s in OrgSize]), default=None)
 @click.option("--role", type=click.Choice([r.value for r in Role]), default=None)
 @click.option("--epsilon", type=float, default=None, help="Differential privacy budget (e.g. 1.0)")
 @click.option("--yes", is_flag=True, help="Skip review prompt (non-interactive)")
-def upload(file, api_url, api_key, industry, org_size, role, epsilon, yes):
+@click.option("--json", "json_output", is_flag=True, help="Output result as JSON")
+def upload(file, api_url, api_key, industry, org_size, role, epsilon, yes, json_output):
     """Extract, anonymize, review, and submit a contribution file."""
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
     ctx = ContribContext(
         industry=Industry(industry) if industry else None,
         org_size=OrgSize(org_size) if org_size else None,
@@ -34,6 +121,17 @@ def upload(file, api_url, api_key, industry, org_size, role, epsilon, yes):
         auto_approve=yes, epsilon=epsilon,
     )
     ok = sum(1 for r in results if r.success)
+
+    if json_output:
+        output = {
+            "success": ok == len(results) and ok > 0,
+            "count": len(results),
+            "submitted": ok,
+            "receipts": [r.receipt_hash for r in results if r.receipt_hash],
+        }
+        click.echo(json.dumps(output, indent=2))
+        return
+
     click.echo(f"\n  {ok}/{len(results)} contributions submitted.")
 
     # Show receipts
@@ -51,16 +149,105 @@ def upload(file, api_url, api_key, industry, org_size, role, epsilon, yes):
             click.echo(f"  {budget.warning}")
 
 
+# ── Report (actionable intelligence) ─────────────────────────────────────────
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True))
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+@click.option("--json", "json_output", is_flag=True, help="Output raw JSON response")
+def report(file, api_url, api_key, json_output):
+    """Give your incident data, get back intelligence. The main command."""
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
+    import httpx
+
+    contribs = load_file(file)
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
+
+    for c in contribs:
+        clean = anonymize(c)
+        from .client import _serialize
+        payload = _serialize(clean)
+
+        with httpx.Client(timeout=30) as http:
+            resp = http.post(f"{api_url.rstrip('/')}/analyze", json=payload, headers=headers)
+
+        if resp.status_code != 200:
+            click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+            continue
+
+        result = resp.json()
+
+        if json_output:
+            click.echo(json.dumps(result, indent=2))
+        else:
+            click.echo(f"\n  Analysis Report")
+            click.echo(f"  {'=' * 50}")
+            click.echo(f"  Status: {result.get('status', 'unknown')}")
+            cid = result.get("contribution_id", "?")
+            click.echo(f"  Contribution ID: {cid[:16]}...")
+
+            intel = result.get("intelligence", {})
+
+            # IOC bundle specific
+            if "campaign_match" in intel:
+                click.echo(f"  Campaign Match: {'Yes' if intel['campaign_match'] else 'No'}")
+                click.echo(f"  Summary: {intel.get('campaign_summary', '')}")
+                click.echo(f"  Shared IOCs: {intel.get('shared_ioc_count', 0)}")
+                if intel.get("threat_actors"):
+                    click.echo(f"  Threat Actors: {', '.join(intel['threat_actors'])}")
+
+            # Attack map specific
+            if "coverage_score" in intel:
+                score_pct = int(intel["coverage_score"] * 100)
+                click.echo(f"  Coverage Score: {score_pct}%")
+                gaps = intel.get("detection_gaps", [])
+                if gaps:
+                    click.echo(f"  Detection Gaps: {len(gaps)}")
+                    for g in gaps[:5]:
+                        click.echo(f"    - {g['technique_id']}: {g.get('technique_name', '')}")
+
+            # Eval record specific
+            if "your_vendor" in intel:
+                click.echo(f"  Vendor: {intel['your_vendor']}")
+                click.echo(f"  Your Score: {intel.get('your_score', '?')}")
+                click.echo(f"  Category Avg: {intel.get('category_avg', '?')}")
+                click.echo(f"  Percentile: {intel.get('percentile', '?')}th")
+
+            # Actions (common to all types)
+            actions = intel.get("actions", [])
+            if actions:
+                click.echo(f"\n  Actions ({len(actions)}):")
+                for a in actions:
+                    priority = a.get("priority", "?").upper()
+                    click.echo(f"    [{priority}] {a.get('action', '')}")
+                    if a.get("detail"):
+                        click.echo(f"           {a['detail']}")
+            click.echo()
+
+
 # ── Preview ──────────────────────────────────────────────────────────────────
 
 @main.command()
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--epsilon", type=float, default=None, help="Preview with DP noise")
-def preview(file, epsilon):
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def preview(file, epsilon, json_output):
     """Preview what would be sent without submitting anything."""
     contribs = load_file(file)
     for c in contribs:
-        click.echo(render(anonymize(c, epsilon=epsilon)))
+        contrib = anonymize(c, epsilon=epsilon)
+        if json_output:
+            click.echo(json.dumps(contrib.model_dump(mode="json"), indent=2))
+        else:
+            click.echo(render(contrib))
 
 
 # ── Audit log ────────────────────────────────────────────────────────────────
@@ -187,14 +374,187 @@ def attest(file, epsilon, json_out, verify_only):
             click.echo()
 
 
-# ── Server ───────────────────────────────────────────────────────────────────
+# ── Scrape (threat feed ingestion) ─────────────────────────────────────────────
+
+@main.command()
+@click.option("--feed", multiple=True, help="Specific feed(s) to scrape (repeatable)")
+@click.option("--list", "list_feeds", is_flag=True, help="Show available feeds")
+@click.option("--dry-run", is_flag=True, help="Scrape but don't upload, just show counts")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+def scrape(feed, list_feeds, dry_run, api_url, api_key):
+    """Scrape public threat intelligence feeds and upload IOCs to the server."""
+    from .feeds import FEEDS, scrape_feed, bundle_iocs, ingest_to_server
+
+    if list_feeds:
+        click.echo("\n  Available feeds:")
+        for name, info in FEEDS.items():
+            click.echo(f"    {name:12s}  {info['description']}")
+        click.echo()
+        return
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not dry_run and not api_url:
+        click.echo("  No server URL configured. Run: oombra init  (or use --dry-run)")
+        raise SystemExit(1)
+
+    feed_names = list(feed) if feed else list(FEEDS.keys())
+
+    # Validate feed names
+    for name in feed_names:
+        if name not in FEEDS:
+            click.echo(f"  Unknown feed: {name}. Use --list to see available feeds.")
+            raise SystemExit(1)
+
+    total_iocs = 0
+    total_uploaded = 0
+    feeds_ok = 0
+
+    for name in feed_names:
+        click.echo(f"  Fetching {name}...", nl=False)
+        try:
+            iocs = scrape_feed(name)
+        except Exception as e:
+            click.echo(f" error: {e}")
+            continue
+
+        click.echo(f" {len(iocs)} IOCs")
+        total_iocs += len(iocs)
+
+        if iocs:
+            feeds_ok += 1
+
+        if not dry_run and iocs and api_url:
+            bundles = bundle_iocs(iocs, name)
+            uploaded = ingest_to_server(api_url, bundles, api_key=api_key)
+            total_uploaded += uploaded
+
+    click.echo()
+    if dry_run:
+        click.echo(f"  [dry-run] Scraped {total_iocs} IOCs from {feeds_ok} feeds (nothing uploaded)")
+    else:
+        click.echo(f"  Ingested {total_iocs} IOCs from {feeds_ok} feeds ({total_uploaded} bundles uploaded)")
+    click.echo()
+
+
+# ── Up (full loop — server + feeds + ready) ──────────────────────────────────
+
+@main.command()
+@click.option("--port", type=int, default=8000)
+@click.option("--host", default="0.0.0.0")
+@click.option("--db", default="sqlite+aiosqlite:///oombra.db", help="Database URL")
+@click.option("--skip-feeds", is_flag=True, help="Start server without scraping feeds")
+def up(port, host, db, skip_feeds):
+    """Start oombra: server + live threat feeds. One command, full loop.
+
+    \b
+    After this, open another terminal and run:
+      oombra report incident_iocs.json
+    """
+    import subprocess
+    import sys
+    import signal
+    import time
+
+    try:
+        import uvicorn
+        from .server.app import create_app
+    except ImportError:
+        click.echo("  Server requires: pip install oombra[server]")
+        raise SystemExit(1)
+
+    api_url = f"http://127.0.0.1:{port}"
+
+    # Save config so `oombra report` works without flags
+    config = _load_config()
+    config["api_url"] = api_url
+    _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _CONFIG_PATH.write_text(json.dumps(config, indent=2))
+
+    click.echo()
+    click.echo("  ┌─────────────────────────────────────────┐")
+    click.echo("  │  oombra up                              │")
+    click.echo("  └─────────────────────────────────────────┘")
+    click.echo()
+
+    app = create_app(db_url=db)
+    app.state.port = port
+
+    if not skip_feeds:
+        # Start server in background, scrape feeds, then foreground the server
+        import threading
+
+        server_config = uvicorn.Config(app, host=host, port=port, log_level="warning")
+        server = uvicorn.Server(server_config)
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+
+        # Wait for server to be ready
+        import httpx
+        for _ in range(30):
+            try:
+                resp = httpx.get(f"{api_url}/health", timeout=1)
+                if resp.status_code == 200:
+                    break
+            except Exception:
+                pass
+            time.sleep(0.3)
+
+        click.echo(f"  Server running on {api_url}")
+        click.echo()
+
+        # Scrape feeds
+        click.echo("  Scraping live threat feeds...")
+        from .feeds import FEEDS, scrape_feed, bundle_iocs, ingest_to_server
+        total_iocs = 0
+        for name in FEEDS:
+            try:
+                iocs = scrape_feed(name)
+                click.echo(f"    {name}: {len(iocs)} IOCs", nl=False)
+                total_iocs += len(iocs)
+                if iocs:
+                    bundles = bundle_iocs(iocs, name)
+                    ingest_to_server(api_url, bundles, api_key=config.get("api_key"))
+                    click.echo(" ✓")
+                else:
+                    click.echo()
+            except Exception as e:
+                click.echo(f" error: {e}")
+
+        click.echo()
+        click.echo(f"  Loaded {total_iocs} real IOCs from public feeds")
+        click.echo()
+        click.echo("  ──────────────────────────────────────────")
+        click.echo(f"  Ready. In another terminal, run:")
+        click.echo()
+        click.echo(f"    oombra report <your_incident_file.json>")
+        click.echo()
+        click.echo("  ──────────────────────────────────────────")
+        click.echo()
+
+        # Block until Ctrl+C
+        try:
+            thread.join()
+        except KeyboardInterrupt:
+            click.echo("\n  Shutting down...")
+            server.should_exit = True
+            thread.join(timeout=3)
+    else:
+        click.echo(f"  Server starting on {host}:{port}")
+        click.echo(f"  Config saved — run: oombra report <file>")
+        click.echo()
+        uvicorn.run(app, host=host, port=port)
+
+
+# ── Server (raw, no feeds) ────────────────────────────────────────────────
 
 @main.command()
 @click.option("--port", type=int, default=8000)
 @click.option("--host", default="0.0.0.0")
 @click.option("--db", default="sqlite+aiosqlite:///oombra.db", help="Database URL")
 def serve(port, host, db):
-    """Start the oombra server."""
+    """Start the oombra server (without feed ingestion)."""
     try:
         import uvicorn
         from .server.app import create_app
@@ -202,6 +562,7 @@ def serve(port, host, db):
         click.echo("Server requires: pip install oombra[server]")
         raise SystemExit(1)
     app = create_app(db_url=db)
+    app.state.port = port
     click.echo(f"  oombra server starting on {host}:{port}")
     click.echo(f"  Database: {db}")
     uvicorn.run(app, host=host, port=port)
@@ -273,126 +634,6 @@ def psi_query(peer, file):
         click.echo("  PSI requires: pip install oombra[crypto]")
     except Exception as e:
         click.echo(f"  PSI query error: {e}")
-
-
-# ── Graph Intelligence ──────────────────────────────────────────────────────
-
-@main.group()
-def graph():
-    """Threat graph intelligence — build and analyze attack graphs."""
-    pass
-
-
-@graph.command("build")
-@click.argument("files", nargs=-1, type=click.Path(exists=True))
-@click.option("--output", "-o", default=None, help="Output graph JSON")
-def graph_build(files, output):
-    """Build a local threat graph from contribution files."""
-    from .graph.local import build_graph
-
-    all_contribs = []
-    for f in files:
-        contribs = load_file(f)
-        all_contribs.extend(contribs)
-
-    if not all_contribs:
-        click.echo("  No contributions found in provided files.")
-        return
-
-    g = build_graph(all_contribs)
-    click.echo(f"  Built graph: {g.node_count()} nodes, {g.edge_count()} edges")
-
-    if output:
-        import json
-        with open(output, "w") as fp:
-            json.dump(g.to_dict(), fp, indent=2)
-        click.echo(f"  Saved to {output}")
-    else:
-        from collections import Counter
-        type_counts = Counter(n.node_type.value for n in g.nodes)
-        for t, c in sorted(type_counts.items()):
-            click.echo(f"    {t}: {c}")
-
-
-@graph.command("analyze")
-@click.argument("graph_file", type=click.Path(exists=True))
-@click.option("--clusters", type=int, default=5, help="Number of campaign clusters")
-def graph_analyze(graph_file, clusters):
-    """Analyze a threat graph — find campaigns and patterns."""
-    import json
-    from .graph.schema import ThreatGraph
-    from .graph.embeddings import Node2VecLite
-    from .graph.correlate import cluster_campaigns, campaign_summary
-
-    with open(graph_file) as fp:
-        data = json.load(fp)
-    g = ThreatGraph.from_dict(data)
-    click.echo(f"  Loaded graph: {g.node_count()} nodes, {g.edge_count()} edges")
-
-    if g.node_count() == 0:
-        click.echo("  Empty graph, nothing to analyze.")
-        return
-
-    n2v = Node2VecLite(dimensions=64, walk_length=10, num_walks=20)
-    embeddings = n2v.fit(g, epochs=5, lr=0.025)
-    click.echo(f"  Computed {len(embeddings)} node embeddings")
-
-    k = min(clusters, len(embeddings))
-    cluster_map = cluster_campaigns(embeddings, n_clusters=k)
-    summaries = campaign_summary(g, cluster_map)
-
-    click.echo(f"\n  Found {len(summaries)} campaign clusters:\n")
-    for s in summaries:
-        click.echo(f"  Cluster {s['cluster_id']} ({s['node_count']} nodes)")
-        if s["techniques"]:
-            click.echo(f"    Techniques: {', '.join(s['techniques'][:5])}")
-        if s["actors"]:
-            click.echo(f"    Actors: {', '.join(s['actors'])}")
-        if s["tools"]:
-            click.echo(f"    Tools: {', '.join(s['tools'][:5])}")
-        if s["ioc_types"]:
-            click.echo(f"    IOC types: {', '.join(s['ioc_types'])}")
-        click.echo()
-
-
-@graph.command("compare")
-@click.argument("our_graph", type=click.Path(exists=True))
-@click.argument("their_embeddings_file", type=click.Path(exists=True))
-@click.option("--threshold", type=float, default=0.75, help="Similarity threshold")
-def graph_compare(our_graph, their_embeddings_file, threshold):
-    """Compare graphs via embeddings to find shared campaigns."""
-    import json
-    import numpy as np
-    from .graph.schema import ThreatGraph
-    from .graph.embeddings import Node2VecLite
-    from .graph.correlate import detect_shared_campaigns
-
-    with open(our_graph) as fp:
-        g = ThreatGraph.from_dict(json.load(fp))
-    click.echo(f"  Our graph: {g.node_count()} nodes, {g.edge_count()} edges")
-
-    n2v = Node2VecLite(dimensions=64, walk_length=10, num_walks=20)
-    our_emb = n2v.fit(g, epochs=5, lr=0.025)
-
-    with open(their_embeddings_file) as fp:
-        their_raw = json.load(fp)
-    their_emb = {k: np.array(v) for k, v in their_raw.items()}
-    click.echo(f"  Their embeddings: {len(their_emb)} nodes")
-
-    campaigns = detect_shared_campaigns(g, our_emb, their_emb, threshold=threshold)
-
-    if not campaigns:
-        click.echo("\n  No shared campaigns detected at this threshold.")
-    else:
-        for c in campaigns:
-            click.echo(f"\n  Shared campaign detected:")
-            click.echo(f"    Shared techniques: {c['shared_technique_count']}")
-            click.echo(f"    Shared IOCs: {c['shared_ioc_count']}")
-            click.echo(f"    Confidence: {c['confidence']}")
-            click.echo(f"    Total matches: {c['total_matches']}")
-            if c.get("techniques"):
-                for t in c["techniques"][:5]:
-                    click.echo(f"      - {t['technique']} (sim={t['similarity']})")
 
 
 # ── Secure Aggregation ──────────────────────────────────────────────────────
