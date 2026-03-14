@@ -21,6 +21,16 @@
 
 Threat actors collaborate better than defenders. **oombra** fixes that by making sharing mathematically safe.
 
+### See it in action
+
+<!-- To generate: asciinema rec demo/oombra-demo.cast -c "./demo/asciinema_demo.sh" -->
+<!-- Then upload: asciinema upload demo/oombra-demo.cast -->
+<!-- Replace XXXX below with the ID from the upload -->
+
+<a href="https://asciinema.org/a/XXXX" target="_blank"><img src="https://asciinema.org/a/XXXX.svg" width="700" /></a>
+
+> *Or run it locally: `./demo/asciinema_demo.sh`*
+
 Organizations don't share threat intel because they're afraid of leaking sensitive data. oombra provides **cryptographic guarantees** — not promises — that nothing identifying ever leaves your machine.
 
 ```
