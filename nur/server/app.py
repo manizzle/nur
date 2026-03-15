@@ -420,6 +420,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   </div>
 
   <div class="links">
+    <a href="/dashboard">dashboard</a>
     <a href="/register">register</a>
     <a href="/docs">api docs</a>
     <a href="https://github.com/manizzle/nur">github</a>
@@ -575,6 +576,530 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   </div>
   <br><a href="/">&larr; back to nur</a>
 </div></body></html>"""
+
+    # ── Dashboard ──────────────────────────────────────────────────
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    async def dashboard():
+        db = get_db()
+        stats = await db.get_stats()
+        total = stats.get("total_contributions", 0)
+        by_type = stats.get("by_type", {})
+        iocs = by_type.get("ioc_bundle", 0)
+        attacks = by_type.get("attack_map", 0)
+        evals = by_type.get("eval", 0)
+
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur — dashboard</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag('js',new Date());gtag('config','G-YLL9Y97GG0');</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{
+    background: #0a0a0a;
+    color: #c0c0c0;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    padding: 0;
+  }}
+
+  /* ── Header ─────────────────────────────────────── */
+  .dash-header {{
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 1px solid #1a1a1a;
+  }}
+  .dash-header h1 {{
+    font-size: 2.4em;
+    color: #f0f0f0;
+    letter-spacing: 0.25em;
+    margin-bottom: 12px;
+  }}
+  .dash-header h1 span {{
+    color: #2a5;
+  }}
+  .hero-stat {{
+    font-size: 4.5em;
+    font-weight: bold;
+    color: #2a5;
+    line-height: 1;
+    margin-bottom: 8px;
+    text-shadow: 0 0 60px rgba(34,170,85,0.3);
+  }}
+  .hero-label {{
+    font-size: 0.85em;
+    color: #666;
+    letter-spacing: 0.1em;
+  }}
+  .dash-subtitle {{
+    margin-top: 12px;
+    font-size: 0.8em;
+    color: #444;
+  }}
+  .pulse {{
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #2a5;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }}
+  @keyframes pulse {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: 0.3; }}
+  }}
+
+  /* ── Layout ─────────────────────────────────────── */
+  .dash-grid {{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }}
+  .dash-section {{
+    padding: 32px 28px;
+    border-bottom: 1px solid #1a1a1a;
+  }}
+  .dash-section:nth-child(odd) {{
+    border-right: 1px solid #1a1a1a;
+  }}
+  .dash-section.full {{
+    grid-column: 1 / -1;
+    border-right: none;
+  }}
+  .section-title {{
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #555;
+    margin-bottom: 20px;
+  }}
+  .section-title::before {{
+    content: '/// ';
+    color: #333;
+  }}
+
+  /* ── Stat boxes ─────────────────────────────────── */
+  .stat-grid {{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }}
+  .stat-box {{
+    background: #111;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: border-color 0.3s;
+  }}
+  .stat-box:hover {{
+    border-color: #2a5;
+  }}
+  .stat-box .num {{
+    font-size: 2.2em;
+    font-weight: bold;
+    color: #f0f0f0;
+    display: block;
+    line-height: 1.1;
+  }}
+  .stat-box .label {{
+    font-size: 0.65em;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 6px;
+    display: block;
+  }}
+
+  /* ── Chart containers ───────────────────────────── */
+  .chart-wrap {{
+    position: relative;
+    width: 100%;
+    background: #0f0f0f;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
+    padding: 16px;
+  }}
+  .chart-wrap canvas {{
+    width: 100% !important;
+  }}
+  .chart-empty {{
+    text-align: center;
+    padding: 48px 16px;
+    color: #333;
+    font-size: 0.85em;
+  }}
+
+  /* ── CTA section ────────────────────────────────── */
+  .cta {{
+    text-align: center;
+    padding: 48px 24px;
+  }}
+  .cta-tagline {{
+    font-size: 1.3em;
+    color: #888;
+    margin-bottom: 24px;
+  }}
+  .cta-install {{
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 20px 28px;
+    display: inline-block;
+    text-align: left;
+    font-size: 0.9em;
+    margin-bottom: 24px;
+  }}
+  .cta-install code {{ color: #aaa; }}
+  .cta-install .cmd {{ color: #e0e0e0; }}
+  .cta-install .comment {{ color: #444; }}
+  .cta-links {{
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }}
+  .cta-links a {{
+    color: #888;
+    text-decoration: none;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+    font-size: 0.9em;
+  }}
+  .cta-links a:hover {{
+    color: #2a5;
+    border-color: #2a5;
+  }}
+  .cta-btn {{
+    display: inline-block;
+    background: #2a5;
+    color: #0a0a0a;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9em;
+    padding: 10px 28px;
+    border-radius: 3px;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: background 0.2s;
+    margin-bottom: 20px;
+  }}
+  .cta-btn:hover {{
+    background: #3b6;
+  }}
+
+  /* ── Footer ─────────────────────────────────────── */
+  .dash-footer {{
+    text-align: center;
+    padding: 24px;
+    color: #333;
+    font-size: 0.7em;
+    border-top: 1px solid #1a1a1a;
+  }}
+  .dash-footer a {{
+    color: #444;
+    text-decoration: none;
+  }}
+
+  /* ── Responsive ─────────────────────────────────── */
+  @media (max-width: 768px) {{
+    .dash-grid {{
+      grid-template-columns: 1fr;
+    }}
+    .dash-section:nth-child(odd) {{
+      border-right: none;
+    }}
+    .stat-grid {{
+      grid-template-columns: repeat(2, 1fr);
+    }}
+    .hero-stat {{
+      font-size: 3em;
+    }}
+  }}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<div class="dash-header">
+  <h1>nur <span>dashboard</span></h1>
+  <div class="hero-stat" id="hero-total">{total}</div>
+  <div class="hero-label">contributions from the community</div>
+  <div class="dash-subtitle">
+    <span class="pulse"></span> 37 data sources &middot; live feeds &middot; auto-refresh 60s
+  </div>
+</div>
+
+<!-- ── Charts row ─────────────────────────────────────────── -->
+<div class="dash-grid">
+
+  <!-- Threat Landscape -->
+  <div class="dash-section">
+    <div class="section-title">Threat Landscape &mdash; MITRE ATT&amp;CK Techniques</div>
+    <div class="chart-wrap">
+      <canvas id="techniqueChart" height="320"></canvas>
+      <div class="chart-empty" id="techniqueEmpty" style="display:none;">
+        No technique data yet. Contribute attack maps to populate.
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Intelligence -->
+  <div class="dash-section">
+    <div class="section-title">Market Intelligence &mdash; EDR Vendors</div>
+    <div class="chart-wrap">
+      <canvas id="marketChart" height="320"></canvas>
+      <div class="chart-empty" id="marketEmpty" style="display:none;">
+        No market data yet. Contribute evaluations to populate.
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Activity -->
+  <div class="dash-section full">
+    <div class="section-title">Live Activity</div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <span class="num" id="stat-total">{total}</span>
+        <span class="label">total contributions</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" id="stat-iocs">{iocs}</span>
+        <span class="label">IOC bundles</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" id="stat-attacks">{attacks}</span>
+        <span class="label">attack maps</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" id="stat-evals">{evals}</span>
+        <span class="label">tool evaluations</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="dash-section full cta">
+    <div class="cta-tagline">give data, get smarter.</div>
+    <a class="cta-btn" href="/register">get started &rarr;</a>
+    <div class="cta-install">
+      <code>
+        <span class="comment"># install</span><br>
+        <span class="cmd">pip install nur</span><br><br>
+        <span class="comment"># connect &amp; register</span><br>
+        <span class="cmd">nur init</span><br>
+        <span class="cmd">nur register you@yourorg.com</span><br><br>
+        <span class="comment"># contribute &amp; get intelligence</span><br>
+        <span class="cmd">nur report incident.json</span>
+      </code>
+    </div>
+    <div class="cta-links">
+      <a href="/">home</a>
+      <a href="/register">register</a>
+      <a href="/docs">api docs</a>
+      <a href="https://github.com/manizzle/nur">github</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<div class="dash-footer">
+  <a href="/">nur</a> &bull; collective security intelligence &bull;
+  <a href="https://github.com/manizzle/nur">open source</a>
+</div>
+
+<script>
+(function() {{
+  // ── Color helpers ──────────────────────────────────────────
+  function greenGradient(count, max) {{
+    var ratio = max > 0 ? count / max : 0;
+    var r = Math.round(10 + ratio * 24);
+    var g = Math.round(60 + ratio * 110);
+    var b = Math.round(20 + ratio * 65);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }}
+
+  // ── Chart.js global defaults ───────────────────────────────
+  Chart.defaults.color = '#666';
+  Chart.defaults.borderColor = '#1a1a1a';
+  Chart.defaults.font.family = "'Courier New', monospace";
+  Chart.defaults.font.size = 11;
+
+  // ── Fetch and render techniques chart ──────────────────────
+  fetch('/query/techniques?limit=10')
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      var techs = data.techniques || [];
+      if (techs.length === 0) {{
+        document.getElementById('techniqueChart').style.display = 'none';
+        document.getElementById('techniqueEmpty').style.display = 'block';
+        return;
+      }}
+      var labels = techs.map(function(t) {{ return t.technique_id + ' ' + t.name; }});
+      var counts = techs.map(function(t) {{ return t.count; }});
+      var maxCount = Math.max.apply(null, counts);
+      var colors = counts.map(function(c) {{ return greenGradient(c, maxCount); }});
+
+      new Chart(document.getElementById('techniqueChart'), {{
+        type: 'bar',
+        data: {{
+          labels: labels,
+          datasets: [{{
+            label: 'Sightings',
+            data: counts,
+            backgroundColor: colors,
+            borderColor: 'transparent',
+            borderWidth: 0,
+            borderRadius: 2,
+          }}]
+        }},
+        options: {{
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {{
+            legend: {{ display: false }},
+            tooltip: {{
+              backgroundColor: '#111',
+              titleColor: '#f0f0f0',
+              bodyColor: '#aaa',
+              borderColor: '#2a5',
+              borderWidth: 1,
+            }},
+          }},
+          scales: {{
+            x: {{
+              grid: {{ color: '#151515' }},
+              ticks: {{ color: '#444' }},
+            }},
+            y: {{
+              grid: {{ display: false }},
+              ticks: {{ color: '#888', font: {{ size: 10 }} }},
+            }},
+          }},
+        }},
+      }});
+    }})
+    .catch(function(e) {{
+      console.error('technique chart error:', e);
+      document.getElementById('techniqueChart').style.display = 'none';
+      document.getElementById('techniqueEmpty').style.display = 'block';
+    }});
+
+  // ── Fetch and render market chart ──────────────────────────
+  fetch('/intelligence/market/edr')
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      var tiers = data.tiers || {{}};
+      var all = [];
+      var tierColors = {{
+        'leaders': '#2a5',
+        'contenders': '#1a7a4a',
+        'emerging': '#145530',
+        'watch': '#333',
+      }};
+
+      ['leaders', 'contenders', 'emerging', 'watch'].forEach(function(tier) {{
+        var items = tiers[tier] || [];
+        items.forEach(function(v) {{
+          all.push({{
+            label: v.display,
+            score: v.weighted_score || 0,
+            color: tierColors[tier],
+            tier: tier,
+          }});
+        }});
+      }});
+
+      if (all.length === 0) {{
+        document.getElementById('marketChart').style.display = 'none';
+        document.getElementById('marketEmpty').style.display = 'block';
+        return;
+      }}
+
+      // Sort by score descending, take top 12
+      all.sort(function(a, b) {{ return b.score - a.score; }});
+      all = all.slice(0, 12);
+
+      var labels = all.map(function(v) {{ return v.label + ' (' + v.tier + ')'; }});
+      var scores = all.map(function(v) {{ return v.score; }});
+      var colors = all.map(function(v) {{ return v.color; }});
+
+      new Chart(document.getElementById('marketChart'), {{
+        type: 'bar',
+        data: {{
+          labels: labels,
+          datasets: [{{
+            label: 'Score',
+            data: scores,
+            backgroundColor: colors,
+            borderColor: 'transparent',
+            borderWidth: 0,
+            borderRadius: 2,
+          }}]
+        }},
+        options: {{
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {{
+            legend: {{ display: false }},
+            tooltip: {{
+              backgroundColor: '#111',
+              titleColor: '#f0f0f0',
+              bodyColor: '#aaa',
+              borderColor: '#2a5',
+              borderWidth: 1,
+            }},
+          }},
+          scales: {{
+            x: {{
+              grid: {{ color: '#151515' }},
+              ticks: {{ color: '#444' }},
+              max: 10,
+            }},
+            y: {{
+              grid: {{ display: false }},
+              ticks: {{ color: '#888', font: {{ size: 10 }} }},
+            }},
+          }},
+        }},
+      }});
+    }})
+    .catch(function(e) {{
+      console.error('market chart error:', e);
+      document.getElementById('marketChart').style.display = 'none';
+      document.getElementById('marketEmpty').style.display = 'block';
+    }});
+
+  // ── Auto-refresh stats ─────────────────────────────────────
+  function refreshStats() {{
+    fetch('/stats')
+      .then(function(r) {{ return r.json(); }})
+      .then(function(s) {{
+        var bt = s.by_type || {{}};
+        document.getElementById('hero-total').textContent = s.total_contributions || 0;
+        document.getElementById('stat-total').textContent = s.total_contributions || 0;
+        document.getElementById('stat-iocs').textContent = bt.ioc_bundle || 0;
+        document.getElementById('stat-attacks').textContent = bt.attack_map || 0;
+        document.getElementById('stat-evals').textContent = bt.eval || 0;
+      }})
+      .catch(function(e) {{ console.error('stats refresh error:', e); }});
+  }}
+  setInterval(refreshStats, 60000);
+}})();
+</script>
+</body>
+</html>"""
 
     @app.get("/register", response_class=HTMLResponse)
     async def register_page():
