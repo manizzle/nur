@@ -127,23 +127,209 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
     # ── Root ──────────────────────────────────────────────────────────
 
-    @app.get("/")
+    from fastapi.responses import HTMLResponse
+
+    @app.get("/", response_class=HTMLResponse)
     async def root():
-        return {
-            "name": "nur",
-            "tagline": "Collective security intelligence for industries",
-            "docs": "/docs",
-            "health": "/health",
-            "stats": "/stats",
-            "endpoints": {
-                "analyze": "POST /analyze — give data, get intelligence",
-                "market": "GET /intelligence/market/{category}",
-                "threat_map": "POST /intelligence/threat-map",
-                "search": "GET /search/vendor/{name}",
-                "contribute": "POST /contribute/submit | /contribute/attack-map | /contribute/ioc-bundle",
-            },
-            "source": "https://github.com/manizzle/nur",
-        }
+        db = get_db()
+        stats = await db.get_stats()
+        total = stats.get("total_contributions", 0)
+        vendors = stats.get("unique_vendors", 0)
+        by_type = stats.get("by_type", {})
+        iocs = by_type.get("ioc_bundle", 0)
+        attacks = by_type.get("attack_map", 0)
+        evals = by_type.get("eval", 0)
+
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur</title>
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{
+    background: #0a0a0a;
+    color: #c0c0c0;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }}
+  .container {{
+    max-width: 640px;
+    padding: 40px 24px;
+    text-align: center;
+  }}
+  h1 {{
+    font-size: 4em;
+    color: #f0f0f0;
+    letter-spacing: 0.3em;
+    margin-bottom: 8px;
+    text-shadow: 0 0 40px rgba(255,255,255,0.1);
+  }}
+  .arabic {{
+    font-size: 1.4em;
+    color: #666;
+    margin-bottom: 32px;
+    direction: rtl;
+  }}
+  .tagline {{
+    font-size: 1.1em;
+    color: #888;
+    margin-bottom: 48px;
+    line-height: 1.6;
+  }}
+  .stats {{
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+  }}
+  .stat {{
+    text-align: center;
+  }}
+  .stat-num {{
+    font-size: 2em;
+    color: #f0f0f0;
+    display: block;
+  }}
+  .stat-label {{
+    font-size: 0.75em;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }}
+  .divider {{
+    border: none;
+    border-top: 1px solid #1a1a1a;
+    margin: 40px 0;
+  }}
+  .install {{
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 32px;
+    text-align: left;
+    font-size: 0.9em;
+  }}
+  .install code {{
+    color: #aaa;
+  }}
+  .install .cmd {{
+    color: #e0e0e0;
+  }}
+  .install .comment {{
+    color: #444;
+  }}
+  .links {{
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }}
+  .links a {{
+    color: #888;
+    text-decoration: none;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+    font-size: 0.9em;
+  }}
+  .links a:hover {{
+    color: #f0f0f0;
+    border-color: #666;
+  }}
+  .footer {{
+    color: #333;
+    font-size: 0.75em;
+    margin-top: 48px;
+    line-height: 1.8;
+  }}
+  .footer a {{
+    color: #444;
+    text-decoration: none;
+  }}
+  .pulse {{
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #2a5;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }}
+  @keyframes pulse {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: 0.3; }}
+  }}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>nur</h1>
+  <div class="arabic">نور</div>
+  <div class="tagline">
+    collective security intelligence for industries.<br>
+    give data, get smarter.
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num">{total}</span>
+      <span class="stat-label">contributions</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">{iocs + attacks}</span>
+      <span class="stat-label">threat signals</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">{vendors}</span>
+      <span class="stat-label">vendors tracked</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">37</span>
+      <span class="stat-label">data sources</span>
+    </div>
+  </div>
+
+  <div class="install">
+    <code>
+      <span class="comment"># install</span><br>
+      <span class="cmd">pip install nur</span><br><br>
+      <span class="comment"># connect</span><br>
+      <span class="cmd">nur init</span><br><br>
+      <span class="comment"># give data, get intelligence</span><br>
+      <span class="cmd">nur report incident.json</span>
+    </code>
+  </div>
+
+  <div class="links">
+    <a href="/docs">api docs</a>
+    <a href="https://github.com/manizzle/nur">github</a>
+    <a href="https://github.com/manizzle/nur/issues/4">add your feed</a>
+    <a href="/stats">live stats</a>
+  </div>
+
+  <hr class="divider">
+
+  <div class="footer">
+    <span class="pulse"></span> live &mdash; scraping 37 threat feeds<br><br>
+    attackers share everything.<br>
+    defenders share nothing.<br>
+    nur fixes that.<br><br>
+    <a href="https://github.com/manizzle/nur">apache 2.0</a> &bull;
+    <a href="https://github.com/manizzle/nur/blob/main/DATA_LICENSE.md">cdla-permissive-2.0</a>
+  </div>
+
+</div>
+</body>
+</html>"""
 
     # ── Health ────────────────────────────────────────────────────────
 
