@@ -374,22 +374,27 @@ def attest(file, epsilon, json_out, verify_only):
             click.echo()
 
 
-# ── Scrape (threat feed ingestion) ─────────────────────────────────────────────
+# ── Scrape (threat feed + vendor intelligence ingestion) ──────────────────────
 
 @main.command()
-@click.option("--feed", multiple=True, help="Specific feed(s) to scrape (repeatable)")
-@click.option("--list", "list_feeds", is_flag=True, help="Show available feeds")
+@click.option("--feed", multiple=True, help="Specific IOC feed(s) or vendor scraper(s) to run (repeatable)")
+@click.option("--list", "list_feeds", is_flag=True, help="Show all available sources")
 @click.option("--dry-run", is_flag=True, help="Scrape but don't upload, just show counts")
 @click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
 @click.option("--api-key", default=None, help="API key (default: from oombra init)")
 def scrape(feed, list_feeds, dry_run, api_url, api_key):
-    """Scrape public threat intelligence feeds and upload IOCs to the server."""
+    """Scrape public threat intelligence feeds and vendor evaluations."""
     from .feeds import FEEDS, scrape_feed, bundle_iocs, ingest_to_server
+    from .scrapers import SCRAPERS, run_scraper, ingest_evals_to_server
 
     if list_feeds:
-        click.echo("\n  Available feeds:")
+        click.echo("\n  IOC Feeds:")
         for name, info in FEEDS.items():
-            click.echo(f"    {name:12s}  {info['description']}")
+            click.echo(f"    {name:20s}{info['description']}")
+        click.echo()
+        click.echo("  Vendor Intelligence:")
+        for name, info in SCRAPERS.items():
+            click.echo(f"    {name:20s}{info['description']}")
         click.echo()
         return
 
@@ -399,42 +404,66 @@ def scrape(feed, list_feeds, dry_run, api_url, api_key):
         click.echo("  No server URL configured. Run: oombra init  (or use --dry-run)")
         raise SystemExit(1)
 
-    feed_names = list(feed) if feed else list(FEEDS.keys())
+    # Determine which sources to run
+    all_sources = {**{k: "feed" for k in FEEDS}, **{k: "scraper" for k in SCRAPERS}}
+    requested = list(feed) if feed else list(all_sources.keys())
 
-    # Validate feed names
-    for name in feed_names:
-        if name not in FEEDS:
-            click.echo(f"  Unknown feed: {name}. Use --list to see available feeds.")
+    # Validate names
+    for name in requested:
+        if name not in all_sources:
+            click.echo(f"  Unknown source: {name}. Use --list to see available sources.")
             raise SystemExit(1)
 
     total_iocs = 0
+    total_evals = 0
     total_uploaded = 0
-    feeds_ok = 0
+    sources_ok = 0
 
-    for name in feed_names:
-        click.echo(f"  Fetching {name}...", nl=False)
-        try:
-            iocs = scrape_feed(name)
-        except Exception as e:
-            click.echo(f" error: {e}")
-            continue
+    for name in requested:
+        kind = all_sources[name]
 
-        click.echo(f" {len(iocs)} IOCs")
-        total_iocs += len(iocs)
+        if kind == "feed":
+            click.echo(f"  Fetching {name}...", nl=False)
+            try:
+                iocs = scrape_feed(name)
+            except Exception as e:
+                click.echo(f" error: {e}")
+                continue
+            click.echo(f" {len(iocs)} IOCs")
+            total_iocs += len(iocs)
+            if iocs:
+                sources_ok += 1
+            if not dry_run and iocs and api_url:
+                bundles = bundle_iocs(iocs, name)
+                uploaded = ingest_to_server(api_url, bundles, api_key=api_key)
+                total_uploaded += uploaded
 
-        if iocs:
-            feeds_ok += 1
-
-        if not dry_run and iocs and api_url:
-            bundles = bundle_iocs(iocs, name)
-            uploaded = ingest_to_server(api_url, bundles, api_key=api_key)
-            total_uploaded += uploaded
+        else:  # scraper
+            click.echo(f"  Scraping {name}...", nl=False)
+            try:
+                evals = run_scraper(name)
+            except Exception as e:
+                click.echo(f" error: {e}")
+                continue
+            click.echo(f" {len(evals)} evaluations")
+            total_evals += len(evals)
+            if evals:
+                sources_ok += 1
+            if not dry_run and evals and api_url:
+                uploaded = ingest_evals_to_server(api_url, evals, api_key=api_key)
+                total_uploaded += uploaded
 
     click.echo()
+    parts = []
+    if total_iocs:
+        parts.append(f"{total_iocs} IOCs")
+    if total_evals:
+        parts.append(f"{total_evals} evaluations")
+    summary = " + ".join(parts) if parts else "0 results"
     if dry_run:
-        click.echo(f"  [dry-run] Scraped {total_iocs} IOCs from {feeds_ok} feeds (nothing uploaded)")
+        click.echo(f"  [dry-run] Scraped {summary} from {sources_ok} sources (nothing uploaded)")
     else:
-        click.echo(f"  Ingested {total_iocs} IOCs from {feeds_ok} feeds ({total_uploaded} bundles uploaded)")
+        click.echo(f"  Ingested {summary} from {sources_ok} sources ({total_uploaded} uploads)")
     click.echo()
 
 
