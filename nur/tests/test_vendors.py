@@ -35,7 +35,7 @@ class TestVendorRegistry:
     def test_get_vendor_returns_dict(self):
         v = get_vendor("crowdstrike")
         assert v is not None
-        assert v["display_name"] == "CrowdStrike"
+        assert v["display_name"] == "CrowdStrike Falcon"
 
     def test_get_vendor_case_insensitive(self):
         assert get_vendor("CrowdStrike") is not None

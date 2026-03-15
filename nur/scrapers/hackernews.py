@@ -30,14 +30,19 @@ VENDORS = [
     ("sophos",       "Sophos",             "edr",   ["Sophos Intercept X"]),
     ("carbon-black", "Carbon Black",       "edr",   ["Carbon Black EDR", "VMware Carbon Black"]),
     ("bitdefender",  "Bitdefender",        "edr",   ["Bitdefender GravityZone"]),
+    ("eset",         "ESET",               "edr",   ["ESET Protect", "ESET Endpoint"]),
+    ("trend-apex",   "Trend Micro",        "edr",   ["Trend Micro Apex One", "Trend Micro XDR"]),
+    ("kaspersky",    "Kaspersky",          "edr",   ["Kaspersky Endpoint", "Kaspersky EDR"]),
     # SIEM
     ("splunk",       "Splunk",             "siem",  ["Splunk SIEM", "Splunk Enterprise"]),
     ("ms-sentinel",  "Microsoft Sentinel", "siem",  ["Microsoft Sentinel", "Azure Sentinel"]),
+    ("qradar",       "IBM QRadar",         "siem",  ["IBM QRadar", "QRadar SIEM"]),
     ("elastic-siem", "Elastic SIEM",       "siem",  ["Elastic SIEM", "Elastic Security"]),
     # CNAPP
     ("wiz",          "Wiz",                "cnapp", ["Wiz cloud security", "wiz.io"]),
+    ("prisma-cloud", "Prisma Cloud",       "cnapp", ["Prisma Cloud", "Palo Alto CNAPP"]),
     ("snyk",         "Snyk",               "cnapp", ["Snyk security"]),
-    # GRC
+    # GRC (HN-specific extras)
     ("vanta",        "Vanta",              "grc",   ["Vanta compliance", "Vanta SOC2"]),
     ("drata",        "Drata",              "grc",   ["Drata compliance"]),
     # IAM
@@ -45,16 +50,28 @@ VENDORS = [
     ("entra-id",     "Microsoft Entra",    "iam",   ["Azure AD", "Entra ID"]),
     # PAM
     ("cyberark-pam", "CyberArk",          "pam",   ["CyberArk PAM"]),
+    ("beyondtrust",  "BeyondTrust",        "pam",   ["BeyondTrust PAM", "BeyondTrust Remote"]),
     ("hashicorp-vault","HashiCorp Vault",  "pam",   ["HashiCorp Vault", "vault secrets"]),
+    # Email
+    ("proofpoint",   "Proofpoint",         "email", ["Proofpoint email security"]),
+    ("mimecast",     "Mimecast",           "email", ["Mimecast email", "Mimecast security"]),
     # ZTNA
     ("zscaler",      "Zscaler",            "ztna",  ["Zscaler ZPA", "Zscaler Private"]),
     ("cloudflare-zt","Cloudflare Access",  "ztna",  ["Cloudflare Zero Trust", "Cloudflare Access"]),
+    ("cisco-duo",    "Cisco Duo",          "ztna",  ["Cisco Duo MFA", "Duo Security"]),
     # VM
     ("qualys",       "Qualys",             "vm",    ["Qualys VMDR"]),
     ("tenable",      "Tenable",            "vm",    ["Tenable Nessus"]),
+    ("rapid7",       "Rapid7",             "vm",    ["Rapid7 InsightVM", "Rapid7 Nexpose"]),
+    # WAF
+    ("cloudflare-waf","Cloudflare WAF",    "waf",   ["Cloudflare WAF", "Cloudflare DDoS"]),
+    ("f5-waf",       "F5 WAF",             "waf",   ["F5 Advanced WAF", "F5 BIG-IP"]),
+    ("imperva",      "Imperva",            "waf",   ["Imperva WAF", "Imperva Incapsula"]),
     # NDR
     ("darktrace",    "Darktrace",          "ndr",   ["Darktrace NDR"]),
     ("vectra",       "Vectra AI",          "ndr",   ["Vectra AI NDR"]),
+    # Threat Intel
+    ("recorded-future","Recorded Future",  "threat-intel", ["Recorded Future threat intel"]),
 ]
 
 

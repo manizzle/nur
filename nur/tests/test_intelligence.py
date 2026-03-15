@@ -296,7 +296,7 @@ async def test_search_vendor_returns_weighted_scores():
         data = resp.json()
 
         assert data["vendor_id"] == "crowdstrike"
-        assert data["vendor_display"] == "CrowdStrike"
+        assert data["vendor_display"] == "CrowdStrike Falcon"
         assert data["category"] == "edr"
         assert data["weighted_score"] is not None
         assert data["confidence"] in ("high", "medium", "low", "insufficient")

@@ -28,9 +28,9 @@ VENDORS = [
     ("sophos",        "Sophos Intercept X",              "edr"),
     ("bitdefender",   "Bitdefender GravityZone",         "edr"),
     ("carbon-black",  "VMware Carbon Black",             "edr"),
-    ("cybereason",    "Cybereason",                      "edr"),
     ("eset",          "ESET Protect",                    "edr"),
     ("trend-apex",    "Trend Micro Apex One",            "edr"),
+    ("kaspersky",     "Kaspersky Endpoint Security",     "edr"),
     # SIEM
     ("splunk",        "Splunk Enterprise Security",      "siem"),
     ("ms-sentinel",   "Microsoft Sentinel",              "siem"),
@@ -46,18 +46,27 @@ VENDORS = [
     # PAM
     ("cyberark-pam",  "CyberArk",                       "pam"),
     ("beyondtrust",   "BeyondTrust",                     "pam"),
+    ("hashicorp-vault","HashiCorp Vault",                "pam"),
     # Email
     ("proofpoint",    "Proofpoint",                      "email"),
     ("mimecast",      "Mimecast",                        "email"),
     # ZTNA
     ("zscaler",       "Zscaler",                         "ztna"),
     ("cloudflare-zt", "Cloudflare Zero Trust",           "ztna"),
+    ("cisco-duo",     "Cisco Duo",                       "ztna"),
     # VM
     ("qualys",        "Qualys",                          "vm"),
     ("tenable",       "Tenable Nessus",                  "vm"),
+    ("rapid7",        "Rapid7 InsightVM",                "vm"),
+    # WAF
+    ("cloudflare-waf","Cloudflare WAF",                  "waf"),
+    ("f5-waf",        "F5 Advanced WAF",                 "waf"),
+    ("imperva",       "Imperva WAF",                     "waf"),
     # NDR
     ("darktrace",     "Darktrace",                       "ndr"),
     ("vectra",        "Vectra AI",                       "ndr"),
+    # Threat Intel
+    ("recorded-future","Recorded Future",                "threat-intel"),
 ]
 
 _USER_AGENT = os.getenv("REDDIT_USER_AGENT", "nur-scraper/1.0")
