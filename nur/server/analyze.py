@@ -117,7 +117,10 @@ async def analyze_attack_map(data: dict[str, Any], db: Database) -> dict:
 
     tools = data.get("tools_in_scope", [])
     if isinstance(tools, str):
-        tools = json.loads(tools)
+        try:
+            tools = json.loads(tools)
+        except (json.JSONDecodeError, TypeError):
+            tools = []
 
     # Find techniques that our tools miss (exclude current contribution)
     gaps = await db.get_techniques_for_tools(tools, exclude_contribution_id=cid) if tools else []

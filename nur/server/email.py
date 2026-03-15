@@ -1,12 +1,20 @@
 """Send verification emails via SMTP."""
 import os
+import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
 
 def send_verification_email(to_email: str, verify_url: str) -> bool:
     """Send a magic link verification email. Returns True on success."""
+    # Validate email format strictly — reject header injection chars
+    if not EMAIL_RE.match(to_email) or '\n' in to_email or '\r' in to_email:
+        print(f"[nur] Invalid email format: {to_email}")
+        return False
+
     smtp_host = os.environ.get("SMTP_HOST", "")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
     smtp_user = os.environ.get("SMTP_USER", "")

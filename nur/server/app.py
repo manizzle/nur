@@ -24,7 +24,10 @@ import os
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+import secrets as _secrets_mod
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -119,7 +122,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
                     content={"error": "Invalid or missing API key"},
                 )
             # Accept master key OR any registered user key
-            if provided != master_key:
+            if not _secrets_mod.compare_digest(provided, master_key):
                 from sqlalchemy import select
                 from .models import APIKeyRecord
                 try:
@@ -140,35 +143,10 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
                         content={"error": "Invalid or missing API key"},
                     )
 
-            # Verify request signature if provided
-            sig_header = request.headers.get("X-Signature")
-            if sig_header:
-                try:
-                    import hashlib, hmac as _hmac
-                    from sqlalchemy import select
-                    from .models import APIKeyRecord
-
-                    # Look up public key for this API key
-                    db = get_db()
-                    # Can't do async DB call in sync middleware easily,
-                    # so just validate the signature format for now
-                    parts = sig_header.split(".", 1)
-                    if len(parts) != 2:
-                        return JSONResponse(
-                            status_code=401,
-                            content={"error": "Invalid signature format"},
-                        )
-                    ts_str, sig = parts
-                    ts = int(ts_str)
-                    now = int(time.time())
-                    # Reject signatures older than 5 minutes
-                    if abs(now - ts) > 300:
-                        return JSONResponse(
-                            status_code=401,
-                            content={"error": "Signature expired (>5 min)"},
-                        )
-                except (ValueError, Exception):
-                    pass  # signature validation is best-effort for now
+            # Signature header noted but not validated server-side yet
+            # TODO: implement proper HMAC verification against stored public keys
+            # sig_header = request.headers.get("X-Signature")
+            # (no action taken — signature validation requires async DB lookup)
 
         return await call_next(request)
 
@@ -486,11 +464,10 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             )
             record = existing.scalar_one_or_none()
             if record:
+                # Don't reveal that email exists — return same response as new registration
                 return {
-                    "status": "exists",
-                    "api_key": record.api_key,
-                    "tier": record.tier,
-                    "message": "API key already exists for this email",
+                    "status": "pending",
+                    "message": "If this email is registered, you'll receive a verification link.",
                 }
 
             # Create pending verification with magic link token
@@ -536,6 +513,14 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             if not pending:
                 return """<!DOCTYPE html><html><body style="background:#1a1a1e;color:#d55;font-family:monospace;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1>invalid or expired link</h1><p><a href="/register" style="color:#888">try again</a></p></div></body></html>"""
 
+            # Check token expiration (24 hours)
+            created = pending.created_at
+            if created is not None:
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                if created < datetime.now(timezone.utc) - timedelta(hours=24):
+                    return """<!DOCTYPE html><html><body style="background:#1a1a1e;color:#d55;font-family:monospace;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1>link expired</h1><p style="color:#888">This verification link has expired (24 hour limit).</p><p><a href="/register" style="color:#888">register again</a></p></div></body></html>"""
+
             if pending.verified:
                 # Already verified — find the key
                 existing = await s.execute(
@@ -555,8 +540,6 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>nur — verified</title>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag("js",new Date());gtag("config","G-YLL9Y97GG0");</script>
 <style>
   body {{ background:#1a1a1e; color:#c0c0c0; font-family:'Courier New',monospace; display:flex; align-items:center; justify-content:center; min-height:100vh; }}
   .box {{ text-align:center; max-width:500px; padding:40px; }}
@@ -1139,18 +1122,35 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
     @app.post("/contribute/submit")
     async def contribute_eval(body: dict[str, Any]):
+        # Basic field validation for eval records
+        d = body.get("data", body)
+        vendor = d.get("vendor", "")
+        if isinstance(vendor, str) and len(vendor) > 200:
+            raise HTTPException(status_code=400, detail="Vendor name too long (max 200 chars)")
+        category = d.get("category", "")
+        if isinstance(category, str) and len(category) > 100:
+            raise HTTPException(status_code=400, detail="Category too long (max 100 chars)")
+        notes = d.get("notes", "")
+        if isinstance(notes, str) and len(notes) > 10000:
+            raise HTTPException(status_code=400, detail="Notes too long (max 10,000 chars)")
         db = get_db()
         cid = await db.store_eval_record(body)
         return {"status": "accepted", "contribution_id": cid}
 
     @app.post("/contribute/attack-map")
     async def contribute_attack_map(body: dict[str, Any]):
+        techniques = body.get("techniques", [])
+        if len(techniques) > 500:
+            raise HTTPException(status_code=400, detail="Too many techniques (max 500)")
         db = get_db()
         cid = await db.store_attack_map(body)
         return {"status": "accepted", "contribution_id": cid}
 
     @app.post("/contribute/ioc-bundle")
     async def contribute_ioc_bundle(body: dict[str, Any]):
+        iocs = body.get("iocs", [])
+        if len(iocs) > 10000:
+            raise HTTPException(status_code=400, detail="Too many IOCs (max 10,000)")
         db = get_db()
         cid = await db.store_ioc_bundle(body)
         return {"status": "accepted", "contribution_id": cid}
