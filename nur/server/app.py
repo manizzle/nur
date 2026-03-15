@@ -751,13 +751,14 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   }}
   .cta-install {{
     background: #222228;
-    border: 1px solid #222;
+    border: 1px solid #333;
     border-radius: 4px;
     padding: 20px 28px;
-    display: inline-block;
+    display: block;
+    max-width: 380px;
+    margin: 0 auto 24px;
     text-align: left;
     font-size: 0.9em;
-    margin-bottom: 24px;
   }}
   .cta-install code {{ color: #aaa; }}
   .cta-install .cmd {{ color: #e0e0e0; }}
