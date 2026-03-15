@@ -410,17 +410,15 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
   <div class="install">
     <code>
-      <span class="comment"># install</span><br>
-      <span class="cmd">pip install nur</span><br><br>
-      <span class="comment"># connect</span><br>
-      <span class="cmd">nur init</span><br><br>
-      <span class="comment"># give data, get intelligence</span><br>
+      <span class="cmd">pip install nur</span><br>
+      <span class="cmd">nur init</span><br>
+      <span class="cmd">nur register you@yourorg.com</span><br>
       <span class="cmd">nur report incident.json</span>
     </code>
   </div>
 
   <div style="text-align:center;margin-bottom:24px;">
-    <a href="/register" style="display:inline-block;background:#3b7;color:#1a1a1e;font-family:'Courier New',monospace;font-weight:bold;font-size:0.9em;padding:10px 28px;border-radius:3px;text-decoration:none;letter-spacing:0.05em;">get started</a>
+    <a href="/register" style="display:inline-block;background:#3b7;color:#1a1a1e;font-family:'Courier New',monospace;font-weight:bold;font-size:0.9em;padding:10px 28px;border-radius:3px;text-decoration:none;letter-spacing:0.05em;">get started &rarr;</a>
   </div>
 
   <div class="links">
@@ -893,21 +891,17 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   <!-- CTA -->
   <div class="dash-section full cta">
     <div class="cta-tagline">give data, get smarter.</div>
-    <a class="cta-btn" href="/register">get started &rarr;</a>
     <div class="cta-install">
       <code>
-        <span class="comment"># install</span><br>
-        <span class="cmd">pip install nur</span><br><br>
-        <span class="comment"># connect &amp; register</span><br>
+        <span class="cmd">pip install nur</span><br>
         <span class="cmd">nur init</span><br>
-        <span class="cmd">nur register you@yourorg.com</span><br><br>
-        <span class="comment"># contribute &amp; get intelligence</span><br>
+        <span class="cmd">nur register you@yourorg.com</span><br>
         <span class="cmd">nur report incident.json</span>
       </code>
     </div>
+    <a class="cta-btn" href="/register">get started &rarr;</a>
     <div class="cta-links">
       <a href="/">home</a>
-      <a href="/register">register</a>
       <a href="/docs">api docs</a>
       <a href="https://github.com/manizzle/nur">github</a>
     </div>
