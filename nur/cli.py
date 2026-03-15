@@ -993,6 +993,117 @@ def graph_build(files, output):
         click.echo(f"  Saved to {output}")
 
 
+# ── Threat Model ──────────────────────────────────────────────────────────────
+
+@main.command("threat-model")
+@click.option("--stack", required=True, help="Comma-separated list of tools (e.g. crowdstrike,splunk,okta)")
+@click.option("--vertical", default="healthcare",
+              type=click.Choice(["healthcare", "financial", "energy", "government"]),
+              help="Industry vertical")
+@click.option("--org", default="Organization", help="Organization name")
+@click.option("--json", "json_output", is_flag=True, help="Output full JSON")
+@click.option("--hcl", "hcl_output", is_flag=True, help="Output threatcl HCL format")
+@click.option("--output", "-o", default=None, help="Save output to file")
+def threat_model_cmd(stack, vertical, org, json_output, hcl_output, output):
+    """Generate a threat model for your security stack.
+
+    \b
+    Examples:
+      nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare
+      nur threat-model --stack crowdstrike,splunk --vertical financial --hcl
+      nur threat-model --stack crowdstrike,splunk,okta --hcl --output model.hcl
+    """
+    from .threat_model import generate_threat_model
+
+    tools = [t.strip() for t in stack.split(",") if t.strip()]
+    if not tools:
+        click.echo("  No tools provided. Use --stack tool1,tool2,tool3")
+        raise SystemExit(1)
+
+    model = generate_threat_model(stack=tools, vertical=vertical, org_name=org)
+
+    if json_output:
+        # Full JSON output
+        import json as json_mod
+        text = json_mod.dumps(model, indent=2)
+        if output:
+            Path(output).write_text(text)
+            click.echo(f"  Saved JSON to {output}")
+        else:
+            click.echo(text)
+        return
+
+    if hcl_output:
+        # HCL output
+        text = model["threatcl_hcl"]
+        if output:
+            Path(output).write_text(text)
+            click.echo(f"  Saved HCL to {output}")
+        else:
+            click.echo(text)
+        return
+
+    # Default: human-readable summary
+    click.echo()
+    click.echo(f"  Threat Model: {model['org_name']}")
+    click.echo(f"  Vertical: {model['vertical_display']}")
+    click.echo(f"  {'=' * 56}")
+
+    # Stack
+    click.echo(f"\n  Stack ({len(model['stack'])} tools):")
+    for t in model["stack"]:
+        click.echo(f"    - {t['display_name']} ({t['category']})")
+
+    # Coverage score
+    score_pct = int(model["coverage_score"] * 100)
+    covered = len(model["coverage"])
+    total = covered + len(model["gaps"])
+    click.echo(f"\n  Coverage: {score_pct}% ({covered}/{total} priority techniques)")
+
+    # Covered techniques
+    if model["coverage"]:
+        click.echo(f"\n  Covered Techniques:")
+        for tech_id, info in model["coverage"].items():
+            tool_names = ", ".join(t["display_name"] for t in info["tools"])
+            click.echo(f"    [{tech_id}] {info['name']}")
+            click.echo(f"      Covered by: {tool_names}")
+
+    # Gaps
+    if model["gaps"]:
+        click.echo(f"\n  Gaps ({len(model['gaps'])} uncovered):")
+        for gap in model["gaps"]:
+            click.echo(f"    [{gap['id']}] {gap['name']}")
+            click.echo(f"      {gap['why']}")
+            if gap.get("suggested_categories"):
+                click.echo(f"      Suggested: {', '.join(gap['suggested_categories'][:3])}")
+
+    # Compliance
+    click.echo(f"\n  Compliance:")
+    for fw, info in model["compliance"].items():
+        status = "COVERED" if info["covered"] else "GAP"
+        tool_str = f" ({', '.join(info['tools'])})" if info["tools"] else ""
+        click.echo(f"    {fw}: {status}{tool_str}")
+
+    # Threat actors
+    click.echo(f"\n  Threat Actors: {', '.join(model['threat_actors'][:5])}")
+
+    # Recommendations
+    if model["recommendations"]:
+        click.echo(f"\n  Recommendations:")
+        for rec in model["recommendations"][:8]:
+            priority = rec["priority"].upper()
+            click.echo(f"    [{priority}] {rec['action']}")
+            click.echo(f"      {rec['detail']}")
+
+    click.echo()
+
+    if output:
+        import json as json_mod
+        Path(output).write_text(json_mod.dumps(model, indent=2))
+        click.echo(f"  Full model saved to {output}")
+        click.echo()
+
+
 @graph.command("analyze")
 @click.argument("files", nargs=-1, type=click.Path(exists=True))
 @click.option("--clusters", type=int, default=3, help="Number of campaign clusters")

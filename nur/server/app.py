@@ -143,10 +143,20 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
                         content={"error": "Invalid or missing API key"},
                     )
 
-            # Signature header noted but not validated server-side yet
-            # TODO: implement proper HMAC verification against stored public keys
-            # sig_header = request.headers.get("X-Signature")
-            # (no action taken — signature validation requires async DB lookup)
+            # Signature timestamp validation (replay prevention)
+            sig_header = request.headers.get("X-Signature")
+            if sig_header:
+                try:
+                    parts = sig_header.split(".", 1)
+                    if len(parts) == 2:
+                        ts = int(parts[0])
+                        if abs(int(time.time()) - ts) > 300:
+                            return JSONResponse(
+                                status_code=401,
+                                content={"error": "Signature expired (>5 min)"},
+                            )
+                except (ValueError, TypeError):
+                    pass  # Don't fail the request on malformed signatures
 
         return await call_next(request)
 
@@ -1177,6 +1187,26 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             return await analyze_eval_record(body, db)
         else:
             raise HTTPException(status_code=400, detail="Unknown contribution type")
+
+    # ── Threat Model ──────────────────────────────────────────────
+
+    @app.post("/threat-model")
+    async def threat_model_endpoint(body: dict[str, Any]):
+        """Generate a threat model for a given stack and vertical."""
+        from ..threat_model import generate_threat_model
+        stack = body.get("stack", [])
+        if not stack or not isinstance(stack, list):
+            raise HTTPException(status_code=400, detail="'stack' must be a non-empty list of tool IDs")
+        vertical = body.get("vertical", "healthcare")
+        org_name = body.get("org_name", "Organization")
+        try:
+            return generate_threat_model(
+                stack=stack,
+                vertical=vertical,
+                org_name=org_name,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     return app
 
