@@ -164,7 +164,7 @@ echo "  Code: Apache 2.0"
 echo "  Feeds: abuse.ch (CC0), CISA KEV (public domain), MITRE (Apache 2.0)"
 echo ""
 echo "  pip install nur"
-echo "  github.com/manizzle/oombra"
+echo "  github.com/manizzle/nur"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 sleep 5

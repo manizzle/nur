@@ -2,7 +2,7 @@
   "iocs": [
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "0caacc324e93026344068c2d7ea168c5b87b58640e98cb1f657230a8436d9765",
+      "value_raw": "c794a6c7506b9f5b40b25fc108267a5b90e300cba69d175d40829615815f43a8",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -10,7 +10,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "5175ae4c75a8e1d10decb0a787d31784a986cafe5e4a24d3aa0eb7e7748f916f",
+      "value_raw": "3522b20d6461dd3bcfcaa85c30e810f515045331116f9ff92c6555773342c3f5",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -18,7 +18,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "38c53277006fd3fc4c13e8542acffbef3da3ae84272b42a119429afff9dba93c",
+      "value_raw": "84e7e468f7222bd5b8f3312355c3d699872f21cfa6e125a7dc177eda50918959",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -26,7 +26,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "2630f5e7c3d30f63229b84855cbc9a96ede8ce028e3a438cc131a3528450b00a",
+      "value_raw": "4828b8aae87a5f0c994b920050caf0093da3e296959f6350ccb3c61fba2bdebe",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -34,7 +34,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "a948603c6a98efe282053a11422765c2771444be9aa2c90d6c5447744aff0985",
+      "value_raw": "9e4418521af9b91fce30561ce2982fd32378dc794afbcd95a2ddcb1e46e37c5a",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -42,7 +42,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "1253014a77e61610fa777d2b9e4735ca11352274fe38b65191aebcd5b6b5d147",
+      "value_raw": "5d4db2e3cac1da48ae87df7ab46f6a9b527922b4785da87851314d16a77d9e08",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -50,7 +50,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "6ba8cad8cbd71ddcbf2708fa838f566985a8976d680886d89da949b0c29141d6",
+      "value_raw": "00f01750994214b5d936755f4e67db0663fe9787960817e2bcb7b3c85e394f98",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -58,7 +58,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "302a9f9af9eda01fa968e300725a84252cb06c75f2066cd843222b64751a6956",
+      "value_raw": "4b802623bf625441d71e6f357bbbee2481d9250e89576358f5f02dddf04b6bf1",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -66,7 +66,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "78639b2b09d043493565eefb538d174a7db78b2cf1b9bd9cdf5a81e63995594d",
+      "value_raw": "d47e517027efcdaae2280f6661fdf85a8429db585939776706e779fe2e373f0c",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -74,7 +74,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "82aaa56441fcb4ca4495c0f2e03eb8fe44df801abeb0aa0d4341d176fbd799ec",
+      "value_raw": "d0a79f28baec2beaae749a8d64dcc4d1a79cde6982a72ede58945a843b563955",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -82,7 +82,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "9aab893007c7dc97f98539b4a468bd978a6db7dff17a28fa9173e42252e8be55",
+      "value_raw": "038ddeb937e70aa8e1321f55c5d43b18f4cea9dd6abe63f43141ec22ccbe9825",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -90,7 +90,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "c424cef8ade79dab30ad4e6b688ac8bb7c5099ebea863e072d7a745db0b58e88",
+      "value_raw": "4064f42a30b85220545e4a43672e374ba879b36b3d79c4a5e2324a3ca1f6df8a",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -98,7 +98,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "312e42ea7b8edb0a61355c50c3c02a91cd5ada0fa6baec96ebd8197db2ea754a",
+      "value_raw": "5c15f4808ad986ff87797ff8d01120a5016d6182f08788db73072bec43d53814",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -106,7 +106,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "60ca76c8721cac0b8fb9daac721242ae7ae708ca948d096d54c5cc18f31541b1",
+      "value_raw": "61061bd61fd9b9abc52c6041993114456744e4bde92f22423daea647b7f02c5b",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -114,7 +114,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "847d5f434315ba60695793f10e296fee855b2f214ad106cb58655dab2b2c064d",
+      "value_raw": "868256ef2bfc57b871c3829ca9d71602378c0c0ccf755315b8fa14d84b931a85",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -122,7 +122,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "b5dce3c0d922012db229ba284121354730362cb11f4fedae4209cd264f9e7af1",
+      "value_raw": "de7d54276047fc457271b582a378e9599ce0b3822d4e9cb89a1260f81a3c2644",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -130,7 +130,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "b30aa1159a660f71f48c58c75e2844e3342108e4e3fbd72487aa0e2662da3d8a",
+      "value_raw": "74185c5084258b89d490687987171a6e7e0247be4ca5a2dd12607ddfd911d183",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -138,7 +138,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "c4c9d191f53e1f2a4a6c05a35d0354719b3797192b7d361375f475302c7d3c9b",
+      "value_raw": "1daf7482d700536bc5dfe45c763dad99123e41f0be205415d708b70e6dcbfbb2",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -146,7 +146,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "51c497e9136a192e41c0d09508f45e7b016676bf63cc133980b7c53798aa01f0",
+      "value_raw": "fc075a04586519306868d0089966425e7824be432fc74a1d9e8fa1a5358a1bc7",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -154,7 +154,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "4172ff83b7e93674b9eded28b00533b7f069d6704251ab80d29a3ad7d6b9e92d",
+      "value_raw": "6b0c56540499051ab350a31f417b99859da7ed7286b9e77503711c6aabafbe03",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -162,7 +162,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "dd068eed57c2238760f2f925cdb0ce1c016c44e9ded3b064a39961df200018de",
+      "value_raw": "64f8772403580b8b04540f070b3f964fee58b106c1da08138815cde82c8da8c6",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -170,7 +170,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "67dc4775c7c3593825bc1f11d990032e3982f0064bde6bc30f52fc7f468e8acc",
+      "value_raw": "12b3cfb959b03997387e60e9fc4e7aa1ed59ed811cb0770347f29ec2f779ea3a",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -178,7 +178,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "ae6404b3a71d8ef2ea5c8002cd4e5aec3c6643fb87baab9486d2420ec8d633c1",
+      "value_raw": "5d2d7935d6fac745234eea85e2a83ba31d71509727bf01ec6f418980dfae6167",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -186,7 +186,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "5ae4891f9868482897e45b85b24f5e5f58d40bda0c3bdcbc51a66f4de009e536",
+      "value_raw": "94b9af2c6eaa9f357893f0915cd60baf6161ac98daa10aba14c033c704d41b50",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -194,7 +194,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "4e759caac13845a074e67c97f944a50e28f4749e647f5a2884c8f917bf3772d6",
+      "value_raw": "c3b91aa16dbe60c55799392b2ab1d739692203672fb4f2f14ff1b3e2d0558bfe",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -202,7 +202,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "e806df0aa530bfebb8530895ae8b884df915c9e76a96cedf2d8d4ad1c3dc8b4e",
+      "value_raw": "4c9c451ee9fce127dae278eeac763dae233d09d227711c556f7a8941d5c37eb5",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -210,7 +210,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "34a86aef213adbbaf88f0432ec63df4ba6b105f78e813f400a464e7cdcab99f1",
+      "value_raw": "4dd9d9953ffac418546a28e23d52ccc8c92d863f0495c8980070457088f94297",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -218,7 +218,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "1f6f3611056873ae5d14d22887a4b285cad311b1e3ccce8c488d40bf7a0b5e61",
+      "value_raw": "6be78a25411c51901570d314d657ea558d2bc7902ac9fba144020e257dade0cc",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -226,7 +226,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "01ad4ebf895082621ab065c9db739699c6f35b1174e343e49082a90feb492ad6",
+      "value_raw": "047e5348b71f12cc9d6f1241f771a0be3591a348a8e9e556c99deeaeb68b1199",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -234,7 +234,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "5e510b82cf1b2d9bac0e36097e210758ec2b872497eae5de38d51df23cb6ca94",
+      "value_raw": "65d7c59c8a21d2ed3a427fccfab4ba18227a6fd5d737257870a39dc69f12e03d",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -242,7 +242,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "e0dcf89f51f899264ba6e594793b482b84fb14a25a5712fc0616d46aeee2e65b",
+      "value_raw": "3856bf5d8508d54624bb9b626e5572240bd15469a37300ded86420f20fa18a8d",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -250,7 +250,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "236fb06a5a1602da404031117c8e880d25d706b8c1c54522c93b4d2e48a0b1ac",
+      "value_raw": "e23585aefbb887977440af86195fe0ebf7763e10f2255217dbde7c1545de0a27",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -258,7 +258,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "cad71cd33bc35e6eefe1bfd43cedc39b2deb09057e29c81309fe2b87a1d7d405",
+      "value_raw": "6dfa1e31b246ddcc95bd98c8267e2742ec72eb42193b7bcf06a7326df74e2ae8",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -266,7 +266,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "b72b66fd622dbc007f49bd1a344192321258e1203885f1fd202b45c59d8c8a20",
+      "value_raw": "d0655d9aa00a1e92b6b66ae9818b9e75234a515e550db729f6754443d5991324",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -274,7 +274,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "901d87af193a391a425bc2f001b0e98437f0761c80350046c89dd8ae1086cb42",
+      "value_raw": "a777e1f816f6554cce97f5d71dc6814c30e6806ca6337ca04fd08f9e94b65e90",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -282,7 +282,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "38531e1859cc2035fe0e9ffc9c865e9393c4ff9c08dcad2bcecd48afef82f8aa",
+      "value_raw": "2530025bd1fced9443a32079db97f9023a11968ec353f52adf73a8da0edd9daa",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -290,7 +290,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "cbeabab922c21af994832f77f1a71e6ef7a004acecd133fa57379701a28cb498",
+      "value_raw": "b2a5a733664ac0b32a407a55760e8568d80c318354e1bad0d5d5719d8806d1ab",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -298,7 +298,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "8dcfc3264df4cb34f29f992dbcddb80813f6ca934fc817bab741554c5a347ad7",
+      "value_raw": "0501bed4067ea9365d6a6e553e4a709a9b5cb829a5a1d83bcf3a858e6505f353",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -306,7 +306,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "e2d2a26776466619bda41eadb5728cc12097c0c9839e60a2152254b895fdedf2",
+      "value_raw": "28f57ab575961ea9af28304c09f1533c2d50e79a3934363cdf71eccb84447b16",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],
@@ -314,7 +314,7 @@
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "c3b55713df418e6bfc1862a39c99d4ee3ec5e0921d773850647ed772b5d2b4ba",
+      "value_raw": "a4ed49e3cc91c3856fd927ecaabdc1b99ef8541a111239f6a9ee6a65a271f74f",
       "threat_actor": "malware",
       "campaign": "recent-malware",
       "detected_by": [],

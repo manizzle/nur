@@ -2,201 +2,201 @@
   "iocs": [
     {
       "ioc_type": "ip",
-      "value_raw": "31.57.112.8",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "Kaka56436346-61220.portmap.host",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "value_raw": "156.234.56.50",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
       "ioc_type": "ip",
-      "value_raw": "185.241.208.20",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.zg92k9yc.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.y04bab68.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.do36ksjq.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.qaopv88w.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.0775c2nd.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.qsk6yxyo.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.00zxddm1.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "www.vhyafr5p.shop",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "unhookmerip-38294.portmap.host",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "dola789game.com",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "value_raw": "156.234.56.37",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
       "ioc_type": "ip",
-      "value_raw": "185.220.67.52",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "value_raw": "156.234.56.52",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "156.234.56.42",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "url",
+      "value_raw": "http://webcdns.com:2083/static-directory/lt.mp3",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "38.60.224.176",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "143.92.51.45",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "119.29.117.194",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "217.156.122.251",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
       "ioc_type": "domain",
-      "value_raw": "bj88games.how",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "value_raw": "ingress.local",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
-      "ioc_type": "domain",
-      "value_raw": "rustomjeecleon.in.net",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "ioc_type": "ip",
+      "value_raw": "135.181.229.241",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
-      "ioc_type": "domain",
-      "value_raw": "fly88-vn04.com",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "ioc_type": "ip",
+      "value_raw": "114.132.251.233",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
-      "ioc_type": "hash-md5",
-      "value_raw": "2010e044ac40927130d1f7f237815ced",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "ioc_type": "ip",
+      "value_raw": "114.132.251.233",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "103.54.62.177",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "156.234.205.157",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "114.132.60.44",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "114.132.60.44",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "118.145.104.2",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "101.132.153.5",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "ip",
+      "value_raw": "42.192.107.134",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
       "ioc_type": "hash-sha256",
-      "value_raw": "cb36189885f26321e070ffef0be956476f40429410f1fd23f97dddac24b23c05",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "value_raw": "a515e6d5393e87b4d56b47c6044984b35dd65a78045e78590708ba9e7270e2b7",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-sha256",
+      "value_raw": "2f47a4be84b4e4d165c1f4024402896404f6dcfa61eb47df2d999d749aba072b",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "hash-md5",
+      "value_raw": "3bda4d693accb639bbc8485585e3f8c0",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
       "ioc_type": "hash-sha1",
-      "value_raw": "2458e4bc6d50ddecaba4a5307ee4344f7c849d58",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "value_raw": "b2f4acc247149b3389a40e23a94869258d082ef5",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     },
     {
-      "ioc_type": "domain",
-      "value_raw": "OK8386.SE.NET",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "cm88.mex.com",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "cm88.ninja",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "cm889.it.com",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "open88-2.com",
-      "threat_actor": "Quasar RAT",
-      "campaign": "win.quasar_rat",
+      "ioc_type": "hash-sha256",
+      "value_raw": "168cc168723a7f267d476c3b334f064354ccdc19b70cb140d1b49128705ab587",
+      "threat_actor": "Cobalt Strike",
+      "campaign": "win.cobalt_strike",
       "detected_by": [],
       "missed_by": []
     }
@@ -207,7 +207,7 @@
     "palo-alto"
   ],
   "source": "threat-feed",
-  "notes": "Real IOCs associated with win.quasar_rat from ThreatFox abuse.ch feed.",
+  "notes": "Real IOCs associated with win.cobalt_strike from ThreatFox abuse.ch feed.",
   "context": {
     "industry": "financial",
     "org_size": "5000-10000"
