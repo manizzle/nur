@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════
-#  nur — peace mode + war mode, one platform
+#  nur — wartime + peacetime, live server demo
 #
 #  Record: asciinema rec demo/nur-demo.cast -c "./demo/asciinema_demo.sh"
-#  Upload: asciinema upload demo/nur-demo.cast
 # ═══════════════════════════════════════════════════════════════════
 
 set -e
@@ -38,133 +37,100 @@ clear
 echo ""
 echo "  ┌───────────────────────────────────────────────────────┐"
 echo "  │                                                       │"
-echo "  │   nur — threat intel sharing platform              │"
+echo "  │   nur — light on what your industry knows             │"
 echo "  │                                                       │"
-echo "  │   PEACE MODE: strengthen your defenses                │"
-echo "  │   WAR MODE:   you're getting hacked, act now          │"
-echo "  │                                                       │"
-echo "  │   One platform. One database. Give data, get intel.   │"
+echo "  │   live: nur.saramena.us                               │"
+echo "  │   37 data sources · 658,000+ IOCs · real feeds        │"
 echo "  │                                                       │"
 echo "  └───────────────────────────────────────────────────────┘"
 echo ""
-sleep 4
+sleep 3
 
-# ── Seed silently ─────────────────────────────────────────────
-python demo/scrape_real_intel.py demo/seed/ > /dev/null 2>&1
-rm -f demo_asciinema.db
-nur serve --port 8765 --db sqlite+aiosqlite:///demo_asciinema.db > /dev/null 2>&1 &
-SERVER_PID=$!
+# ═══════════════════════════════════════════════════════════════
+# WARTIME — you're under attack
+# ═══════════════════════════════════════════════════════════════
+
+divider "WARTIME — 2:17 AM, Ohio Children's Hospital, LockBit"
+
+narrate "EHR encrypted. NICU monitors offline."
+narrate "IR team pulled IOCs. They need answers NOW."
 sleep 2
-for f in demo/seed/ioc_bundle_*.json demo/seed/attack_map_*.json demo/eval_crowdstrike.json demo/eval_sentinelone.json demo/eval_splunk.json demo/eval_wiz.json demo/eval_palo_alto_prisma_cloud.json demo/ioc_bundle_1.json demo/ioc_bundle_2.json demo/attack_map_apt28.json demo/attack_map_lockbit.json; do
-    [ -f "$f" ] && nur upload "$f" --api-url http://localhost:8765 --yes > /dev/null 2>&1
-done
 
-narrate "Platform loaded: real IOCs from ThreatFox, Feodo, CISA KEV"
-narrate "+ contributions from 4 hospitals and practitioner tool evals."
-echo ""
+bold "1. Upload IOCs → am I alone?"
 
-type_cmd "curl -s http://localhost:8765/stats | python3 -m json.tool"
+type_cmd "nur report demo/ioc_bundle_2.json"
+
+narrate "16 shared IOCs. LockBit campaign confirmed."
+narrate "Block C2 domains. Hunt for lateral movement."
+sleep 3
+
+bold "2. Upload attack map → what am I missing?"
+
+type_cmd "nur report demo/attack_map_lockbit.json"
+
+narrate "7 detection gaps. T1490 critical. Deploy rules NOW."
+sleep 3
+
+bold "3. Upload eval → should I switch tools?"
+
+type_cmd "nur report demo/eval_crowdstrike.json"
+
+narrate "9.2 — above average. 5 gaps. Supplement, don't switch."
 sleep 2
 
 # ═══════════════════════════════════════════════════════════════
-# PEACE MODE
+# PEACETIME — build a better stack
 # ═══════════════════════════════════════════════════════════════
 
-divider "PEACE MODE — Strengthen your defenses"
+divider "PEACETIME — next week, data for the board"
 
-narrate "No incident. You're planning. Building your stack."
-narrate "What tools should I buy? Where are my gaps?"
+narrate "Incident handled. CISO needs to justify the next purchase."
 sleep 1
 
-echo ""
-bold "1. Market map — who leads in EDR?"
+bold "4. Who leads the market?"
 
-type_cmd "nur market edr --api-url http://localhost:8765"
+type_cmd "nur market edr"
 
-narrate "Leaders, contenders, emerging — based on weighted practitioner scores."
 sleep 2
 
-bold "2. Vendor deep dive"
+bold "5. How does our tool compare?"
 
-type_cmd "nur search vendor crowdstrike --api-url http://localhost:8765"
+type_cmd "nur search compare crowdstrike sentinelone"
 
-narrate "Real scores from real incidents. Not Gartner. Not vendor marketing."
+narrate "Real data. Not vendor slides."
 sleep 2
 
-bold "3. Side-by-side comparison"
+bold "6. Where are our gaps before the next attack?"
 
-type_cmd "nur search compare crowdstrike sentinelone --api-url http://localhost:8765"
+type_cmd "nur threat-map 'ransomware lateral movement' --tools crowdstrike,splunk"
 
-narrate "Objective comparison. Data from the pool."
-sleep 2
-
-bold "4. Threat coverage analysis"
-
-type_cmd "nur threat-map 'ransomware lateral movement' --tools crowdstrike,splunk --api-url http://localhost:8765"
-
-narrate "Before the attack — know your gaps. Close them."
+narrate "Find gaps in peacetime. Close them before wartime."
 sleep 3
 
 # ═══════════════════════════════════════════════════════════════
-# WAR MODE
+# JSON — for automation
 # ═══════════════════════════════════════════════════════════════
 
-divider "WAR MODE — 2:17 AM, Ohio Children's Hospital, LockBit"
+divider "AI-NATIVE — JSON for SOAR, agents, scripts"
 
-narrate "EHR encrypted. NICU monitors offline. Ransom note on every screen."
-narrate "The IR team pulls IOCs. They need answers NOW."
+type_cmd "nur report demo/ioc_bundle_2.json --json | python3 -m json.tool | head -15"
+
 sleep 2
-
-bold "5. Give IOCs → Get campaign match"
-
-type_cmd "nur report demo/ioc_bundle_2.json --api-url http://localhost:8765"
-
-narrate "Campaign confirmed. 3 other hospitals hit. Actions prioritized."
-sleep 3
-
-bold "6. Give attack map → Get detection gaps"
-
-type_cmd "nur report demo/attack_map_lockbit.json --api-url http://localhost:8765"
-
-narrate "7 gaps found. T1490 is critical. Deploy detection rules NOW."
-sleep 3
-
-bold "7. Give tool eval → Get real benchmarks"
-
-type_cmd "nur report demo/eval_crowdstrike.json --api-url http://localhost:8765"
-
-narrate "CrowdStrike 9.2 — above avg. But 5 known gaps. Supplement, don't switch."
-sleep 2
-
-# ── Cleanup ───────────────────────────────────────────────────
-kill $SERVER_PID 2>/dev/null
-rm -f demo_asciinema.db
 
 # ═══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "  PEACE MODE                    WAR MODE"
-echo "  nur market edr             nur report iocs.json"
-echo "  nur search vendor X        nur report attack.json"
-echo "  nur search compare X Y     nur report eval.json"
-echo "  nur threat-map '...'       "
+echo "  WARTIME                        PEACETIME"
+echo "  nur report iocs.json           nur market edr"
+echo "  nur report attack.json         nur search compare X Y"
+echo "  nur report eval.json           nur threat-map '...'"
 echo ""
-echo "  Same database. Same give-to-get."
-echo "  Your peacetime eval helps someone in wartime."
-echo "  Their wartime IOCs help your peacetime planning."
+echo "  Your wartime IOCs help someone's peacetime planning."
+echo "  Their peacetime eval helps your wartime response."
 echo ""
-echo "  Deploy for any vertical:"
-echo "    nur up --vertical healthcare"
-echo "    nur up --vertical financial"
-echo "    nur up --vertical energy"
-echo ""
-echo "  Data: LGPL-3.0 (open data)"
-echo "  Code: Apache 2.0"
-echo "  Feeds: abuse.ch (CC0), CISA KEV (public domain), MITRE (Apache 2.0)"
-echo ""
-echo "  pip install nur"
-echo "  github.com/manizzle/nur"
+echo "  Live: nur.saramena.us"
+echo "  Code: github.com/manizzle/nur"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 sleep 5
