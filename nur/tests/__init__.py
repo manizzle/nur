@@ -1,0 +1,1 @@
+"""nur test suite."""

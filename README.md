@@ -1,11 +1,11 @@
-<h1 align="center">vigil</h1>
+<h1 align="center">nur</h1>
 
 <p align="center"><strong>Collective security intelligence for industries. Give data, get smarter.</strong></p>
 
 <p align="center">Your industry should be smarter together than any single company is alone.</p>
 
 <p align="center">
-  <img src="demo/vigil-demo.gif" alt="vigil demo" width="750" />
+  <img src="demo/nur-demo.gif" alt="nur demo" width="750" />
 </p>
 
 <p align="center">
@@ -21,50 +21,50 @@
 
 Every hospital buys security tools based on vendor marketing. Every bank figures out their detection gaps by getting hacked. Every energy company fights the same APT without knowing three other utilities already beat it.
 
-vigil fixes this. Two questions, one platform:
+nur fixes this. Two questions, one platform:
 
 - **What's compromising us?** — IOCs, attack patterns, campaigns hitting your sector
 - **What actually works?** — which tools catch what, real practitioner scores from real incidents
 
-> ✅ Everything is anonymized on your machine. Nothing leaves without your approval. Math, not promises.
+> Everything is anonymized on your machine. Nothing leaves without your approval. Math, not promises.
 
 ---
 
-## 💡 Why this exists
+## Why this exists
 
 Three assumptions the security industry is built on — and why they're wrong:
 
 | Assumption | Reality |
 |-----------|---------|
-| "Sharing is altruistic" | Nobody shares out of goodness. vigil makes it selfish: **no contribution = no report**. Give to get. |
+| "Sharing is altruistic" | Nobody shares out of goodness. nur makes it selfish: **no contribution = no report**. Give to get. |
 | "Threat intel = IOCs" | IOCs are one piece. Practitioners need: what tools catch this? What scores are others giving their EDR? What techniques are being missed sector-wide? |
-| "You need a dashboard" | You need a CLI that works in SOAR pipelines, that AI agents can call, that scripts automate. `vigil report` — one command, JSON output, done. |
+| "You need a dashboard" | You need a CLI that works in SOAR pipelines, that AI agents can call, that scripts automate. `nur report` — one command, JSON output, done. |
 
 ---
 
-## 🚀 Get started
+## Get started
 
 ```bash
 git clone https://github.com/manizzle/oombra.git
-cd vigil
+cd oombra
 pip install -e ".[all,dev]"
-vigil up --vertical healthcare
+nur up --vertical healthcare
 ```
 
 That starts the platform, scrapes **19 real data sources**, and you're ready.
 
 ```bash
-vigil report your_incident_data.json
+nur report your_incident_data.json
 ```
 
 Two commands. Full loop. No config files.
 
 ---
 
-## ⚔️ When you're under attack
+## When you're under attack
 
 ```bash
-vigil report incident_iocs.json
+nur report incident_iocs.json
 ```
 
 ```
@@ -82,13 +82,13 @@ You gave IOCs. You got campaign correlation, detection gaps, and a prioritized t
 
 ---
 
-## 🛡️ When you're building defenses
+## When you're building defenses
 
 ```bash
-vigil market edr                                    # who leads?
-vigil search vendor crowdstrike                     # real scores
-vigil search compare crowdstrike sentinelone        # side-by-side
-vigil threat-map "ransomware" --tools crowdstrike   # coverage gaps
+nur market edr                                    # who leads?
+nur search vendor crowdstrike                     # real scores
+nur search compare crowdstrike sentinelone        # side-by-side
+nur threat-map "ransomware" --tools crowdstrike   # coverage gaps
 ```
 
 ```
@@ -107,14 +107,14 @@ Real data from 19 sources. Not vendor marketing. Not analyst reports funded by v
 
 ---
 
-## 🏥 The hospital scenario
+## The hospital scenario
 
 **2:17 AM** — Ohio Children's Hospital. LockBit. EHR encrypted. NICU monitors offline.
 
 ```bash
-vigil report lockbit_iocs.json         # Campaign Match: Yes. 12 shared IOCs.
-vigil report lockbit_attack_map.json   # 7 detection gaps. T1490 critical.
-vigil report our_crowdstrike.json      # 9.2 avg. 5 known gaps. Supplement.
+nur report lockbit_iocs.json         # Campaign Match: Yes. 12 shared IOCs.
+nur report lockbit_attack_map.json   # 7 detection gaps. T1490 critical.
+nur report our_crowdstrike.json      # 9.2 avg. 5 known gaps. Supplement.
 ```
 
 **4:30 AM** — West Virginia gets the same ransom note. Their report is *better* — because Ohio contributed.
@@ -122,22 +122,22 @@ vigil report our_crowdstrike.json      # 9.2 avg. 5 known gaps. Supplement.
 **Next week** — Ohio's CISO needs data for the board:
 
 ```bash
-vigil market edr
-vigil search compare crowdstrike sentinelone
-vigil threat-map "ransomware" --tools crowdstrike
+nur market edr
+nur search compare crowdstrike sentinelone
+nur threat-map "ransomware" --tools crowdstrike
 ```
 
 Real data. Not vendor slides.
 
 ---
 
-## 📡 35 live data sources (45 catalogued)
+## 35 live data sources (45 catalogued)
 
-vigil isn't an empty platform waiting for users. It scrapes real intelligence from public feeds, independent labs, review platforms, and community discussions. **Day one, you have 658,000+ data points.**
+nur isn't an empty platform waiting for users. It scrapes real intelligence from public feeds, independent labs, review platforms, and community discussions. **Day one, you have 658,000+ data points.**
 
 ```bash
-vigil scrape --list           # see all sources
-vigil admin sources           # see all 45 with tier/status
+nur scrape --list           # see all sources
+nur admin sources           # see all 45 with tier/status
 ```
 
 ### IOC Feeds (20) — *what's compromising us*
@@ -173,7 +173,7 @@ vigil admin sources           # see all 45 with tier/status
 | [AV-TEST](https://www.av-test.org) | Independent lab scores (8 vendors) | 2.5 |
 | [SE Labs](https://selabs.uk) | UK lab endpoint protection (10 vendors) | 2.5 |
 | [AV-Comparatives](https://av-comparatives.org) | Real-world protection test (8 vendors) | 2.5 |
-| CISA KEV × Vendors | Security tools with exploited CVEs | 2.0 |
+| CISA KEV x Vendors | Security tools with exploited CVEs | 2.0 |
 | [Reddit](https://reddit.com/r/netsec) | Practitioner discussions (30 vendors) | 1.0 |
 | [Hacker News](https://news.ycombinator.com) | Security tool discussions (27 vendors) | 1.0 |
 | [Stack Exchange](https://security.stackexchange.com) | Security Q&A (30 vendors) | 1.0 |
@@ -187,19 +187,19 @@ vigil admin sources           # see all 45 with tier/status
 
 Raw data snapshots available in `data/feeds/` (658,000+ records, CDLA-Permissive-2.0).
 
-> 🔑 **Want to help?** 4 feeds just need free API keys — [grab one and help us](https://github.com/manizzle/oombra/issues/1). Run a threat intel feed? [Get listed on this page](https://github.com/manizzle/oombra/issues/2).
+> **Want to help?** 4 feeds just need free API keys — [grab one and help us](https://github.com/manizzle/oombra/issues/1). Run a threat intel feed? [Get listed on this page](https://github.com/manizzle/oombra/issues/2).
 
 ---
 
-## 🏗️ Deploy for your industry
+## Deploy for your industry
 
-vigil is a stack. Deploy it for hospitals. Deploy it for banks. **Build a company on it.**
+nur is a stack. Deploy it for hospitals. Deploy it for banks. **Build a company on it.**
 
 ```bash
-vigil up --vertical healthcare     # LockBit, HIPAA, hospital playbooks
-vigil up --vertical financial      # APT28/Lazarus, PCI DSS, SWIFT isolation
-vigil up --vertical energy         # Sandworm, NERC CIP, ICS/OT focus
-vigil up --vertical government     # APT29, FISMA, supply chain
+nur up --vertical healthcare     # LockBit, HIPAA, hospital playbooks
+nur up --vertical financial      # APT28/Lazarus, PCI DSS, SWIFT isolation
+nur up --vertical energy         # Sandworm, NERC CIP, ICS/OT focus
+nur up --vertical government     # APT29, FISMA, supply chain
 ```
 
 **Docker (production):**
@@ -210,54 +210,54 @@ docker compose --profile production up -d
 
 | Variable | Default | What it does |
 |----------|---------|-------------|
-| `VIGIL_API_KEY` | — | API key for write endpoints |
-| `VIGIL_MIN_K` | `3` | Min contributors before showing aggregates |
-| `VIGIL_AUTO_INGEST` | `0` | `1` = hourly feed scraping |
-| `VIGIL_PORT` | `8000` | Port to expose |
+| `NUR_API_KEY` | — | API key for write endpoints |
+| `NUR_MIN_K` | `3` | Min contributors before showing aggregates |
+| `NUR_AUTO_INGEST` | `0` | `1` = hourly feed scraping |
+| `NUR_PORT` | `8000` | Port to expose |
 
 **Your users:**
 ```bash
-pip install vigil && vigil init && vigil report incident.json
+pip install nur && nur init && nur report incident.json
 ```
 
 ---
 
-## 🔌 Integrate anywhere
+## Integrate anywhere
 
 **Python:**
 ```python
-from vigil import load_file, anonymize, submit
+from nur import load_file, anonymize, submit
 
 data  = load_file("incident.json")          # JSON, STIX, MISP, CSV, PDF
 clean = [anonymize(d) for d in data]         # anonymize locally
-[submit(c, api_url="http://vigil:8000") for c in clean]
+[submit(c, api_url="http://nur:8000") for c in clean]
 ```
 
 **CLI + JSON (AI agents, SOAR, scripts):**
 ```bash
-vigil report incident.json --json | jq '.intelligence.actions'
-vigil market edr --json | jq '.tiers.leaders'
-vigil search vendor crowdstrike --json
+nur report incident.json --json | jq '.intelligence.actions'
+nur market edr --json | jq '.tiers.leaders'
+nur search vendor crowdstrike --json
 ```
 
 **API:**
 
 | Endpoint | Mode | What it does |
 |----------|------|-------------|
-| `POST /analyze` | ⚔️ | Give data, get intelligence report |
-| `POST /contribute/*` | ⚔️ | Submit IOCs, attack maps, evals |
-| `GET /intelligence/market/{cat}` | 🛡️ | Market map (leaders/contenders) |
-| `POST /intelligence/threat-map` | 🛡️ | MITRE coverage gap analysis |
-| `GET /intelligence/danger-radar` | 🛡️ | Hidden vendor risk signals |
-| `GET /search/vendor/{name}` | 🛡️ | Weighted vendor scores |
-| `GET /search/category/{name}` | 🛡️ | Category ranking |
-| `GET /search/compare?a=X&b=Y` | 🛡️ | Side-by-side comparison |
+| `POST /analyze` | Attack | Give data, get intelligence report |
+| `POST /contribute/*` | Attack | Submit IOCs, attack maps, evals |
+| `GET /intelligence/market/{cat}` | Defense | Market map (leaders/contenders) |
+| `POST /intelligence/threat-map` | Defense | MITRE coverage gap analysis |
+| `GET /intelligence/danger-radar` | Defense | Hidden vendor risk signals |
+| `GET /search/vendor/{name}` | Defense | Weighted vendor scores |
+| `GET /search/category/{name}` | Defense | Category ranking |
+| `GET /search/compare?a=X&b=Y` | Defense | Side-by-side comparison |
 | `GET /query/techniques` | Both | Top MITRE techniques |
 | `GET /docs` | Both | OpenAPI documentation |
 
 ---
 
-## 🔐 How privacy works
+## How privacy works
 
 Everything anonymized **on your machine** before anything touches the network.
 
@@ -269,23 +269,23 @@ Everything anonymized **on your machine** before anything touches the network.
 | Tool scores | Noised values | Differential privacy (Laplace) |
 | All of the above | Attested | ADTC cryptographic proof chain |
 
-Server returns aggregates only. Never individual contributions. Min-k enforcement (3+ contributors). Full analysis → [THREAT_MODEL.md](THREAT_MODEL.md)
+Server returns aggregates only. Never individual contributions. Min-k enforcement (3+ contributors). Full analysis -> [THREAT_MODEL.md](THREAT_MODEL.md)
 
 ---
 
-## 🔧 Admin
+## Admin
 
 ```bash
-vigil admin status         # server health + feed freshness
-vigil admin sources        # all 45 data sources by tier
-vigil admin db-stats       # detailed database breakdown
-vigil admin export         # dump all aggregated data as JSON
-vigil admin rotate-key     # generate new API key
+nur admin status         # server health + feed freshness
+nur admin sources        # all 45 data sources by tier
+nur admin db-stats       # detailed database breakdown
+nur admin export         # dump all aggregated data as JSON
+nur admin rotate-key     # generate new API key
 ```
 
 ---
 
-## 🧪 Tests
+## Tests
 
 ```bash
 pytest           # 281 tests across 12 files
@@ -294,7 +294,7 @@ pytest -v        # verbose
 
 ---
 
-## 📄 License
+## License
 
 | Component | License |
 |-----------|---------|

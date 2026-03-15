@@ -1,8 +1,8 @@
 # Data License
 
-## vigil Curated Data
+## nur Curated Data
 
-The curated threat intelligence data in `vigil/data/` (capabilities, integrations, MITRE mappings, vendor metadata) is licensed under the **Community Data License Agreement – Permissive, Version 2.0 (CDLA-Permissive-2.0)**.
+The curated threat intelligence data in `nur/data/` (capabilities, integrations, MITRE mappings, vendor metadata) is licensed under the **Community Data License Agreement – Permissive, Version 2.0 (CDLA-Permissive-2.0)**.
 
 Full text: https://cdla.dev/permissive-2-0/
 
@@ -35,15 +35,15 @@ The `data/feeds/` directory contains snapshots from public threat intelligence f
 
 ## User-Contributed Data
 
-Data contributed by users through `vigil report` or `vigil upload`:
+Data contributed by users through `nur report` or `nur upload`:
 - **Anonymized locally** before submission
-- **Owned by the contributor** — vigil does not claim ownership
-- **Licensed for aggregation** — by contributing, you grant vigil the right to include your anonymized data in aggregate reports
+- **Owned by the contributor** — nur does not claim ownership
+- **Licensed for aggregation** — by contributing, you grant nur the right to include your anonymized data in aggregate reports
 - **Never returned individually** — only aggregates via query endpoints
 
 ## Open Data Principles
 
-vigil follows the [Open Data Charter](https://opendatacharter.net/):
+nur follows the [Open Data Charter](https://opendatacharter.net/):
 
 1. **Open by default** — all aggregated intelligence available to contributors
 2. **Timely and comprehensive** — 19+ live feeds, hourly refresh

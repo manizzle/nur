@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Scrape REAL threat intelligence from public feeds and create vigil contribution files.
+Scrape REAL threat intelligence from public feeds and create nur contribution files.
 
 Sources:
   - abuse.ch ThreatFox   — real IOCs (domains, IPs, hashes) with malware tags
@@ -13,7 +13,7 @@ Sources:
 Usage:
     python demo/scrape_real_intel.py demo/seed/
 
-Generates vigil-format contribution files from live threat feeds.
+Generates nur-format contribution files from live threat feeds.
 """
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def scrape_threatfox_csv() -> list[dict]:
             malware = parts[5].strip('"')
             threat_actor = parts[7].strip('"') if len(parts) > 7 else None
 
-            # Map ThreatFox types to vigil types
+            # Map ThreatFox types to nur types
             type_map = {"domain": "domain", "ip:port": "ip", "url": "url",
                         "md5_hash": "hash-md5", "sha256_hash": "hash-sha256",
                         "sha1_hash": "hash-sha1"}
@@ -205,7 +205,7 @@ def build_hospital_lockbit_bundles() -> list[dict]:
     """Build IOC bundles simulating multiple hospitals seeing the same LockBit campaign.
 
     These share overlapping IOCs with demo/ioc_bundle_2.json so that when the Ohio
-    hospital runs `vigil report`, it gets real campaign matches.
+    hospital runs `nur report`, it gets real campaign matches.
     """
     # Shared LockBit IOCs (same values as ioc_bundle_2.json)
     shared_iocs = [
@@ -274,7 +274,7 @@ def build_ioc_bundles(
     urlhaus: list[dict],
     bazaar: list[dict],
 ) -> list[dict]:
-    """Build vigil IOC bundle files from real scraped data."""
+    """Build nur IOC bundle files from real scraped data."""
     bundles = []
 
     # Hospital LockBit campaign bundles (overlapping IOCs for campaign matching)

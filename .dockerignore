@@ -5,8 +5,8 @@ __pycache__
 .ruff_cache
 *.egg-info
 .env
-vigil.db
+nur.db
 demo_*.db
-demo/vigil-demo.cast
-demo/vigil-demo.gif
+demo/nur-demo.cast
+demo/nur-demo.gif
 demo/seed/
