@@ -113,7 +113,11 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
     @app.middleware("http")
     async def api_key_auth(request: Request, call_next):
-        write_paths = request.url.path.startswith("/contribute/") or request.url.path == "/analyze"
+        write_paths = (
+                request.url.path.startswith("/contribute/")
+                or request.url.path.startswith("/ingest/")
+                or request.url.path == "/analyze"
+            )
         if master_key and write_paths and request.method == "POST":
             provided = request.headers.get("X-API-Key")
             if not provided:
@@ -1164,6 +1168,218 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
         db = get_db()
         cid = await db.store_ioc_bundle(body)
         return {"status": "accepted", "contribution_id": cid}
+
+    # ── Webhook ingest (wartime integrations) ────────────────────────
+
+    @app.post("/ingest/webhook")
+    async def ingest_webhook(body: dict[str, Any]):
+        """Universal webhook — accepts data from Splunk, Sentinel, CrowdStrike,
+        syslog/CEF, or generic IOC lists. Auto-detects format and stores."""
+        import hashlib
+
+        db = get_db()
+        items_stored = 0
+
+        def _hash_ioc(value: str) -> str:
+            return hashlib.sha256(value.strip().lower().encode()).hexdigest()
+
+        # ── 1. CrowdStrike detection format ──────────────────────────
+        if "detection" in body:
+            det = body["detection"]
+            technique = det.get("technique", "")
+            tactic = det.get("tactic", "")
+            severity = det.get("severity", "medium")
+
+            # Store as attack_map if we have a technique
+            if technique:
+                attack_data = {
+                    "threat_name": det.get("scenario", "CrowdStrike Detection"),
+                    "techniques": [{
+                        "technique_id": technique,
+                        "tactic": tactic,
+                        "observed": True,
+                    }],
+                    "source": "crowdstrike",
+                    "severity": severity,
+                }
+                await db.store_attack_map(attack_data)
+                items_stored += 1
+
+            # Store IOC if present
+            ioc_type = det.get("ioc_type")
+            ioc_value = det.get("ioc_value")
+            if ioc_type and ioc_value:
+                ioc_data = {
+                    "iocs": [{
+                        "ioc_type": ioc_type,
+                        "value_hash": _hash_ioc(ioc_value),
+                    }],
+                    "source": "crowdstrike",
+                }
+                await db.store_ioc_bundle(ioc_data)
+                items_stored += 1
+
+            return {
+                "status": "accepted",
+                "format_detected": "crowdstrike",
+                "items_stored": items_stored,
+            }
+
+        # ── 2. Sentinel incident format ──────────────────────────────
+        if "properties" in body:
+            props = body["properties"]
+            severity = props.get("severity", "Medium").lower()
+            tactics = props.get("tactics", [])
+            techniques_raw = props.get("techniques", [])
+            entities = props.get("entities", [])
+
+            # Convert tactics/techniques to attack_map
+            if tactics or techniques_raw:
+                technique_entries = []
+                for t in techniques_raw:
+                    technique_entries.append({
+                        "technique_id": t if isinstance(t, str) else str(t),
+                        "observed": True,
+                    })
+                # If we only have tactics but no techniques, store tactics as notes
+                attack_data = {
+                    "threat_name": props.get("title", "Sentinel Incident"),
+                    "techniques": technique_entries,
+                    "source": "sentinel",
+                    "severity": severity,
+                    "notes": f"Tactics: {', '.join(tactics)}" if tactics else None,
+                }
+                await db.store_attack_map(attack_data)
+                items_stored += 1
+
+            # Convert entities to IOC bundle
+            iocs = []
+            for entity in entities:
+                if isinstance(entity, dict):
+                    # Sentinel entity types: IP, Host, Account, FileHash, URL, etc.
+                    kind = entity.get("kind", entity.get("type", "")).lower()
+                    addr = entity.get("address") or entity.get("properties", {}).get("address")
+                    host = entity.get("hostName") or entity.get("properties", {}).get("hostName")
+                    fhash = entity.get("hashValue") or entity.get("properties", {}).get("hashValue")
+                    url = entity.get("url") or entity.get("properties", {}).get("url")
+                    name = entity.get("name", "")
+
+                    if kind == "ip" and addr:
+                        iocs.append({"ioc_type": "ip", "value_hash": _hash_ioc(addr)})
+                    elif kind == "host" and host:
+                        iocs.append({"ioc_type": "domain", "value_hash": _hash_ioc(host)})
+                    elif kind in ("filehash", "hash") and fhash:
+                        iocs.append({"ioc_type": "hash-sha256", "value_hash": _hash_ioc(fhash)})
+                    elif kind == "url" and url:
+                        iocs.append({"ioc_type": "url", "value_hash": _hash_ioc(url)})
+                    elif addr:
+                        iocs.append({"ioc_type": "ip", "value_hash": _hash_ioc(addr)})
+                    elif host:
+                        iocs.append({"ioc_type": "domain", "value_hash": _hash_ioc(host)})
+
+            if iocs:
+                ioc_data = {
+                    "iocs": iocs,
+                    "source": "sentinel",
+                }
+                await db.store_ioc_bundle(ioc_data)
+                items_stored += 1
+
+            return {
+                "status": "accepted",
+                "format_detected": "sentinel",
+                "items_stored": items_stored,
+            }
+
+        # ── 3. CEF/Syslog format ────────────────────────────────────
+        if "cef" in body:
+            from ..integrations.syslog_listener import parse_cef, extract_iocs_from_cef
+
+            cef_str = body["cef"]
+            parsed = parse_cef(cef_str)
+            if parsed:
+                iocs = extract_iocs_from_cef(parsed)
+                if iocs:
+                    ioc_data = {
+                        "iocs": iocs,
+                        "source": f"cef:{parsed.get('vendor', 'unknown')}:{parsed.get('product', 'unknown')}",
+                    }
+                    await db.store_ioc_bundle(ioc_data)
+                    items_stored += 1
+
+            return {
+                "status": "accepted",
+                "format_detected": "cef",
+                "items_stored": items_stored,
+            }
+
+        # ── 4. Generic IOC list (indicators format) ──────────────────
+        if "indicators" in body:
+            indicators = body["indicators"]
+            if isinstance(indicators, list):
+                iocs = []
+                for ind in indicators:
+                    if isinstance(ind, dict):
+                        ioc_type = ind.get("type", "unknown")
+                        value = ind.get("value", "")
+                        if value:
+                            iocs.append({
+                                "ioc_type": ioc_type,
+                                "value_hash": _hash_ioc(str(value)),
+                            })
+                if iocs:
+                    ioc_data = {
+                        "iocs": iocs,
+                        "source": body.get("source", "indicators"),
+                    }
+                    await db.store_ioc_bundle(ioc_data)
+                    items_stored += 1
+
+            return {
+                "status": "accepted",
+                "format_detected": "indicators",
+                "items_stored": items_stored,
+            }
+
+        # ── 5. Generic / Splunk format (iocs list) ───────────────────
+        if "iocs" in body:
+            iocs_raw = body["iocs"]
+            if isinstance(iocs_raw, list):
+                iocs = []
+                for ioc in iocs_raw:
+                    if isinstance(ioc, dict):
+                        ioc_entry: dict[str, Any] = {
+                            "ioc_type": ioc.get("ioc_type", "unknown"),
+                        }
+                        # Support both pre-hashed and raw values
+                        if ioc.get("value_hash"):
+                            ioc_entry["value_hash"] = ioc["value_hash"]
+                        elif ioc.get("value_raw"):
+                            ioc_entry["value_hash"] = _hash_ioc(ioc["value_raw"])
+                        elif ioc.get("value"):
+                            ioc_entry["value_hash"] = _hash_ioc(ioc["value"])
+                        else:
+                            continue
+                        iocs.append(ioc_entry)
+
+                if iocs:
+                    ioc_data = {
+                        "iocs": iocs,
+                        "source": body.get("source", "webhook"),
+                    }
+                    await db.store_ioc_bundle(ioc_data)
+                    items_stored += 1
+
+            return {
+                "status": "accepted",
+                "format_detected": "generic",
+                "items_stored": items_stored,
+            }
+
+        raise HTTPException(
+            status_code=400,
+            detail="Unrecognized webhook format. Expected one of: detection, properties, cef, indicators, iocs",
+        )
 
     # ── Analyze route ──────────────────────────────────────────────
 

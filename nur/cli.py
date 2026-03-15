@@ -1748,3 +1748,612 @@ def purge(older_than):
     click.echo()
     click.echo("  Or connect to the nur DB and run a migration.")
     click.echo()
+
+
+# ── Import (peacetime integrations) ──────────────────────────────────────────
+
+@main.group("import")
+def import_cmd():
+    """Import security data from external tools and formats.
+
+    \b
+    Peacetime integrations — auto-populate stack info:
+      nur import navigator layer.json       # MITRE ATT&CK Navigator layer
+      nur import stack inventory.csv         # tool inventory (CSV/JSON)
+      nur import compliance drata.json       # compliance status
+    """
+    pass
+
+
+@import_cmd.command("navigator")
+@click.argument("layer_file", type=click.Path(exists=True))
+@click.option("--vertical", default="healthcare",
+              type=click.Choice(["healthcare", "financial", "energy", "government"]),
+              help="Industry vertical")
+@click.option("--json", "json_output", is_flag=True, help="Output full JSON")
+@click.option("--output", "-o", default=None, help="Save output to file")
+def import_navigator(layer_file, vertical, json_output, output):
+    """Import a MITRE ATT&CK Navigator layer for instant gap analysis.
+
+    \b
+    Examples:
+      nur import navigator layer.json --vertical healthcare
+      nur import navigator coverage.json --json -o model.json
+    """
+    from .integrations.navigator import import_navigator_layer
+
+    model = import_navigator_layer(layer_file, vertical=vertical)
+
+    if json_output:
+        import json as json_mod
+        text = json_mod.dumps(model, indent=2)
+        if output:
+            Path(output).write_text(text)
+            click.echo(f"  Saved JSON to {output}")
+        else:
+            click.echo(text)
+        return
+
+    # Human-readable summary
+    nav = model.get("navigator_source", {})
+    click.echo()
+    click.echo(f"  Navigator Import: {nav.get('layer_name', '?')}")
+    click.echo(f"  {'=' * 56}")
+    click.echo(f"  Techniques in layer: {nav.get('total_techniques', 0)}")
+    click.echo(f"  Covered (score > 50): {nav.get('covered_count', 0)}")
+    click.echo(f"  Gaps (score <= 50): {nav.get('gap_count', 0)}")
+
+    inferred = nav.get("inferred_stack", [])
+    if inferred:
+        click.echo(f"\n  Inferred stack ({len(inferred)} tools):")
+        for t in model.get("stack", []):
+            click.echo(f"    - {t['display_name']} ({t['category']})")
+
+    score_pct = int(model.get("coverage_score", 0) * 100)
+    covered = len(model.get("coverage", {}))
+    total = covered + len(model.get("gaps", []))
+    click.echo(f"\n  Coverage: {score_pct}% ({covered}/{total} priority techniques)")
+
+    gaps = model.get("gaps", [])
+    if gaps:
+        click.echo(f"\n  Top gaps:")
+        for gap in gaps[:5]:
+            click.echo(f"    [{gap['id']}] {gap['name']}")
+
+    recs = model.get("recommendations", [])
+    if recs:
+        click.echo(f"\n  Recommendations:")
+        for rec in recs[:5]:
+            click.echo(f"    [{rec['priority'].upper()}] {rec['action']}")
+    click.echo()
+
+    if output:
+        import json as json_mod
+        Path(output).write_text(json_mod.dumps(model, indent=2))
+        click.echo(f"  Full model saved to {output}")
+        click.echo()
+
+
+@import_cmd.command("stack")
+@click.argument("file", type=click.Path(exists=True))
+@click.option("--format", "fmt", type=click.Choice(["csv", "json", "auto"]), default="auto",
+              help="File format (default: auto-detect from extension)")
+@click.option("--vertical", default="healthcare",
+              type=click.Choice(["healthcare", "financial", "energy", "government"]),
+              help="Industry vertical for threat model")
+@click.option("--threat-model", "gen_model", is_flag=True, help="Also generate a threat model")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def import_stack(file, fmt, vertical, gen_model, json_output):
+    """Import tool inventory from CSV or JSON.
+
+    \b
+    Examples:
+      nur import stack inventory.csv
+      nur import stack tools.json --threat-model --vertical healthcare
+    """
+    from .integrations.asset_inventory import import_from_csv, import_from_json
+
+    p = Path(file)
+    if fmt == "auto":
+        fmt = "csv" if p.suffix.lower() == ".csv" else "json"
+
+    if fmt == "csv":
+        slugs = import_from_csv(file)
+    else:
+        slugs = import_from_json(file)
+
+    if json_output:
+        result = {"matched_vendors": slugs, "count": len(slugs)}
+        if gen_model:
+            from .threat_model import generate_threat_model
+            model = generate_threat_model(stack=slugs, vertical=vertical)
+            result["threat_model"] = model
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    click.echo()
+    click.echo(f"  Imported {len(slugs)} tools from {p.name}")
+    click.echo(f"  {'=' * 46}")
+    from .server.vendors import VENDOR_REGISTRY
+    for slug in slugs:
+        vendor = VENDOR_REGISTRY.get(slug)
+        name = vendor["display_name"] if vendor else slug
+        cat = vendor["category"] if vendor else "?"
+        click.echo(f"    {slug:20s} {name} ({cat})")
+    click.echo()
+
+    if gen_model and slugs:
+        click.echo("  Generating threat model...")
+        from .threat_model import generate_threat_model
+        model = generate_threat_model(stack=slugs, vertical=vertical)
+        score_pct = int(model.get("coverage_score", 0) * 100)
+        click.echo(f"  Coverage: {score_pct}%")
+        gaps = model.get("gaps", [])
+        if gaps:
+            click.echo(f"  Gaps: {len(gaps)}")
+            for g in gaps[:5]:
+                click.echo(f"    [{g['id']}] {g['name']}")
+        click.echo()
+
+
+@import_cmd.command("compliance")
+@click.argument("file", type=click.Path(exists=True))
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def import_compliance(file, json_output):
+    """Import compliance status from a Drata/Vanta-like export.
+
+    \b
+    Accepts:
+      - Structured JSON: {"controls": [{"id": "AC-1", "status": "passing", "framework": "NIST 800-53"}]}
+      - Simple JSON: {"HIPAA": true, "PCI_DSS": false}
+      - CSV: framework,control_id,status
+    """
+    from .integrations.compliance import import_compliance_status
+
+    status = import_compliance_status(file)
+
+    if json_output:
+        click.echo(json.dumps(status, indent=2))
+        return
+
+    click.echo()
+    click.echo(f"  Compliance Status ({len(status)} frameworks)")
+    click.echo(f"  {'=' * 46}")
+    for fw, covered in sorted(status.items()):
+        icon = "COVERED" if covered else "GAP"
+        click.echo(f"    {fw:25s} {icon}")
+    covered_count = sum(1 for v in status.values() if v)
+    click.echo(f"\n  {covered_count}/{len(status)} frameworks covered")
+    click.echo()
+
+
+# ── Export (peacetime integrations) ──────────────────────────────────────────
+
+@main.group("export")
+def export_cmd():
+    """Export nur data in standard formats.
+
+    \b
+    Export for interop with other security tools:
+      nur export navigator --stack crowdstrike,splunk     # ATT&CK Navigator layer
+      nur export stix                                     # STIX 2.1 bundle
+      nur export misp                                     # MISP event
+      nur export csv                                      # CSV
+    """
+    pass
+
+
+@export_cmd.command("navigator")
+@click.option("--stack", required=True, help="Comma-separated list of tools")
+@click.option("--vertical", default="healthcare",
+              type=click.Choice(["healthcare", "financial", "energy", "government"]))
+@click.option("--org", default="Organization", help="Organization name")
+@click.option("--output", "-o", default=None, help="Save to file (default: stdout)")
+def export_navigator(stack, vertical, org, output):
+    """Export a threat model as an ATT&CK Navigator layer JSON.
+
+    \b
+    Generate, then open in https://mitre-attack.github.io/attack-navigator/
+    """
+    from .threat_model import generate_threat_model
+    from .integrations.export import export_navigator_layer
+
+    tools = [t.strip() for t in stack.split(",") if t.strip()]
+    if not tools:
+        click.echo("  No tools provided.")
+        raise SystemExit(1)
+
+    model = generate_threat_model(stack=tools, vertical=vertical, org_name=org)
+    layer_json = export_navigator_layer(model)
+
+    if output:
+        Path(output).write_text(layer_json)
+        click.echo(f"  Navigator layer saved to {output}")
+        click.echo(f"  Open in: https://mitre-attack.github.io/attack-navigator/")
+    else:
+        click.echo(layer_json)
+
+
+@export_cmd.command("stix")
+@click.argument("files", nargs=-1, type=click.Path(exists=True))
+@click.option("--output", "-o", default=None, help="Save to file")
+def export_stix(files, output):
+    """Export contributions as a STIX 2.1 bundle."""
+    from .integrations.export import export_stix_bundle
+
+    contribs = _load_contributions_from_files(files)
+    stix_json = export_stix_bundle(contribs)
+
+    if output:
+        Path(output).write_text(stix_json)
+        click.echo(f"  STIX bundle saved to {output}")
+    else:
+        click.echo(stix_json)
+
+
+@export_cmd.command("misp")
+@click.argument("files", nargs=-1, type=click.Path(exists=True))
+@click.option("--output", "-o", default=None, help="Save to file")
+def export_misp(files, output):
+    """Export contributions as a MISP event."""
+    from .integrations.export import export_misp_event
+
+    contribs = _load_contributions_from_files(files)
+    misp_json = export_misp_event(contribs)
+
+    if output:
+        Path(output).write_text(misp_json)
+        click.echo(f"  MISP event saved to {output}")
+    else:
+        click.echo(misp_json)
+
+
+@export_cmd.command("csv")
+@click.argument("files", nargs=-1, type=click.Path(exists=True))
+@click.option("--output", "-o", default=None, help="Save to file")
+def export_csv_cmd(files, output):
+    """Export contributions as CSV."""
+    from .integrations.export import export_csv
+
+    contribs = _load_contributions_from_files(files)
+    csv_text = export_csv(contribs)
+
+    if output:
+        Path(output).write_text(csv_text)
+        click.echo(f"  CSV saved to {output}")
+    else:
+        click.echo(csv_text)
+
+
+def _load_contributions_from_files(files: tuple) -> list[dict]:
+    """Load contribution files and convert to plain dicts for export."""
+    contribs: list[dict] = []
+    for f in files:
+        try:
+            items = load_file(f)
+            for item in items:
+                if hasattr(item, "model_dump"):
+                    contribs.append(item.model_dump(mode="json"))
+                elif isinstance(item, dict):
+                    contribs.append(item)
+        except Exception as e:
+            click.echo(f"  Warning: could not load {f}: {e}")
+    return contribs
+
+
+# ── RFP comparison ───────────────────────────────────────────────────────────
+
+@main.command("rfp")
+@click.argument("candidates", nargs=-1, required=True)
+@click.option("--category", default="edr", help="Tool category (edr, siem, iam, etc.)")
+@click.option("--vertical", default="healthcare",
+              type=click.Choice(["healthcare", "financial", "energy", "government"]))
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+@click.option("--output", "-o", default=None, help="Save to file")
+def rfp(candidates, category, vertical, json_output, output):
+    """Generate a vendor comparison report for procurement/RFP.
+
+    \b
+    Examples:
+      nur rfp crowdstrike sentinelone ms-defender --category edr
+      nur rfp splunk ms-sentinel elastic-siem --category siem --json
+    """
+    from .integrations.rfp import generate_rfp_comparison
+
+    result = generate_rfp_comparison(
+        candidates=list(candidates),
+        category=category,
+        vertical=vertical,
+    )
+
+    if json_output:
+        text = json.dumps(result, indent=2)
+        if output:
+            Path(output).write_text(text)
+            click.echo(f"  Saved to {output}")
+        else:
+            click.echo(text)
+        return
+
+    click.echo()
+    click.echo(f"  RFP Comparison: {category.upper()}")
+    click.echo(f"  Vertical: {vertical}")
+    click.echo(f"  {'=' * 60}")
+
+    table = result.get("comparison_table", [])
+    if table:
+        # Header
+        click.echo(f"\n  {'Vendor':30s} {'Overall':>8s} {'Technique':>10s} {'Compliance':>11s} {'Deploy':>7s}")
+        click.echo(f"  {'-' * 30} {'-' * 8} {'-' * 10} {'-' * 11} {'-' * 7}")
+        for row in table:
+            click.echo(
+                f"  {row['vendor']:30s} {row['overall']:>8d} "
+                f"{row['technique_coverage']:>10d} {row['compliance_score']:>11d} "
+                f"{str(row['deploy_days']) + 'd':>7s}"
+            )
+
+    not_found = result.get("not_found", [])
+    if not_found:
+        click.echo(f"\n  Not found in registry: {', '.join(not_found)}")
+
+    rec = result.get("recommendation", "")
+    if rec:
+        click.echo(f"\n  Recommendation:")
+        click.echo(f"  {rec}")
+
+    # Show detail for each candidate
+    for c in result.get("candidates", []):
+        if not c.get("found"):
+            continue
+        click.echo(f"\n  {c['display_name']}")
+        click.echo(f"    Price:          {c.get('price_range', '?')}")
+        click.echo(f"    Certifications: {', '.join(c.get('certifications', [])[:4])}")
+        click.echo(f"    Insurance:      {', '.join(c.get('insurance_carriers', [])[:3]) or 'None'}")
+        if c.get("known_issues"):
+            click.echo(f"    Known Issues:   {c['known_issues'][:80]}")
+    click.echo()
+
+    if output:
+        Path(output).write_text(json.dumps(result, indent=2))
+        click.echo(f"  Full report saved to {output}")
+        click.echo()
+
+
+# ── Integrate (wartime integrations) ─────────────────────────────────────────
+
+@main.group()
+def integrate():
+    """Wartime integrations — auto-submit incident data from security tools.
+
+    \b
+    Supported:
+      nur integrate splunk          Generate Splunk app config
+      nur integrate sentinel        Generate Sentinel playbook ARM template
+      nur integrate crowdstrike     Pull detections from CrowdStrike Falcon
+      nur integrate syslog          Start CEF syslog listener
+      nur integrate webhook-test    Test the webhook endpoint
+    """
+    pass
+
+
+@integrate.command("splunk")
+@click.option("--api-url", default=None, help="nur API URL (default: from nur init)")
+@click.option("--api-key", default=None, help="nur API key (default: from nur init)")
+@click.option("--output", "-o", default="splunk_app", help="Output directory for Splunk app")
+def integrate_splunk(api_url, api_key, output):
+    """Generate a Splunk app that forwards alerts to nur."""
+    from .integrations.splunk import generate_splunk_app
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    if not api_key:
+        click.echo("  No API key configured. Run: nur init")
+        raise SystemExit(1)
+
+    files = generate_splunk_app(api_url, api_key)
+
+    output_dir = Path(output)
+    for filepath, content in files.items():
+        full_path = output_dir / filepath
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        full_path.write_text(content)
+
+    click.echo(f"\n  Splunk app generated in {output_dir}/")
+    click.echo(f"  Files created: {len(files)}")
+    for f in sorted(files.keys()):
+        click.echo(f"    {f}")
+    click.echo(f"\n  Install: cp -r {output_dir} $SPLUNK_HOME/etc/apps/nur_integration/")
+    click.echo(f"  Then restart Splunk.")
+    click.echo()
+
+
+@integrate.command("sentinel")
+@click.option("--api-url", default=None, help="nur API URL (default: from nur init)")
+@click.option("--api-key", default=None, help="nur API key (default: from nur init)")
+@click.option("--output", "-o", default="sentinel_playbook.json", help="Output file")
+def integrate_sentinel(api_url, api_key, output):
+    """Generate an Azure Sentinel playbook ARM template."""
+    from .integrations.sentinel import generate_sentinel_playbook
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    if not api_key:
+        click.echo("  No API key configured. Run: nur init")
+        raise SystemExit(1)
+
+    arm_json = generate_sentinel_playbook(api_url, api_key)
+    Path(output).write_text(arm_json)
+
+    click.echo(f"\n  Sentinel playbook generated: {output}")
+    click.echo(f"\n  Deploy with:")
+    click.echo(f"    az deployment group create -g <resource-group> --template-file {output}")
+    click.echo()
+
+
+@integrate.command("crowdstrike")
+@click.option("--client-id", required=True, help="CrowdStrike OAuth2 client ID")
+@click.option("--client-secret", required=True, help="CrowdStrike OAuth2 client secret")
+@click.option("--api-url", default=None, help="nur API URL (default: from nur init)")
+@click.option("--api-key", default=None, help="nur API key (default: from nur init)")
+@click.option("--since-hours", type=int, default=24, help="Pull detections from last N hours")
+@click.option("--pull", is_flag=True, help="Actually pull detections (default: dry run info)")
+def integrate_crowdstrike(client_id, client_secret, api_url, api_key, since_hours, pull):
+    """Pull detections from CrowdStrike Falcon and submit to nur."""
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    if not api_key:
+        click.echo("  No API key configured. Run: nur init")
+        raise SystemExit(1)
+
+    if not pull:
+        click.echo(f"\n  CrowdStrike integration ready.")
+        click.echo(f"  Client ID: {client_id[:8]}...")
+        click.echo(f"  API URL: {api_url}")
+        click.echo(f"  Since: last {since_hours} hours")
+        click.echo(f"\n  Add --pull to actually fetch and submit detections.")
+        click.echo()
+        return
+
+    from .integrations.crowdstrike import pull_crowdstrike_detections
+
+    click.echo(f"  Pulling CrowdStrike detections (last {since_hours}h)...")
+    try:
+        count = pull_crowdstrike_detections(
+            client_id=client_id,
+            client_secret=client_secret,
+            api_url=api_url,
+            nur_api_key=api_key,
+            since_hours=since_hours,
+        )
+        click.echo(f"  Submitted {count} detections to nur.")
+    except Exception as e:
+        click.echo(f"  Error: {e}")
+    click.echo()
+
+
+@integrate.command("syslog")
+@click.option("--port", type=int, default=514, help="UDP port to listen on")
+@click.option("--api-url", default=None, help="nur API URL (default: from nur init)")
+@click.option("--api-key", default=None, help="nur API key (default: from nur init)")
+def integrate_syslog(port, api_url, api_key):
+    """Start a CEF syslog listener that forwards events to nur."""
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key) or ""
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+
+    from .integrations.syslog_listener import start_syslog_listener
+
+    click.echo(f"\n  Starting syslog/CEF listener on UDP port {port}")
+    click.echo(f"  Forwarding to: {api_url}/ingest/webhook")
+    if port < 1024:
+        click.echo(f"  Note: Port {port} may require root/sudo")
+    click.echo()
+
+    start_syslog_listener(port=port, api_url=api_url, api_key=api_key)
+
+
+@integrate.command("webhook-test")
+@click.option("--api-url", default=None, help="nur API URL (default: from nur init)")
+@click.option("--api-key", default=None, help="nur API key (default: from nur init)")
+@click.option("--payload", default=None, help="JSON payload string to send")
+@click.option("--format", "fmt",
+              type=click.Choice(["generic", "crowdstrike", "sentinel", "cef", "indicators"]),
+              default="generic", help="Payload format to test")
+def integrate_webhook_test(api_url, api_key, payload, fmt):
+    """Test the webhook endpoint with a sample payload."""
+    import httpx
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+
+    # Build test payload
+    if payload:
+        try:
+            test_payload = json.loads(payload)
+        except json.JSONDecodeError as e:
+            click.echo(f"  Invalid JSON payload: {e}")
+            raise SystemExit(1)
+    else:
+        test_payloads = {
+            "generic": {
+                "iocs": [
+                    {"ioc_type": "ip", "value_raw": "192.168.1.100"},
+                    {"ioc_type": "domain", "value_raw": "evil.example.com"},
+                    {"ioc_type": "hash-sha256", "value_raw": "abc123def456"},
+                ],
+                "source": "webhook-test",
+            },
+            "crowdstrike": {
+                "detection": {
+                    "technique": "T1486",
+                    "tactic": "Impact",
+                    "ioc_type": "ip",
+                    "ioc_value": "10.0.0.99",
+                    "severity": "high",
+                    "scenario": "Test CrowdStrike Detection",
+                },
+            },
+            "sentinel": {
+                "properties": {
+                    "severity": "High",
+                    "title": "Test Sentinel Incident",
+                    "tactics": ["InitialAccess", "Execution"],
+                    "techniques": ["T1566", "T1059"],
+                    "entities": [
+                        {"kind": "ip", "address": "10.0.0.50"},
+                        {"kind": "host", "hostName": "malware.example.com"},
+                    ],
+                },
+            },
+            "cef": {
+                "cef": "CEF:0|TestVendor|TestProduct|1.0|100|Test Event|5|"
+                       "src=192.168.1.1 dst=10.0.0.1 dhost=evil.test.com",
+                "source_ip": "192.168.1.1",
+            },
+            "indicators": {
+                "indicators": [
+                    {"type": "ip", "value": "172.16.0.99"},
+                    {"type": "domain", "value": "phishing.example.com"},
+                ],
+                "source": "test",
+            },
+        }
+        test_payload = test_payloads[fmt]
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
+
+    webhook_url = f"{api_url.rstrip('/')}/ingest/webhook"
+    click.echo(f"\n  Testing webhook: {webhook_url}")
+    click.echo(f"  Format: {fmt}")
+    click.echo(f"  Payload: {json.dumps(test_payload, indent=2)[:500]}")
+    click.echo()
+
+    try:
+        with httpx.Client(timeout=30) as http:
+            resp = http.post(webhook_url, json=test_payload, headers=headers)
+        click.echo(f"  Status: {resp.status_code}")
+        if resp.status_code == 200:
+            result = resp.json()
+            click.echo(f"  Format detected: {result.get('format_detected', '?')}")
+            click.echo(f"  Items stored: {result.get('items_stored', 0)}")
+        else:
+            click.echo(f"  Response: {resp.text[:300]}")
+    except Exception as e:
+        click.echo(f"  Error: {e}")
+    click.echo()
