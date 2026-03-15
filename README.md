@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/sources-37_live-ff6b6b" />
   <img src="https://img.shields.io/badge/vendors-36_tracked-ffa502" />
-  <img src="https://img.shields.io/badge/tests-387_passing-2ed573" />
+  <img src="https://img.shields.io/badge/tests-441_passing-2ed573" />
   <img src="https://img.shields.io/badge/python-3.11%2B-1e90ff" />
   <img src="https://img.shields.io/badge/code-Apache_2.0-1e90ff" />
   <img src="https://img.shields.io/badge/data-CDLA_Permissive_2.0-f9ca24" />
@@ -28,7 +28,7 @@ nur fixes this. Two modes, one platform:
 
 > ✅ Everything anonymized on your machine. Keypair auth. Work email registration. Math, not promises.
 
-> 🟢 **Try it live:** [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [api docs](https://nur.saramena.us/docs) · [register](https://nur.saramena.us/register)
+> 🟢 **Try it live:** [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [docs](https://nur.saramena.us/guide) · [api reference](https://nur.saramena.us/docs) · [register](https://nur.saramena.us/register)
 
 ---
 
@@ -80,6 +80,8 @@ nur search vendor crowdstrike                        # real scores, not Gartner
 nur search compare crowdstrike sentinelone           # side-by-side
 nur threat-map "ransomware" --tools crowdstrike      # coverage gaps
 nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare  # full threat model
+nur patterns healthcare                              # attack methodology patterns
+nur simulate --stack crowdstrike,splunk,okta --vertical healthcare     # attack chain simulation
 ```
 
 **Threat modeling** — generate MITRE-mapped threat models for your stack, compatible with [threatcl](https://github.com/threatcl/threatcl):
@@ -152,6 +154,29 @@ pip install nur && nur init && nur register you@org.com
 
 ## 🔌 Integrate anywhere
 
+**10 integration points:**
+
+```bash
+# SIEM / EDR
+nur integrate splunk                   # forward alerts from Splunk
+nur integrate sentinel                 # forward incidents from Microsoft Sentinel
+nur integrate crowdstrike              # forward detections from CrowdStrike
+
+# Syslog / Webhook
+nur integrate syslog --port 1514       # listen for CEF/syslog events
+# POST to /ingest/webhook              # universal webhook endpoint
+
+# Import
+nur import navigator layer.json        # MITRE ATT&CK Navigator layers
+nur import stack inventory.csv         # asset inventory / tool inventory
+nur import compliance soc2.json        # compliance framework mappings
+nur import rfp responses.json          # vendor RFP responses
+
+# Export
+nur export stix                        # export as STIX 2.1
+nur export misp                        # export as MISP events
+```
+
 **Python:**
 ```python
 from nur import load_file, anonymize, submit
@@ -173,12 +198,16 @@ nur threat-model --stack crowdstrike --hcl > model.hcl
 | `POST /analyze` | Give data → get intelligence report |
 | `POST /threat-model` | Generate threat model for stack |
 | `POST /register` | Register with work email + public key |
+| `POST /ingest/webhook` | Universal webhook (Splunk, Sentinel, CrowdStrike, CEF) |
 | `GET /intelligence/market/{cat}` | Vendor market map |
 | `POST /intelligence/threat-map` | MITRE coverage gaps |
 | `GET /intelligence/danger-radar` | Hidden vendor risks |
+| `GET /intelligence/patterns/{vertical}` | Attack methodology patterns for an industry |
+| `POST /intelligence/simulate` | Simulate attack chain against your stack |
 | `GET /search/vendor/{name}` | Vendor scores |
 | `GET /search/compare?a=X&b=Y` | Side-by-side |
 | `GET /dashboard` | Visual dashboard |
+| `GET /guide` | Human-readable documentation |
 
 ---
 
@@ -214,7 +243,7 @@ nur admin rotate-key     # new API key
 ## 🧪 Tests
 
 ```bash
-pytest       # 387 tests across 20 files
+pytest       # 441 tests
 ```
 
 ---

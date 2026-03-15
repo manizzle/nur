@@ -415,7 +415,8 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
   <div class="links">
     <a href="/dashboard">dashboard</a>
-    <a href="/docs">api docs</a>
+    <a href="/guide">docs</a>
+    <a href="/docs">api reference</a>
     <a href="https://github.com/manizzle/nur">github</a>
     <a href="https://github.com/manizzle/nur/issues/4">add your feed</a>
   </div>
@@ -886,6 +887,42 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     </div>
   </div>
 
+  <!-- Attack Intelligence -->
+  <div class="dash-section">
+    <div class="section-title">Attack Intelligence</div>
+    <div style="padding:16px;">
+      <div style="color:#ccc;font-size:1.1em;margin-bottom:12px;">Healthcare Ransomware</div>
+      <div style="color:#888;font-size:0.85em;line-height:1.8;">
+        Initial access: Spearphishing (89%)<br>
+        Avg dwell time: 4.2 days<br>
+        Most missed technique: T1490 (71%)<br>
+        Ransom paid: 12% of cases<br>
+        Avg recovery: 2.1 weeks
+      </div>
+      <a href="/intelligence/patterns/healthcare" style="color:#3b7;font-size:0.8em;text-decoration:none;border-bottom:1px solid #333;">view all patterns &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Attack Chain Simulator -->
+  <div class="dash-section">
+    <div class="section-title">Attack Chain Simulator</div>
+    <div style="padding:16px;">
+      <div style="background:#222228;border:1px solid #333;border-radius:4px;padding:12px;font-size:0.85em;">
+        <code style="color:#aaa;">
+          nur simulate &#92;<br>
+          &nbsp;&nbsp;--stack crowdstrike,splunk,okta &#92;<br>
+          &nbsp;&nbsp;--vertical healthcare
+        </code>
+      </div>
+      <div style="color:#888;font-size:0.8em;margin-top:12px;line-height:1.6;">
+        Simulates the most common attack chain<br>
+        against your tools. Shows exactly where<br>
+        your defenses break.
+      </div>
+      <a href="/intelligence/simulate" style="color:#3b7;font-size:0.8em;text-decoration:none;border-bottom:1px solid #333;">try via API &rarr;</a>
+    </div>
+  </div>
+
   <!-- CTA -->
   <div class="dash-section full cta">
     <div class="cta-tagline">give data, get smarter.</div>
@@ -900,7 +937,8 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     <a class="cta-btn" href="/register">get started &rarr;</a>
     <div class="cta-links">
       <a href="/">home</a>
-      <a href="/docs">api docs</a>
+      <a href="/guide">docs</a>
+      <a href="/docs">api reference</a>
       <a href="https://github.com/manizzle/nur">github</a>
     </div>
   </div>
@@ -1423,6 +1461,437 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
+
+    # ── Guide (human-readable docs) ─────────────────────────────
+
+    _GUIDE_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur — guide</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-YLL9Y97GG0');</script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1e;
+    color: #c0c0c0;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    padding: 0;
+  }
+  .guide-header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 1px solid #333338;
+  }
+  .guide-header h1 {
+    font-size: 2.4em;
+    color: #f0f0f0;
+    letter-spacing: 0.25em;
+    margin-bottom: 8px;
+  }
+  .guide-header h1 span { color: #3b7; }
+  .guide-header p {
+    color: #888;
+    font-size: 0.9em;
+  }
+  .guide-nav {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 24px;
+    border-bottom: 1px solid #333338;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .guide-nav a {
+    color: #888;
+    text-decoration: none;
+    font-size: 0.8em;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .guide-nav a:hover { color: #3b7; border-color: #3b7; }
+  .guide-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 64px;
+  }
+  .guide-section {
+    padding: 40px 0 32px;
+    border-bottom: 1px solid #2a2a2e;
+  }
+  .guide-section:last-child { border-bottom: none; }
+  .guide-section h2 {
+    font-size: 1.1em;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #f0f0f0;
+    margin-bottom: 20px;
+  }
+  .guide-section h2::before {
+    content: '/// ';
+    color: #3b7;
+  }
+  .guide-section h3 {
+    font-size: 0.9em;
+    color: #ccc;
+    margin: 20px 0 10px;
+  }
+  .guide-section p, .guide-section li {
+    font-size: 0.85em;
+    color: #999;
+    line-height: 1.8;
+  }
+  .guide-section ul {
+    list-style: none;
+    padding: 0;
+  }
+  .guide-section ul li::before {
+    content: '- ';
+    color: #3b7;
+  }
+  pre {
+    background: #222228;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 16px 20px;
+    font-size: 0.85em;
+    color: #aaa;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.7;
+  }
+  code {
+    color: #aaa;
+    font-family: 'Courier New', monospace;
+  }
+  .cmd { color: #e0e0e0; }
+  .comment { color: #666; }
+  .api-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8em;
+    margin: 12px 0;
+  }
+  .api-table th {
+    text-align: left;
+    color: #888;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 8px 12px;
+    border-bottom: 1px solid #333;
+  }
+  .api-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #2a2a2e;
+    color: #aaa;
+    vertical-align: top;
+  }
+  .api-table td:first-child { color: #3b7; white-space: nowrap; }
+  .api-table td:nth-child(2) { color: #ccc; }
+  .privacy-level {
+    background: #222228;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 8px 0;
+  }
+  .privacy-level strong { color: #ccc; }
+  .guide-footer {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+    font-size: 0.7em;
+    border-top: 1px solid #333338;
+  }
+  .guide-footer a { color: #777; text-decoration: none; }
+  @media (max-width: 768px) {
+    .guide-content { padding: 0 16px 48px; }
+    pre { font-size: 0.75em; padding: 12px; }
+    .api-table { font-size: 0.7em; }
+  }
+</style>
+</head>
+<body>
+
+<div class="guide-header">
+  <h1>nur <span>guide</span></h1>
+  <p>everything you need to know to use nur</p>
+</div>
+
+<div class="guide-nav">
+  <a href="#quick-start">quick start</a>
+  <a href="#wartime">wartime</a>
+  <a href="#peacetime">peacetime</a>
+  <a href="#integrations">integrations</a>
+  <a href="#api">api reference</a>
+  <a href="#privacy">privacy</a>
+  <a href="#self-hosting">self-hosting</a>
+  <a href="/">home</a>
+  <a href="/docs">swagger</a>
+</div>
+
+<div class="guide-content">
+
+  <!-- Quick Start -->
+  <div class="guide-section" id="quick-start">
+    <h2>Quick Start</h2>
+    <p>Install the CLI, register with your work email, start contributing.</p>
+    <pre><span class="comment"># install</span>
+<span class="cmd">pip install nur</span>
+
+<span class="comment"># initialize (saves server URL, generates keypair)</span>
+<span class="cmd">nur init</span>
+
+<span class="comment"># register with your work email (gmail/yahoo blocked)</span>
+<span class="cmd">nur register you@yourorg.com</span>
+
+<span class="comment"># check your email, click the magic link, get your API key</span>
+<span class="comment"># then start reporting</span>
+<span class="cmd">nur report incident.json</span></pre>
+    <p>That's it. Your data is anonymized locally before it leaves your machine. You get back collective intelligence from everyone who contributed.</p>
+  </div>
+
+  <!-- Wartime -->
+  <div class="guide-section" id="wartime">
+    <h2>Wartime Commands</h2>
+    <p>You're under attack. Upload IOCs, get campaign matches, detection gaps, remediation actions.</p>
+
+    <h3>Report IOCs</h3>
+    <pre><span class="cmd">nur report incident_iocs.json</span>
+
+<span class="comment"># Response:</span>
+  Campaign Match: Yes &mdash; 4 other healthcare orgs
+  Shared IOCs: 32 &middot; Threat Actor: LockBit
+
+  Actions:
+    [CRITICAL] Block C2 domains at firewall
+    [CRITICAL] Deploy T1490 detection &mdash; your tools miss it
+    [HIGH]     Hunt for RDP lateral movement
+
+  What worked at other orgs:
+    - Isolated RDP across all subnets (stopped_attack)
+    - Deployed Sigma rule for vssadmin delete (stopped_attack)</pre>
+
+    <h3>Report attack maps</h3>
+    <pre><span class="cmd">nur report attack_map.json</span>     <span class="comment"># detection gap analysis</span></pre>
+
+    <h3>Report tool evaluations</h3>
+    <pre><span class="cmd">nur report eval.json</span>            <span class="comment"># benchmark your tools</span></pre>
+
+    <h3>JSON output</h3>
+    <pre><span class="cmd">nur report incident.json --json | jq '.intelligence.actions'</span></pre>
+  </div>
+
+  <!-- Peacetime -->
+  <div class="guide-section" id="peacetime">
+    <h2>Peacetime Commands</h2>
+    <p>Build defenses. Market maps, vendor comparisons, threat modeling, attack simulations.</p>
+
+    <h3>Market intelligence</h3>
+    <pre><span class="cmd">nur market edr</span>                                       <span class="comment"># vendor rankings by category</span>
+<span class="cmd">nur search vendor crowdstrike</span>                        <span class="comment"># real scores, not Gartner</span>
+<span class="cmd">nur search compare crowdstrike sentinelone</span>           <span class="comment"># side-by-side comparison</span></pre>
+
+    <h3>Threat modeling</h3>
+    <pre><span class="cmd">nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare</span>
+
+<span class="comment"># Response:</span>
+  Coverage: 75% (6/8 priority techniques)
+  Gaps: T1566 Spearphishing &rarr; add email security
+        T1048 Exfiltration &rarr; add NDR or DLP
+  Compliance: HIPAA &check; &middot; NIST CSF &check; &middot; HITECH &cross;
+
+<span class="comment"># Export as HCL (threatcl-compatible)</span>
+<span class="cmd">nur threat-model --stack crowdstrike,splunk --hcl --output model.hcl</span></pre>
+
+    <h3>Attack patterns</h3>
+    <pre><span class="cmd">nur patterns healthcare</span>          <span class="comment"># attack methodology patterns for a vertical</span>
+<span class="cmd">nur patterns financial</span>           <span class="comment"># what APT groups target finance</span></pre>
+
+    <h3>Attack simulation</h3>
+    <pre><span class="cmd">nur simulate --stack crowdstrike,splunk,okta --vertical healthcare</span>
+
+<span class="comment"># Simulates the most common attack chain against your stack</span>
+<span class="comment"># Shows exactly where your defenses break, step by step</span></pre>
+  </div>
+
+  <!-- Integrations -->
+  <div class="guide-section" id="integrations">
+    <h2>Integrations</h2>
+    <p>Plug nur into your existing security stack. 10 integration points.</p>
+
+    <h3>SIEM / EDR</h3>
+    <pre><span class="cmd">nur integrate splunk</span>             <span class="comment"># forward alerts from Splunk</span>
+<span class="cmd">nur integrate sentinel</span>           <span class="comment"># forward incidents from Microsoft Sentinel</span>
+<span class="cmd">nur integrate crowdstrike</span>        <span class="comment"># forward detections from CrowdStrike</span></pre>
+
+    <h3>Syslog / Webhook</h3>
+    <pre><span class="cmd">nur integrate syslog --port 1514</span> <span class="comment"># listen for CEF/syslog events</span>
+<span class="comment"># or POST to /ingest/webhook with any supported format</span></pre>
+
+    <h3>Import</h3>
+    <pre><span class="cmd">nur import navigator layer.json</span>  <span class="comment"># import MITRE ATT&amp;CK Navigator layers</span>
+<span class="cmd">nur import stack inventory.csv</span>   <span class="comment"># import your tool inventory</span>
+<span class="cmd">nur import compliance soc2.json</span>  <span class="comment"># import compliance framework mappings</span>
+<span class="cmd">nur import rfp responses.json</span>    <span class="comment"># import vendor RFP responses</span></pre>
+
+    <h3>Export</h3>
+    <pre><span class="cmd">nur export stix</span>                  <span class="comment"># export intelligence as STIX 2.1</span>
+<span class="cmd">nur export misp</span>                  <span class="comment"># export as MISP events</span></pre>
+
+    <h3>Python SDK</h3>
+    <pre>from nur import load_file, anonymize, submit
+data  = load_file("incident.json")
+clean = [anonymize(d) for d in data]
+[submit(c, api_url="https://nur.saramena.us") for c in clean]</pre>
+  </div>
+
+  <!-- API Reference -->
+  <div class="guide-section" id="api">
+    <h2>API Reference</h2>
+    <p>All endpoints. Interactive docs at <a href="/docs" style="color:#3b7;">/docs</a> (Swagger UI).</p>
+
+    <table class="api-table">
+      <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+      <tr><td>POST</td><td>/analyze</td><td>Give data, get intelligence report</td></tr>
+      <tr><td>POST</td><td>/contribute/submit</td><td>Submit tool evaluation</td></tr>
+      <tr><td>POST</td><td>/contribute/attack-map</td><td>Submit attack map with techniques</td></tr>
+      <tr><td>POST</td><td>/contribute/ioc-bundle</td><td>Submit IOC bundle</td></tr>
+      <tr><td>POST</td><td>/ingest/webhook</td><td>Universal webhook (Splunk, Sentinel, CrowdStrike, CEF, generic)</td></tr>
+      <tr><td>POST</td><td>/register</td><td>Register with work email + public key</td></tr>
+      <tr><td>POST</td><td>/threat-model</td><td>Generate MITRE-mapped threat model for your stack</td></tr>
+      <tr><td>GET</td><td>/intelligence/market/{category}</td><td>Vendor market map by category</td></tr>
+      <tr><td>POST</td><td>/intelligence/threat-map</td><td>Map threat to MITRE techniques, show coverage gaps</td></tr>
+      <tr><td>GET</td><td>/intelligence/danger-radar</td><td>Vendors with hidden risk signals</td></tr>
+      <tr><td>GET</td><td>/intelligence/patterns/{vertical}</td><td>Attack methodology patterns for an industry</td></tr>
+      <tr><td>POST</td><td>/intelligence/simulate</td><td>Simulate attack chain against your stack</td></tr>
+      <tr><td>GET</td><td>/search/vendor/{name}</td><td>Vendor scores and details</td></tr>
+      <tr><td>GET</td><td>/search/compare?a=X&amp;b=Y</td><td>Side-by-side vendor comparison</td></tr>
+      <tr><td>GET</td><td>/dashboard</td><td>Visual dashboard with charts</td></tr>
+      <tr><td>GET</td><td>/guide</td><td>This documentation page</td></tr>
+      <tr><td>GET</td><td>/health</td><td>Liveness check</td></tr>
+      <tr><td>GET</td><td>/stats</td><td>Contribution counts (anonymized)</td></tr>
+    </table>
+
+    <h3>Example: analyze IOCs</h3>
+    <pre>curl -X POST https://nur.saramena.us/analyze \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: nur_yourkey" \
+  -d '{"iocs": [{"ioc_type": "ip", "value": "203.0.113.42"}]}'</pre>
+
+    <h3>Example: threat model</h3>
+    <pre>curl -X POST https://nur.saramena.us/threat-model \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: nur_yourkey" \
+  -d '{"stack": ["crowdstrike", "splunk"], "vertical": "healthcare"}'</pre>
+
+    <h3>Example: simulate attack</h3>
+    <pre>curl -X POST https://nur.saramena.us/intelligence/simulate \
+  -H "Content-Type: application/json" \
+  -d '{"stack": ["crowdstrike", "splunk", "okta"], "vertical": "healthcare"}'</pre>
+  </div>
+
+  <!-- Privacy -->
+  <div class="guide-section" id="privacy">
+    <h2>Privacy</h2>
+    <p>Everything is anonymized on your machine before submission. Three privacy levels:</p>
+
+    <div class="privacy-level">
+      <strong>Level 1: Full anonymization (default)</strong>
+      <p style="color:#999;font-size:0.85em;margin-top:4px;">
+        All IOC values SHA-256 hashed. IPs truncated to /24. Domains hashed.
+        No org name, no analyst name, no raw indicators leave your machine.
+      </p>
+    </div>
+
+    <div class="privacy-level">
+      <strong>Level 2: Structural only</strong>
+      <p style="color:#999;font-size:0.85em;margin-top:4px;">
+        Only MITRE technique IDs, detection/miss booleans, and category scores submitted.
+        Zero IOCs, zero raw data. Just structure.
+      </p>
+    </div>
+
+    <div class="privacy-level">
+      <strong>Level 3: Differential privacy</strong>
+      <p style="color:#999;font-size:0.85em;margin-top:4px;">
+        Laplace noise added to all numeric values. Secure aggregation ensures
+        the server only sees aggregate totals, never individual contributions.
+        Minimum-k enforcement: no aggregates with fewer than 3 contributors.
+      </p>
+    </div>
+
+    <h3>What leaves your machine</h3>
+    <ul>
+      <li>SHA-256 hashes of IOC values (not the values themselves)</li>
+      <li>MITRE technique IDs (e.g., T1566, T1490)</li>
+      <li>Numeric scores and boolean flags</li>
+      <li>Category labels (e.g., "edr", "siem")</li>
+    </ul>
+
+    <h3>What never leaves your machine</h3>
+    <ul>
+      <li>Raw IP addresses, domains, URLs, hashes</li>
+      <li>Organization name or analyst identity</li>
+      <li>Internal hostnames, file paths, or network topology</li>
+      <li>Your private key (generated locally, stays local)</li>
+    </ul>
+  </div>
+
+  <!-- Self-Hosting -->
+  <div class="guide-section" id="self-hosting">
+    <h2>Self-Hosting</h2>
+    <p>Run your own nur instance for your industry or organization.</p>
+
+    <h3>Quick deploy</h3>
+    <pre><span class="cmd">nur up --vertical healthcare</span>     <span class="comment"># LockBit, HIPAA focus</span>
+<span class="cmd">nur up --vertical financial</span>      <span class="comment"># APT28, PCI DSS focus</span>
+<span class="cmd">nur up --vertical energy</span>         <span class="comment"># Sandworm, NERC CIP focus</span>
+<span class="cmd">nur up --vertical government</span>     <span class="comment"># APT29, FISMA focus</span></pre>
+
+    <h3>Docker Compose</h3>
+    <pre><span class="cmd">git clone https://github.com/manizzle/nur.git && cd nur</span>
+<span class="cmd">docker compose up -d</span>
+
+<span class="comment"># or with the install script</span>
+<span class="cmd">curl -sSL https://raw.githubusercontent.com/manizzle/nur/main/install.sh | bash</span></pre>
+
+    <h3>Environment variables</h3>
+    <pre><span class="comment"># .env file</span>
+NUR_DB_URL=postgresql+asyncpg://user:pass@db:5432/nur
+NUR_API_KEY=your_master_api_key
+NUR_AUTO_INGEST=1              <span class="comment"># auto-scrape public feeds every hour</span>
+NUR_DOMAIN=nur.yourorg.com     <span class="comment"># for magic link emails</span>
+NUR_SMTP_HOST=smtp.yourorg.com <span class="comment"># email verification</span>
+NUR_SMTP_PORT=587
+NUR_SMTP_USER=nur@yourorg.com
+NUR_SMTP_PASS=your_smtp_password</pre>
+
+    <h3>Your users</h3>
+    <pre><span class="cmd">pip install nur && nur init && nur register you@org.com</span></pre>
+  </div>
+
+</div>
+
+<div class="guide-footer">
+  <a href="/">nur</a> &bull; collective security intelligence &bull;
+  <a href="https://github.com/manizzle/nur">open source</a> &bull;
+  <a href="/docs">api reference</a>
+</div>
+
+</body>
+</html>"""
+
+    @app.get("/guide", response_class=HTMLResponse)
+    async def guide():
+        return _GUIDE_HTML
 
     return app
 
