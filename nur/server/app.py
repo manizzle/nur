@@ -125,6 +125,26 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     except ImportError:
         pass  # FL module not available (missing numpy)
 
+    # ── Root ──────────────────────────────────────────────────────────
+
+    @app.get("/")
+    async def root():
+        return {
+            "name": "nur",
+            "tagline": "Collective security intelligence for industries",
+            "docs": "/docs",
+            "health": "/health",
+            "stats": "/stats",
+            "endpoints": {
+                "analyze": "POST /analyze — give data, get intelligence",
+                "market": "GET /intelligence/market/{category}",
+                "threat_map": "POST /intelligence/threat-map",
+                "search": "GET /search/vendor/{name}",
+                "contribute": "POST /contribute/submit | /contribute/attack-map | /contribute/ioc-bundle",
+            },
+            "source": "https://github.com/manizzle/nur",
+        }
+
     # ── Health ────────────────────────────────────────────────────────
 
     @app.get("/health")
