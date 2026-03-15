@@ -232,7 +232,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{
-    background: #0a0a0a;
+    background: #1a1a1e;
     color: #c0c0c0;
     font-family: 'Courier New', monospace;
     min-height: 100vh;
@@ -399,7 +399,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
       <span class="stat-label">threat signals</span>
     </div>
     <div class="stat">
-      <span class="stat-num">{vendors}</span>
+      <span class="stat-num">36</span>
       <span class="stat-label">vendors tracked</span>
     </div>
     <div class="stat">
@@ -533,7 +533,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             )
             pending = result.scalar_one_or_none()
             if not pending:
-                return """<!DOCTYPE html><html><body style="background:#0a0a0a;color:#d55;font-family:monospace;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1>invalid or expired link</h1><p><a href="/register" style="color:#888">try again</a></p></div></body></html>"""
+                return """<!DOCTYPE html><html><body style="background:#1a1a1e;color:#d55;font-family:monospace;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1>invalid or expired link</h1><p><a href="/register" style="color:#888">try again</a></p></div></body></html>"""
 
             if pending.verified:
                 # Already verified — find the key
@@ -557,7 +557,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag("js",new Date());gtag("config","G-YLL9Y97GG0");</script>
 <style>
-  body {{ background:#0a0a0a; color:#c0c0c0; font-family:'Courier New',monospace; display:flex; align-items:center; justify-content:center; min-height:100vh; }}
+  body {{ background:#1a1a1e; color:#c0c0c0; font-family:'Courier New',monospace; display:flex; align-items:center; justify-content:center; min-height:100vh; }}
   .box {{ text-align:center; max-width:500px; padding:40px; }}
   h1 {{ color:#2a5; margin-bottom:16px; }}
   .key {{ background:#111; border:1px solid #2a5; border-radius:4px; padding:16px; margin:24px 0; word-break:break-all; color:#2a5; font-size:1.1em; }}
@@ -782,7 +782,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   .cta-btn {{
     display: inline-block;
     background: #3b7;
-    color: #0a0a0a;
+    color: #1a1a1e;
     font-family: 'Courier New', monospace;
     font-weight: bold;
     font-size: 0.9em;
