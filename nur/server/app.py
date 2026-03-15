@@ -847,22 +847,22 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
   <!-- Threat Landscape -->
   <div class="dash-section">
-    <div class="section-title">Threat Landscape &mdash; MITRE ATT&amp;CK Techniques</div>
+    <div class="section-title">What People Are Sharing</div>
     <div class="chart-wrap">
       <canvas id="techniqueChart" height="320"></canvas>
       <div class="chart-empty" id="techniqueEmpty" style="display:none;">
-        No technique data yet. Contribute attack maps to populate.
+        No submissions yet. Be the first to contribute.
       </div>
     </div>
   </div>
 
   <!-- Market Intelligence -->
   <div class="dash-section">
-    <div class="section-title">Market Intelligence &mdash; EDR Vendors</div>
+    <div class="section-title">Tools Under Evaluation</div>
     <div class="chart-wrap">
       <canvas id="marketChart" height="320"></canvas>
       <div class="chart-empty" id="marketEmpty" style="display:none;">
-        No market data yet. Contribute evaluations to populate.
+        No tool data yet. Share your evaluations to populate.
       </div>
     </div>
   </div>
@@ -937,152 +937,113 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   Chart.defaults.font.family = "'Courier New', monospace";
   Chart.defaults.font.size = 11;
 
-  // ── Fetch and render techniques chart ──────────────────────
-  fetch('/query/techniques?limit=10')
+  // ── Submissions by type (donut chart) ────────────────────
+  fetch('/stats')
     .then(function(r) {{ return r.json(); }})
     .then(function(data) {{
-      var techs = data.techniques || [];
-      if (techs.length === 0) {{
+      var bt = data.by_type || {{}};
+      var labels = [];
+      var counts = [];
+      var colors = ['#3b7', '#2980b9', '#e67e22', '#9b59b6', '#e74c3c'];
+      var typeNames = {{
+        'ioc_bundle': 'IOC Bundles',
+        'attack_map': 'Attack Maps',
+        'eval': 'Tool Evaluations',
+      }};
+      Object.keys(bt).forEach(function(k) {{
+        labels.push(typeNames[k] || k);
+        counts.push(bt[k]);
+      }});
+      if (counts.length === 0) {{
         document.getElementById('techniqueChart').style.display = 'none';
         document.getElementById('techniqueEmpty').style.display = 'block';
         return;
       }}
-      var labels = techs.map(function(t) {{ return t.technique_id + ' ' + (t.technique_name || ''); }});
-      var counts = techs.map(function(t) {{ return t.count; }});
-      var maxCount = Math.max.apply(null, counts);
-      var colors = counts.map(function(c) {{ return greenGradient(c, maxCount); }});
-
       new Chart(document.getElementById('techniqueChart'), {{
-        type: 'bar',
+        type: 'doughnut',
         data: {{
           labels: labels,
           datasets: [{{
-            label: 'Sightings',
             data: counts,
-            backgroundColor: colors,
-            borderColor: 'transparent',
-            borderWidth: 0,
-            borderRadius: 2,
+            backgroundColor: colors.slice(0, counts.length),
+            borderColor: '#1a1a1e',
+            borderWidth: 3,
           }}]
         }},
         options: {{
-          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
+          cutout: '60%',
           plugins: {{
-            legend: {{ display: false }},
+            legend: {{
+              position: 'bottom',
+              labels: {{ color: '#aaa', font: {{ size: 12, family: "'Courier New', monospace" }}, padding: 16 }},
+            }},
             tooltip: {{
-              backgroundColor: '#111',
+              backgroundColor: '#222',
               titleColor: '#f0f0f0',
               bodyColor: '#aaa',
               borderColor: '#3b7',
               borderWidth: 1,
             }},
           }},
-          scales: {{
-            x: {{
-              grid: {{ color: '#2a2a30' }},
-              ticks: {{ color: '#444' }},
-            }},
-            y: {{
-              grid: {{ display: false }},
-              ticks: {{ color: '#888', font: {{ size: 10 }} }},
-            }},
-          }},
         }},
       }});
     }})
     .catch(function(e) {{
-      console.error('technique chart error:', e);
       document.getElementById('techniqueChart').style.display = 'none';
       document.getElementById('techniqueEmpty').style.display = 'block';
     }});
 
-  // ── Fetch and render market chart ──────────────────────────
-  fetch('/intelligence/market/edr')
-    .then(function(r) {{ return r.json(); }})
-    .then(function(data) {{
-      var tiers = data.tiers || {{}};
-      var all = [];
-      var tierColors = {{
-        'leaders': '#3b7',
-        'contenders': '#1a7a4a',
-        'emerging': '#145530',
-        'watch': '#333',
-      }};
+  // ── Tools by category (bar chart) ──────────────────────────
+  // Show how many tools we track per category
+  var catData = {{
+    'EDR': 10, 'SIEM': 4, 'CNAPP': 3, 'IAM': 2, 'PAM': 3,
+    'Email': 2, 'ZTNA': 3, 'Vuln Mgmt': 3, 'WAF': 3, 'NDR': 2, 'Threat Intel': 1,
+  }};
+  var catLabels = Object.keys(catData);
+  var catCounts = Object.values(catData);
+  var catColors = catCounts.map(function(c) {{ return greenGradient(c, 10); }});
 
-      ['leaders', 'contenders', 'emerging', 'watch'].forEach(function(tier) {{
-        var items = tiers[tier] || [];
-        items.forEach(function(v) {{
-          all.push({{
-            label: v.display,
-            score: v.weighted_score || 0,
-            color: tierColors[tier],
-            tier: tier,
-          }});
-        }});
-      }});
-
-      if (all.length === 0) {{
-        document.getElementById('marketChart').style.display = 'none';
-        document.getElementById('marketEmpty').style.display = 'block';
-        return;
-      }}
-
-      // Sort by score descending, take top 12
-      all.sort(function(a, b) {{ return b.score - a.score; }});
-      all = all.slice(0, 12);
-
-      var labels = all.map(function(v) {{ return v.label + ' (' + v.tier + ')'; }});
-      var scores = all.map(function(v) {{ return v.score; }});
-      var colors = all.map(function(v) {{ return v.color; }});
-
-      new Chart(document.getElementById('marketChart'), {{
-        type: 'bar',
-        data: {{
-          labels: labels,
-          datasets: [{{
-            label: 'Score',
-            data: scores,
-            backgroundColor: colors,
-            borderColor: 'transparent',
-            borderWidth: 0,
-            borderRadius: 2,
-          }}]
+  new Chart(document.getElementById('marketChart'), {{
+    type: 'bar',
+    data: {{
+      labels: catLabels,
+      datasets: [{{
+        label: 'Vendors Tracked',
+        data: catCounts,
+        backgroundColor: catColors,
+        borderColor: 'transparent',
+        borderWidth: 0,
+        borderRadius: 2,
+      }}]
+    }},
+    options: {{
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{
+          backgroundColor: '#222',
+          titleColor: '#f0f0f0',
+          bodyColor: '#aaa',
+          borderColor: '#3b7',
+          borderWidth: 1,
         }},
-        options: {{
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {{
-            legend: {{ display: false }},
-            tooltip: {{
-              backgroundColor: '#111',
-              titleColor: '#f0f0f0',
-              bodyColor: '#aaa',
-              borderColor: '#3b7',
-              borderWidth: 1,
-            }},
-          }},
-          scales: {{
-            x: {{
-              grid: {{ color: '#2a2a30' }},
-              ticks: {{ color: '#444' }},
-              max: 10,
-            }},
-            y: {{
-              grid: {{ display: false }},
-              ticks: {{ color: '#888', font: {{ size: 10 }} }},
-            }},
-          }},
+      }},
+      scales: {{
+        x: {{
+          grid: {{ color: '#2a2a30' }},
+          ticks: {{ color: '#888' }},
         }},
-      }});
-    }})
-    .catch(function(e) {{
-      console.error('market chart error:', e);
-      document.getElementById('marketChart').style.display = 'none';
-      document.getElementById('marketEmpty').style.display = 'block';
-    }});
+        y: {{
+          grid: {{ display: false }},
+          ticks: {{ color: '#ccc', font: {{ size: 11 }} }},
+        }},
+      }},
+    }},
+  }});
 
   // ── Auto-refresh stats ─────────────────────────────────────
   function refreshStats() {{
