@@ -445,7 +445,10 @@ def scrape(feed, list_feeds, dry_run, api_url, api_key):
 @click.option("--host", default="0.0.0.0")
 @click.option("--db", default="sqlite+aiosqlite:///oombra.db", help="Database URL")
 @click.option("--skip-feeds", is_flag=True, help="Start server without scraping feeds")
-def up(port, host, db, skip_feeds):
+@click.option("--vertical", default=None,
+              type=click.Choice(["healthcare", "financial", "energy", "government"]),
+              help="Industry vertical (customizes threat actors, techniques, actions)")
+def up(port, host, db, skip_feeds, vertical):
     """Start oombra: server + live threat feeds. One command, full loop.
 
     \b
@@ -469,13 +472,24 @@ def up(port, host, db, skip_feeds):
     # Save config so `oombra report` works without flags
     config = _load_config()
     config["api_url"] = api_url
+    if vertical:
+        config["vertical"] = vertical
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     _CONFIG_PATH.write_text(json.dumps(config, indent=2))
 
     click.echo()
-    click.echo("  ┌─────────────────────────────────────────┐")
-    click.echo("  │  oombra up                              │")
-    click.echo("  └─────────────────────────────────────────┘")
+    if vertical:
+        from .verticals import get_vertical
+        v = get_vertical(vertical)
+        click.echo(f"  ┌─────────────────────────────────────────┐")
+        click.echo(f"  │  oombra up — {v.display_name[:27]:27s}│")
+        click.echo(f"  └─────────────────────────────────────────┘")
+        click.echo(f"  Threat actors: {', '.join(v.threat_actors[:4])}")
+        click.echo(f"  Compliance: {', '.join(v.compliance[:3])}")
+    else:
+        click.echo("  ┌─────────────────────────────────────────┐")
+        click.echo("  │  oombra up                              │")
+        click.echo("  └─────────────────────────────────────────┘")
     click.echo()
 
     app = create_app(db_url=db)
