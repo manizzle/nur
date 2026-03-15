@@ -179,4 +179,5 @@ def create_app(db_url: str = "sqlite+aiosqlite:///oombra.db") -> FastAPI:
 
 
 # Default app instance for `uvicorn oombra.server.app:app`
-app = create_app()
+# Reads DB URL from OOMBRA_DB_URL env var (for Docker deployment)
+app = create_app(db_url=os.environ.get("OOMBRA_DB_URL", "sqlite+aiosqlite:///oombra.db"))

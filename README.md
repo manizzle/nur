@@ -13,6 +13,7 @@ An AI-native threat intelligence sharing tool that gives you back more than you 
 - [🚀 How to Run](#-how-to-run)
 - [🏥 The Hospital Scenario](#-the-hospital-scenario)
 - [🔌 How to Integrate](#-how-to-integrate)
+- [🏗️ How to Deploy](#️-how-to-deploy-build-a-company-on-this)
 - [🛡️ How Privacy Works](#️-how-privacy-works)
 - [📡 Live Threat Feeds](#-live-threat-feeds)
 - [🧪 How to Test](#-how-to-test)
@@ -140,7 +141,52 @@ results = pipeline("data.json", api_url="http://oombra:8000", epsilon=5.0, auto_
 | `GET` | `/query/category/{name}` | Tool scores in category |
 | `GET` | `/stats` | Contribution counts |
 
-API key auth: set `OOMBRA_API_KEY` env var. Min-k privacy: aggregates require 3+ contributors.
+## 🏗️ How to Deploy (build a company on this)
+
+oombra is a stack you can deploy. Start a threat intel sharing platform for your industry — hospitals, banks, energy companies. Your users contribute anonymized data, you run the server, everyone gets intelligence.
+
+**Quick deploy (SQLite):**
+```bash
+git clone https://github.com/manizzle/oombra.git
+cd oombra
+cp .env.example .env        # edit with your settings
+docker compose up
+```
+
+**Production deploy (PostgreSQL + auto-ingest):**
+```bash
+cp .env.example .env
+# Edit .env:
+#   OOMBRA_API_KEY=your-secret-key
+#   OOMBRA_AUTO_INGEST=1
+#   POSTGRES_PASSWORD=strong-password
+
+docker compose --profile production up -d
+```
+
+**What you get:**
+- Server on port 8000 with API docs at `/docs`
+- PostgreSQL for durability
+- Auto-ingests ThreatFox, Feodo, MalwareBazaar, CISA KEV every hour
+- API key auth on all write endpoints
+- Min-k privacy (no aggregates with < 3 contributors)
+
+**Configuration (`.env`):**
+
+| Variable | Default | What it does |
+|----------|---------|-------------|
+| `OOMBRA_API_KEY` | *(none)* | Required API key for write endpoints |
+| `OOMBRA_MIN_K` | `3` | Min contributors before showing aggregates |
+| `OOMBRA_AUTO_INGEST` | `0` | Set to `1` to auto-scrape threat feeds hourly |
+| `OOMBRA_PORT` | `8000` | Port to expose |
+| `POSTGRES_PASSWORD` | `oombra` | PostgreSQL password (production profile) |
+
+**Your users just need:**
+```bash
+pip install oombra
+oombra init                          # point to your server
+oombra report their_incident.json    # contribute + get intelligence
+```
 
 ## 🛡️ How Privacy Works
 

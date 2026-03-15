@@ -1,23 +1,45 @@
+# oombra — deployable threat intel sharing stack
+#
+# Quick start:
+#   docker compose up
+#
+# Production (PostgreSQL):
+#   docker compose --profile production up
+#
+# With live feed ingestion:
+#   OOMBRA_AUTO_INGEST=1 docker compose up
+#
+# With API key auth:
+#   OOMBRA_API_KEY=your-secret docker compose up
+
 services:
   oombra:
     build: .
     ports:
-      - "8000:8000"
+      - "${OOMBRA_PORT:-8000}:8000"
     environment:
-      - OOMBRA_DB_URL=sqlite+aiosqlite:///oombra.db
+      - OOMBRA_DB_URL=${OOMBRA_DB_URL:-sqlite+aiosqlite:///data/oombra.db}
+      - OOMBRA_API_KEY=${OOMBRA_API_KEY:-}
+      - OOMBRA_MIN_K=${OOMBRA_MIN_K:-3}
+      - OOMBRA_AUTO_INGEST=${OOMBRA_AUTO_INGEST:-0}
     volumes:
       - oombra-data:/app/data
+    restart: unless-stopped
 
-  # Production mode with PostgreSQL
+  # ── Production: PostgreSQL backend ────────────────────────────
   oombra-prod:
     build: .
     ports:
-      - "8000:8000"
+      - "${OOMBRA_PORT:-8000}:8000"
     environment:
-      - OOMBRA_DB_URL=postgresql+asyncpg://oombra:oombra@postgres:5432/oombra
+      - OOMBRA_DB_URL=postgresql+asyncpg://oombra:${POSTGRES_PASSWORD:-oombra}@postgres:5432/oombra
+      - OOMBRA_API_KEY=${OOMBRA_API_KEY:-}
+      - OOMBRA_MIN_K=${OOMBRA_MIN_K:-3}
+      - OOMBRA_AUTO_INGEST=${OOMBRA_AUTO_INGEST:-1}
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
     profiles:
       - production
 
@@ -25,7 +47,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: oombra
-      POSTGRES_PASSWORD: oombra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oombra}
       POSTGRES_DB: oombra
     volumes:
       - pg-data:/var/lib/postgresql/data
@@ -34,6 +56,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     profiles:
       - production
 
