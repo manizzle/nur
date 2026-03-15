@@ -998,3 +998,278 @@ def prove(file, verify_only, json_out):
             # Self-verify
             result = prover.verify(bundle)
             click.echo(f"\n  Self-verification: {result.summary}")
+
+
+# ── Search commands ──────────────────────────────────────────────────────────
+
+@main.group()
+def search():
+    """Search vendor intelligence — scores, rankings, comparisons."""
+    pass
+
+
+@search.command("vendor")
+@click.argument("name")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def search_vendor(name, api_url, api_key, json_output):
+    """Look up a vendor with weighted scores and metadata."""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
+    import httpx
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(f"{api_url.rstrip('/')}/search/vendor/{name}", headers=headers)
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  {data.get('vendor_display', name)}")
+    click.echo(f"  {'=' * 50}")
+    click.echo(f"  Category:       {data.get('category', '?')}")
+    click.echo(f"  Weighted Score: {data.get('weighted_score', '?')}")
+    click.echo(f"  Confidence:     {data.get('confidence', '?')}")
+    click.echo(f"  Eval Count:     {data.get('eval_count', 0)}")
+    if data.get('price_range'):
+        click.echo(f"  Price Range:    {data['price_range']}")
+    if data.get('certifications'):
+        click.echo(f"  Certifications: {', '.join(data['certifications'])}")
+    if data.get('insurance_carriers'):
+        click.echo(f"  Insurance:      {', '.join(data['insurance_carriers'])}")
+    if data.get('known_issues'):
+        click.echo(f"  Known Issues:   {data['known_issues'][:80]}")
+    metrics = data.get('metrics', {})
+    if any(v is not None for v in metrics.values()):
+        click.echo(f"\n  Metrics:")
+        if metrics.get('detection_rate') is not None:
+            click.echo(f"    Detection Rate: {metrics['detection_rate']}")
+        if metrics.get('fp_rate') is not None:
+            click.echo(f"    FP Rate:        {metrics['fp_rate']}")
+        if metrics.get('deploy_days') is not None:
+            click.echo(f"    Deploy Days:    {metrics['deploy_days']}")
+    click.echo()
+
+
+@search.command("category")
+@click.argument("name")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def search_category(name, api_url, api_key, json_output):
+    """Rank vendors within a category by weighted score."""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
+    import httpx
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(f"{api_url.rstrip('/')}/search/category/{name}", headers=headers)
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  Category: {data.get('category', name)}")
+    click.echo(f"  {'=' * 50}")
+    vendors = data.get("vendors", [])
+    if not vendors:
+        click.echo("  No vendors found.")
+        return
+    for i, v in enumerate(vendors, 1):
+        score = v.get("weighted_score")
+        score_str = f"{score:.1f}" if score is not None else "  ?"
+        conf = v.get("confidence", "?")
+        click.echo(f"  {i:2d}. {v.get('vendor_display', '?'):25s}  score={score_str}  confidence={conf}")
+    click.echo()
+
+
+@search.command("compare")
+@click.argument("vendor_a")
+@click.argument("vendor_b")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def search_compare(vendor_a, vendor_b, api_url, api_key, json_output):
+    """Side-by-side comparison of two vendors."""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
+    import httpx
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(
+            f"{api_url.rstrip('/')}/search/compare",
+            params={"a": vendor_a, "b": vendor_b},
+            headers=headers,
+        )
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    a = data.get("vendor_a", {})
+    b = data.get("vendor_b", {})
+    click.echo(f"\n  {'':30s} {'A':>12s}  {'B':>12s}")
+    click.echo(f"  {'Vendor':30s} {a.get('vendor_display','?'):>12s}  {b.get('vendor_display','?'):>12s}")
+    click.echo(f"  {'=' * 56}")
+
+    def _fmt(val):
+        if val is None:
+            return "?"
+        if isinstance(val, float):
+            return f"{val:.1f}"
+        return str(val)
+
+    click.echo(f"  {'Weighted Score':30s} {_fmt(a.get('weighted_score')):>12s}  {_fmt(b.get('weighted_score')):>12s}")
+    click.echo(f"  {'Confidence':30s} {_fmt(a.get('confidence')):>12s}  {_fmt(b.get('confidence')):>12s}")
+    click.echo(f"  {'Eval Count':30s} {_fmt(a.get('eval_count')):>12s}  {_fmt(b.get('eval_count')):>12s}")
+    click.echo(f"  {'Category':30s} {_fmt(a.get('category')):>12s}  {_fmt(b.get('category')):>12s}")
+    if a.get('price_range') or b.get('price_range'):
+        click.echo(f"  {'Price Range':30s} {_fmt(a.get('price_range')):>12s}  {_fmt(b.get('price_range')):>12s}")
+    click.echo()
+
+
+# ── Market command ───────────────────────────────────────────────────────────
+
+@main.command()
+@click.argument("category")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def market(category, api_url, api_key, json_output):
+    """Market map for a category — leaders, contenders, emerging, watch."""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
+    import httpx
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(f"{api_url.rstrip('/')}/intelligence/market/{category}", headers=headers)
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  Market Map: {data.get('category', category)}")
+    click.echo(f"  {'=' * 50}")
+    click.echo(f"  Total vendors: {data.get('vendor_count', 0)}")
+
+    tiers = data.get("tiers", {})
+    for tier_name in ("leaders", "contenders", "emerging", "watch"):
+        vendors = tiers.get(tier_name, [])
+        if vendors:
+            click.echo(f"\n  {tier_name.upper()} ({len(vendors)}):")
+            for v in vendors:
+                score = v.get("weighted_score")
+                score_str = f"{score:.1f}" if score is not None else "  ?"
+                click.echo(f"    {v.get('display', '?'):25s}  score={score_str}  conf={v.get('confidence', '?')}")
+    click.echo()
+
+
+# ── Threat Map command ───────────────────────────────────────────────────────
+
+@main.command("threat-map")
+@click.argument("threat_description")
+@click.option("--tools", default=None, help="Comma-separated list of current tools")
+@click.option("--api-url", default=None, help="Server URL (default: from oombra init)")
+@click.option("--api-key", default=None, help="API key (default: from oombra init)")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def threat_map(threat_description, tools, api_url, api_key, json_output):
+    """Coverage gap analysis — map a threat to MITRE techniques and find gaps."""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: oombra init")
+        raise SystemExit(1)
+    import httpx
+    headers = {"Content-Type": "application/json"}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    current_tools = [t.strip() for t in tools.split(",")] if tools else []
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.post(
+            f"{api_url.rstrip('/')}/intelligence/threat-map",
+            json={"threat": threat_description, "current_tools": current_tools},
+            headers=headers,
+        )
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  Threat Map: {data.get('threat', threat_description)}")
+    click.echo(f"  {'=' * 50}")
+
+    summary = data.get("coverage_summary", {})
+    click.echo(f"  Coverage: {summary.get('covered', 0)}/{summary.get('total_techniques', 0)} techniques covered")
+    click.echo(f"  Gaps: {summary.get('gaps', 0)}")
+
+    kill_chain = data.get("kill_chain", [])
+    if kill_chain:
+        click.echo(f"\n  Kill Chain:")
+        for step in kill_chain:
+            status = "COVERED" if not step.get("gap") else "GAP"
+            coverage = step.get("your_coverage") or ""
+            click.echo(f"    [{status:7s}] {step.get('technique_id', '?'):8s} {step.get('technique_name', '?')}")
+            if coverage:
+                click.echo(f"              Covered by: {coverage}")
+            if step.get("gap") and step.get("recommended"):
+                recs = [r["vendor_display"] for r in step["recommended"][:2]]
+                click.echo(f"              Consider: {', '.join(recs)}")
+
+    recs = data.get("gap_recommendations", [])
+    if recs:
+        click.echo(f"\n  Recommendations:")
+        for r in recs:
+            click.echo(f"    - {r}")
+    click.echo()
