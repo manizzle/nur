@@ -2,6 +2,38 @@
   "iocs": [
     {
       "ioc_type": "domain",
+      "value_raw": "bloomhaul.checkstor.in.net",
+      "threat_actor": "ClearFake",
+      "campaign": "js.clearfake",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "638490.idealgo.in.net",
+      "threat_actor": "ClearFake",
+      "campaign": "js.clearfake",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "genomecouri.idealgo.in.net",
+      "threat_actor": "ClearFake",
+      "campaign": "js.clearfake",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
+      "value_raw": "guidecoral.idealgo.in.net",
+      "threat_actor": "ClearFake",
+      "campaign": "js.clearfake",
+      "detected_by": [],
+      "missed_by": []
+    },
+    {
+      "ioc_type": "domain",
       "value_raw": "mer-forgeon.idealgo.in.net",
       "threat_actor": "ClearFake",
       "campaign": "js.clearfake",
@@ -163,38 +195,6 @@
     {
       "ioc_type": "domain",
       "value_raw": "metrics-sync-1.petitnuage.in.net",
-      "threat_actor": "ClearFake",
-      "campaign": "js.clearfake",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "goldbox.digital",
-      "threat_actor": "ClearFake",
-      "campaign": "js.clearfake",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "cloud-drive-v7.fortezzarossa.in.net",
-      "threat_actor": "ClearFake",
-      "campaign": "js.clearfake",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "srv-cluster-01.fortezzarossa.in.net",
-      "threat_actor": "ClearFake",
-      "campaign": "js.clearfake",
-      "detected_by": [],
-      "missed_by": []
-    },
-    {
-      "ioc_type": "domain",
-      "value_raw": "web-proxy-alt.fortezzarossa.in.net",
       "threat_actor": "ClearFake",
       "campaign": "js.clearfake",
       "detected_by": [],

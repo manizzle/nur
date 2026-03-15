@@ -392,7 +392,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     </div>
     <div class="stat">
       <span class="stat-num">37</span>
-      <span class="stat-label">data sources</span>
+      <span class="stat-label">live feeds</span>
     </div>
   </div>
 
@@ -830,7 +830,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   <div class="hero-stat" id="hero-total">{total}</div>
   <div class="hero-label">contributions from the community</div>
   <div class="dash-subtitle">
-    <span class="pulse"></span> 37 data sources &middot; live feeds &middot; auto-refresh 60s
+    <span class="pulse"></span> 37 feeds &middot; 36 vendors &middot; live feeds &middot; auto-refresh 60s
   </div>
 </div>
 
