@@ -91,6 +91,17 @@ class EvalRecord(BaseModel):
 
 # ── AttackMap ─────────────────────────────────────────────────────────────────
 
+class RemediationAction(BaseModel):
+    """What someone actually did to stop or contain the attack."""
+    action: str                      # "Isolated RDP across all subnets"
+    category: str = "other"          # containment, detection, eradication, recovery, prevention
+    effectiveness: str | None = None # "stopped_attack", "slowed_attack", "no_effect", "made_worse"
+    time_to_implement: str | None = None  # "minutes", "hours", "days"
+    tool_used: str | None = None     # vendor slug if a tool was involved
+    sigma_rule: str | None = None    # Sigma rule YAML if they wrote/used one
+    notes: str | None = None         # will be anonymized
+
+
 class ObservedTechnique(BaseModel):
     """A single observed or simulated MITRE ATT&CK technique."""
     technique_id: str                # "T1566"
@@ -99,6 +110,7 @@ class ObservedTechnique(BaseModel):
     observed: bool                   = True   # True=seen in wild, False=simulated
     detected_by: list[str]           = Field(default_factory=list)   # vendor slugs
     missed_by: list[str]             = Field(default_factory=list)   # vendor slugs
+    blocked_by: str | None           = None   # what stopped this technique
     notes: str | None                = None   # will be anonymized
 
 
@@ -112,6 +124,15 @@ class AttackMap(BaseModel):
     tools_in_scope: list[str]        = Field(default_factory=list)   # vendor slugs
     source: str                      = "practitioner"   # "red-team", "incident", "simulation"
     notes: str | None                = None
+
+    # What actually worked — the actionable part
+    remediation: list[RemediationAction] = Field(default_factory=list)
+    time_to_detect: str | None       = None   # "minutes", "hours", "days"
+    time_to_contain: str | None      = None   # "minutes", "hours", "days"
+    time_to_recover: str | None      = None   # "hours", "days", "weeks"
+    severity: str | None             = None   # "critical", "high", "medium", "low"
+    data_exfiltrated: bool | None    = None   # was data stolen before containment?
+    ransom_paid: bool | None         = None   # did they pay? (no judgment, just data)
 
 
 # ── IOCBundle ─────────────────────────────────────────────────────────────────

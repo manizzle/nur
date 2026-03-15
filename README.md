@@ -26,7 +26,9 @@ nur fixes this. Two questions, one platform:
 - **What's compromising us?** — IOCs, attack patterns, campaigns hitting your sector
 - **What actually works?** — which tools catch what, real practitioner scores from real incidents
 
-> Everything is anonymized on your machine. Nothing leaves without your approval. Math, not promises.
+> ✅ Everything is anonymized on your machine. Nothing leaves without your approval. Math, not promises.
+
+> 🟢 **Try it live:** [nur.saramena.us](https://nur.saramena.us) — 25+ contributions loaded, 37 data sources, API docs at [/docs](https://nur.saramena.us/docs)
 
 ---
 
@@ -187,7 +189,7 @@ nur admin sources           # see all 45 with tier/status
 
 Raw data snapshots available in `data/feeds/` (658,000+ records, CDLA-Permissive-2.0).
 
-> **Want to help?** 4 feeds just need free API keys — [grab one and help us](https://github.com/manizzle/nur/issues/5). Run a threat intel feed? [Get listed on this page](https://github.com/manizzle/nur/issues/4).
+> **Run a threat intel feed?** [Get listed on this page](https://github.com/manizzle/nur/issues/4). Got access to a premium feed (Shodan, VirusTotal, Recorded Future)? [See what we need](https://github.com/manizzle/nur/issues/5).
 
 ---
 

@@ -184,6 +184,52 @@ async def analyze_attack_map(data: dict[str, Any], db: Database) -> dict:
             "detail": gap["recommendation"],
         })
 
+    # Get remediation intelligence — what others did that actually worked
+    technique_ids = [t.get("technique_id") for t in data.get("techniques", []) if t.get("technique_id")]
+    remediation_intel = await db.get_remediation_for_threat(
+        threat_name=data.get("threat_name"),
+        technique_ids=technique_ids,
+        exclude_contribution_id=cid,
+    )
+
+    # Extract the most effective actions from other orgs
+    what_worked = []
+    for r in remediation_intel:
+        for a in r.get("actions", []):
+            if a.get("effectiveness") in ("stopped_attack", "slowed_attack"):
+                what_worked.append({
+                    "action": a.get("action", ""),
+                    "category": a.get("category", "other"),
+                    "effectiveness": a.get("effectiveness", ""),
+                    "tool_used": a.get("tool_used"),
+                    "sigma_rule": a.get("sigma_rule"),
+                    "from_industry": r.get("industry"),
+                    "from_severity": r.get("severity"),
+                })
+
+    # Add remediation actions to the response
+    if what_worked:
+        actions.insert(0, {
+            "priority": "critical",
+            "action": f"Proven remediation from {len(remediation_intel)} other orgs",
+            "detail": f"{len(what_worked)} actions that stopped or slowed this attack at other organizations",
+        })
+
+    # Incident response metrics from other orgs
+    ir_metrics = {}
+    if remediation_intel:
+        detect_times = [r["time_to_detect"] for r in remediation_intel if r.get("time_to_detect")]
+        contain_times = [r["time_to_contain"] for r in remediation_intel if r.get("time_to_contain")]
+        exfil_count = sum(1 for r in remediation_intel if r.get("data_exfiltrated"))
+        paid_count = sum(1 for r in remediation_intel if r.get("ransom_paid"))
+        ir_metrics = {
+            "orgs_reporting": len(remediation_intel),
+            "common_detect_time": max(set(detect_times), key=detect_times.count) if detect_times else None,
+            "common_contain_time": max(set(contain_times), key=contain_times.count) if contain_times else None,
+            "data_exfiltrated_pct": round(exfil_count / len(remediation_intel) * 100) if remediation_intel else None,
+            "ransom_paid_pct": round(paid_count / len(remediation_intel) * 100) if remediation_intel else None,
+        }
+
     return {
         "status": "analyzed",
         "contribution_id": cid,
@@ -192,6 +238,8 @@ async def analyze_attack_map(data: dict[str, Any], db: Database) -> dict:
             "coverage_score": coverage_score,
             "techniques_seen_by_others": techniques_seen,
             "actions": actions,
+            "what_worked": what_worked,
+            "ir_metrics": ir_metrics if ir_metrics else None,
         },
     }
 

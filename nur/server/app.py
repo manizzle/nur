@@ -169,11 +169,28 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     margin-bottom: 8px;
     text-shadow: 0 0 40px rgba(255,255,255,0.1);
   }}
-  .arabic {{
-    font-size: 1.4em;
-    color: #666;
-    margin-bottom: 32px;
-    direction: rtl;
+  .meaning {{
+    margin-bottom: 40px;
+  }}
+  .meaning-scripts {{
+    font-size: 1.5em;
+    color: #555;
+    margin-bottom: 12px;
+    letter-spacing: 0.2em;
+  }}
+  .meaning-scripts span {{
+    margin: 0 12px;
+  }}
+  .meaning-langs {{
+    font-size: 0.7em;
+    color: #3a3a3a;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }}
+  .meaning-text {{
+    font-size: 0.85em;
+    color: #444;
+    font-style: italic;
   }}
   .tagline {{
     font-size: 1.1em;
@@ -273,7 +290,17 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <div class="container">
 
   <h1>nur</h1>
-  <div class="arabic">نور</div>
+  <div class="meaning">
+    <div class="meaning-scripts">
+      <span dir="rtl">نور</span>
+      <span dir="rtl">ܢܘܪܐ</span>
+      <span>nûr</span>
+      <span>nuru</span>
+    </div>
+    <div class="meaning-text">
+      "light" &mdash; one word, shared across languages, cultures, and continents
+    </div>
+  </div>
   <div class="tagline">
     collective security intelligence for industries.<br>
     give data, get smarter.
@@ -310,10 +337,10 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   </div>
 
   <div class="links">
+    <a href="/register">get your API key</a>
     <a href="/docs">api docs</a>
     <a href="https://github.com/manizzle/nur">github</a>
     <a href="https://github.com/manizzle/nur/issues/4">add your feed</a>
-    <a href="/stats">live stats</a>
   </div>
 
   <hr class="divider">
@@ -328,6 +355,123 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   </div>
 
 </div>
+</body>
+</html>"""
+
+    # ── Register ─────────────────────────────────────────────────────
+
+    @app.post("/register")
+    async def register(body: dict[str, Any]):
+        """Register for a free API key. Email required."""
+        import secrets as _secrets
+        from sqlalchemy import select
+        from .models import APIKeyRecord
+
+        email = (body.get("email") or "").strip().lower()
+        org = (body.get("org") or "").strip()
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Valid email required")
+
+        db = get_db()
+        async with db.session() as s:
+            existing = await s.execute(
+                select(APIKeyRecord).where(APIKeyRecord.email == email)
+            )
+            record = existing.scalar_one_or_none()
+            if record:
+                return {
+                    "status": "exists",
+                    "api_key": record.api_key,
+                    "tier": record.tier,
+                    "message": "API key already exists for this email",
+                }
+
+            key = "nur_" + _secrets.token_urlsafe(32)
+            s.add(APIKeyRecord(email=email, api_key=key, org_name=org or None, tier="community"))
+
+        return {
+            "status": "created",
+            "api_key": key,
+            "tier": "community",
+            "message": "Welcome to nur. Set this key with: nur init",
+        }
+
+    @app.get("/register", response_class=HTMLResponse)
+    async def register_page():
+        return """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur — get your API key</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #c0c0c0; font-family: 'Courier New', monospace; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .container { max-width: 480px; padding: 40px 24px; text-align: center; }
+  h1 { font-size: 2em; color: #f0f0f0; margin-bottom: 8px; }
+  .sub { color: #666; margin-bottom: 32px; font-size: 0.9em; }
+  form { text-align: left; }
+  label { display: block; color: #666; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+  input { width: 100%; padding: 10px; background: #111; border: 1px solid #333; border-radius: 4px; color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 16px; }
+  input:focus { outline: none; border-color: #555; }
+  button { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 1em; cursor: pointer; }
+  button:hover { background: #222; border-color: #666; }
+  .result { margin-top: 24px; padding: 16px; background: #111; border: 1px solid #2a5; border-radius: 4px; display: none; }
+  .result code { color: #2a5; word-break: break-all; }
+  .tiers { margin-top: 32px; text-align: left; font-size: 0.8em; color: #555; line-height: 1.8; }
+  .tiers strong { color: #888; }
+  a { color: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>get your API key</h1>
+  <div class="sub">free. takes 5 seconds.</div>
+
+  <form id="reg" onsubmit="return doRegister(event)">
+    <label>email</label>
+    <input type="email" id="email" placeholder="you@company.com" required>
+    <label>organization (optional)</label>
+    <input type="text" id="org" placeholder="Acme Health System">
+    <button type="submit">get key</button>
+  </form>
+
+  <div class="result" id="result">
+    <div>your API key:</div>
+    <code id="key"></code>
+    <br><br>
+    <div style="color:#666;font-size:0.85em">
+      run: <code style="color:#aaa">nur init</code> and paste this key.<br>
+      then: <code style="color:#aaa">nur report incident.json</code>
+    </div>
+  </div>
+
+  <div class="tiers">
+    <strong>community tier</strong> (free, forever):<br>
+    &bull; contribute data, get intelligence reports<br>
+    &bull; aggregate data delayed 90 days<br>
+    &bull; 37 threat feed sources<br><br>
+    <strong>enterprise tier</strong> (coming soon):<br>
+    &bull; real-time aggregate data (no 90-day delay)<br>
+    &bull; custom vertical configuration<br>
+    &bull; SLA + priority support<br>
+    &bull; SIEM/SOAR integrations<br><br>
+    <a href="/">← back to nur</a>
+  </div>
+</div>
+<script>
+async function doRegister(e) {
+  e.preventDefault();
+  const res = await fetch('/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: document.getElementById('email').value, org: document.getElementById('org').value})
+  });
+  const data = await res.json();
+  document.getElementById('key').textContent = data.api_key;
+  document.getElementById('result').style.display = 'block';
+}
+</script>
 </body>
 </html>"""
 

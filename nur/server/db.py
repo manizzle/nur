@@ -81,6 +81,7 @@ class Database:
     async def store_attack_map(self, data: dict[str, Any]) -> str:
         """Store an AttackMap contribution. Returns contribution ID."""
         techniques = data.get("techniques", [])
+        remediation = data.get("remediation", [])
         contrib = Contribution(
             contrib_type="attack_map",
             industry=data.get("context", {}).get("industry"),
@@ -91,6 +92,13 @@ class Database:
             tools_in_scope=json.dumps(data.get("tools_in_scope", [])),
             source=data.get("source", "practitioner"),
             notes=data.get("notes"),
+            remediation_json=json.dumps(remediation) if remediation else None,
+            time_to_detect=data.get("time_to_detect"),
+            time_to_contain=data.get("time_to_contain"),
+            time_to_recover=data.get("time_to_recover"),
+            severity=data.get("severity"),
+            data_exfiltrated=data.get("data_exfiltrated"),
+            ransom_paid=data.get("ransom_paid"),
         )
         async with self.session() as s:
             s.add(contrib)
@@ -302,6 +310,57 @@ class Database:
             if any(m.lower() == vendor_lower for m in missed):
                 gaps.append(row.technique_id)
         return list(set(gaps))
+
+    async def get_remediation_for_threat(
+        self, threat_name: str | None = None, technique_ids: list[str] | None = None,
+        exclude_contribution_id: str | None = None,
+    ) -> list[dict]:
+        """Get remediation actions from other contributions for similar attacks."""
+        async with self.session() as s:
+            stmt = select(Contribution).where(
+                Contribution.contrib_type == "attack_map",
+                Contribution.remediation_json.isnot(None),
+            )
+            if exclude_contribution_id:
+                stmt = stmt.where(Contribution.id != exclude_contribution_id)
+            result = await s.execute(stmt)
+            rows = result.scalars().all()
+
+        remediations = []
+        for row in rows:
+            try:
+                actions = json.loads(row.remediation_json) if row.remediation_json else []
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if not actions:
+                continue
+
+            relevant = False
+            if threat_name and row.threat_name and threat_name.lower() in row.threat_name.lower():
+                relevant = True
+            if technique_ids and row.techniques_json:
+                try:
+                    their_techs = {t.get("technique_id") for t in json.loads(row.techniques_json)}
+                    if set(technique_ids) & their_techs:
+                        relevant = True
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            if not relevant and not threat_name and not technique_ids:
+                relevant = True
+
+            if relevant:
+                remediations.append({
+                    "threat_name": row.threat_name,
+                    "industry": row.industry,
+                    "severity": row.severity,
+                    "time_to_detect": row.time_to_detect,
+                    "time_to_contain": row.time_to_contain,
+                    "time_to_recover": row.time_to_recover,
+                    "data_exfiltrated": row.data_exfiltrated,
+                    "ransom_paid": row.ransom_paid,
+                    "actions": actions,
+                })
+        return remediations
 
     # ── Aggregate refresh ────────────────────────────────────────────────
 

@@ -59,6 +59,15 @@ class Contribution(Base):
     # IOCBundle — individual IOCs stored in ioc_hashes table
     ioc_count: Mapped[int | None] = mapped_column(Integer)
 
+    # Incident response metadata
+    remediation_json: Mapped[str | None] = mapped_column(Text)  # JSON array of RemediationAction
+    time_to_detect: Mapped[str | None] = mapped_column(String(20))
+    time_to_contain: Mapped[str | None] = mapped_column(String(20))
+    time_to_recover: Mapped[str | None] = mapped_column(String(20))
+    severity: Mapped[str | None] = mapped_column(String(20))
+    data_exfiltrated: Mapped[bool | None] = mapped_column(Boolean)
+    ransom_paid: Mapped[bool | None] = mapped_column(Boolean)
+
     __table_args__ = (
         Index("ix_contrib_vendor", "vendor"),
         Index("ix_contrib_category", "category"),
@@ -108,6 +117,27 @@ class AttackTechnique(Base):
     __table_args__ = (
         Index("ix_tech_id", "technique_id"),
         Index("ix_tech_contrib", "contribution_id"),
+    )
+
+
+class APIKeyRecord(Base):
+    """Registered API key — tracks who's using nur."""
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    api_key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    org_name: Mapped[str | None] = mapped_column(String(200))
+    tier: Mapped[str] = mapped_column(String(20), default="community")  # community, enterprise
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    last_used: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    request_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    __table_args__ = (
+        Index("ix_apikey_email", "email"),
+        Index("ix_apikey_key", "api_key"),
     )
 
 
