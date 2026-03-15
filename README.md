@@ -187,6 +187,8 @@ oombra admin sources           # see all 45 with tier/status
 
 Raw data snapshots available in `data/feeds/` (658,000+ records, CDLA-Permissive-2.0).
 
+> 🔑 **Want to help?** We have scraper code for 4 more feeds that just need free API keys — [AbuseIPDB, AlienVault OTX, Pulsedive, GreyNoise](https://github.com/manizzle/oombra/issues/1). Register, grab a key, and help us scrape the entire threat landscape.
+
 ---
 
 ## 🏗️ Deploy for your industry
