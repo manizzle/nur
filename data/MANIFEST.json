@@ -51,6 +51,16 @@
       "file": "feeds/spamhaus_drop.txt",
       "records": 1532,
       "license": "Free (non-commercial)"
+    },
+    "abuseipdb": {
+      "file": "feeds/abuseipdb.json",
+      "records": 200,
+      "license": "Free (API key)"
+    },
+    "pulsedive": {
+      "file": "feeds/pulsedive.json",
+      "records": 0,
+      "license": "Free (API key)"
     }
   }
 }

@@ -649,7 +649,7 @@ def scrape_pulsedive(url: str) -> list[dict]:
         print("[oombra] PULSEDIVE_API_KEY not set — skipping Pulsedive feed")
         return []
 
-    full_url = f"{url}?q=feed&limit=100&key={api_key}"
+    full_url = f"{url}?q=type%3Dip+risk%3Dcritical&limit=100&key={api_key}"
     raw = _fetch(full_url)
     if not raw:
         return []
