@@ -85,9 +85,16 @@ def init():
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     _CONFIG_PATH.write_text(json.dumps(config, indent=2))
 
+    # Generate keypair for public-key auth
+    from .keystore import get_public_key_hex
+    pub_hex = get_public_key_hex()
+    config["public_key"] = pub_hex
+    _CONFIG_PATH.write_text(json.dumps(config, indent=2))
+
     click.echo(f"\n  Saved to {_CONFIG_PATH}")
     click.echo(f"  Server: {config['api_url']}")
     click.echo(f"  API key: {'***' + config['api_key'][-4:] if config.get('api_key') else 'none'}")
+    click.echo(f"  Public key: {pub_hex[:16]}...")
     click.echo(f"\n  You're ready. Try: nur report <file>")
     click.echo()
 

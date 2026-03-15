@@ -128,6 +128,7 @@ class APIKeyRecord(Base):
     email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     api_key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     org_name: Mapped[str | None] = mapped_column(String(200))
+    public_key: Mapped[str | None] = mapped_column(String(64))
     tier: Mapped[str] = mapped_column(String(20), default="community")  # community, enterprise
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -148,6 +149,7 @@ class PendingVerification(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     email: Mapped[str] = mapped_column(String(200), nullable=False)
     org_name: Mapped[str | None] = mapped_column(String(200))
+    public_key: Mapped[str | None] = mapped_column(String(64))
     token: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
