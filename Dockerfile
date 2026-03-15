@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 # Python deps (cache layer — only rebuilds when pyproject.toml changes)
 COPY pyproject.toml .
 COPY nur/ nur/
-RUN pip install --no-cache-dir ".[server]"
+RUN pip install --no-cache-dir ".[server,server-pg]"
 
 # Demo data + pre-scraped feeds
 COPY demo/ demo/
