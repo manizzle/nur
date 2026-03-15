@@ -2,7 +2,9 @@
 
 An AI-native threat intelligence sharing tool that gives you back more than you give. Share your anonymized incident data — get campaign matches, detection gaps, and prioritized actions from every other contributor. Think VirusTotal, but for cross-org incident correlation with mathematical privacy guarantees.
 
-<a href="https://asciinema.org/a/4ieKQiYhLiZlszBM" target="_blank"><img src="https://asciinema.org/a/4ieKQiYhLiZlszBM.svg" width="700" /></a>
+<p align="center">
+  <img src="demo/oombra-demo.gif" alt="oombra demo" width="700" />
+</p>
 
 ## Table of Contents
 
