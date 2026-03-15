@@ -99,6 +99,57 @@ def init():
     click.echo()
 
 
+# ── Register ─────────────────────────────────────────────────────────────────
+
+@main.command()
+@click.argument("email")
+@click.option("--org", default=None, help="Organization name")
+@click.option("--api-url", default=None, help="Server URL (default: from nur init)")
+def register(email, org, api_url):
+    """Register for an API key with your work email. Generates a keypair and sends a verification link."""
+    import httpx
+    from .keystore import get_public_key_hex
+
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+
+    pub_hex = get_public_key_hex()
+
+    click.echo(f"\n  Registering {email}...")
+    click.echo(f"  Public key: {pub_hex[:16]}...")
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.post(f"{api_url.rstrip('/')}/register", json={
+            "email": email,
+            "org": org or "",
+            "public_key": pub_hex,
+        })
+
+    if resp.status_code != 200:
+        data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+        click.echo(f"  Error: {data.get('detail', resp.text[:200])}")
+        return
+
+    data = resp.json()
+
+    if data.get("api_key"):
+        # Already registered — got key back immediately
+        config = _load_config()
+        config["api_key"] = data["api_key"]
+        config["public_key"] = pub_hex
+        _CONFIG_PATH.write_text(json.dumps(config, indent=2))
+        click.echo(f"  API key: {data['api_key']}")
+        click.echo(f"  Saved to {_CONFIG_PATH}")
+    else:
+        click.echo(f"  {data.get('message', 'Check your email for the verification link.')}")
+        if data.get("verify_url"):
+            click.echo(f"  Verify: {data['verify_url']}")
+
+    click.echo()
+
+
 # ── Upload ───────────────────────────────────────────────────────────────────
 
 @main.command()
@@ -178,10 +229,21 @@ def report(file, api_url, api_key, json_output):
     if api_key:
         headers["X-API-Key"] = api_key
 
+    # Sign requests with private key
+    try:
+        from .keystore import get_or_create_keypair, sign_request
+        _, priv_key = get_or_create_keypair()
+    except Exception:
+        priv_key = None
+
     for c in contribs:
         clean = anonymize(c)
         from .client import _serialize
         payload = _serialize(clean)
+
+        if priv_key:
+            body_bytes = json.dumps(payload, sort_keys=True).encode()
+            headers["X-Signature"] = sign_request(body_bytes, priv_key)
 
         with httpx.Client(timeout=30) as http:
             resp = http.post(f"{api_url.rstrip('/')}/analyze", json=payload, headers=headers)

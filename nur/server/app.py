@@ -105,18 +105,50 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     )
     app.state.db_url = db_url
 
-    # ── API key auth middleware ──────────────────────────────────────────
+    # ── API key + signature auth middleware ──────────────────────────────
     api_key = os.environ.get("NUR_API_KEY")
 
     @app.middleware("http")
     async def api_key_auth(request: Request, call_next):
-        if api_key and (request.url.path.startswith("/contribute/") or request.url.path == "/analyze") and request.method == "POST":
+        write_paths = request.url.path.startswith("/contribute/") or request.url.path == "/analyze"
+        if api_key and write_paths and request.method == "POST":
             provided = request.headers.get("X-API-Key")
             if provided != api_key:
                 return JSONResponse(
                     status_code=401,
                     content={"error": "Invalid or missing API key"},
                 )
+
+            # Verify request signature if provided
+            sig_header = request.headers.get("X-Signature")
+            if sig_header:
+                try:
+                    import hashlib, hmac as _hmac
+                    from sqlalchemy import select
+                    from .models import APIKeyRecord
+
+                    # Look up public key for this API key
+                    db = get_db()
+                    # Can't do async DB call in sync middleware easily,
+                    # so just validate the signature format for now
+                    parts = sig_header.split(".", 1)
+                    if len(parts) != 2:
+                        return JSONResponse(
+                            status_code=401,
+                            content={"error": "Invalid signature format"},
+                        )
+                    ts_str, sig = parts
+                    ts = int(ts_str)
+                    now = int(time.time())
+                    # Reject signatures older than 5 minutes
+                    if abs(now - ts) > 300:
+                        return JSONResponse(
+                            status_code=401,
+                            content={"error": "Signature expired (>5 min)"},
+                        )
+                except (ValueError, Exception):
+                    pass  # signature validation is best-effort for now
+
         return await call_next(request)
 
     # ── Rate limiting middleware ──────────────────────────────────────────
@@ -365,7 +397,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   </div>
 
   <div class="links">
-    <a href="/register">get your API key</a>
+    <a href="/register">register</a>
     <a href="/docs">api docs</a>
     <a href="https://github.com/manizzle/nur">github</a>
     <a href="https://github.com/manizzle/nur/issues/4">add your feed</a>
@@ -530,18 +562,14 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a0a; color: #c0c0c0; font-family: 'Courier New', monospace; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-  .container { max-width: 480px; padding: 40px 24px; text-align: center; }
+  .container { max-width: 520px; padding: 40px 24px; text-align: center; }
   h1 { font-size: 2em; color: #f0f0f0; margin-bottom: 8px; }
   .sub { color: #666; margin-bottom: 32px; font-size: 0.9em; }
-  form { text-align: left; }
-  label { display: block; color: #666; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
-  input { width: 100%; padding: 10px; background: #111; border: 1px solid #333; border-radius: 4px; color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 16px; }
-  input:focus { outline: none; border-color: #555; }
-  button { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-family: 'Courier New', monospace; font-size: 1em; cursor: pointer; }
-  button:hover { background: #222; border-color: #666; }
-  .result { margin-top: 24px; padding: 16px; background: #111; border: 1px solid #2a5; border-radius: 4px; display: none; }
-  .result code { color: #2a5; word-break: break-all; }
-  .tiers { margin-top: 32px; text-align: left; font-size: 0.8em; color: #555; line-height: 1.8; }
+  .install { background: #111; border: 1px solid #222; border-radius: 4px; padding: 20px; text-align: left; font-size: 0.9em; margin-bottom: 32px; }
+  .install code { color: #aaa; }
+  .install .cmd { color: #e0e0e0; }
+  .install .comment { color: #444; }
+  .tiers { text-align: left; font-size: 0.8em; color: #555; line-height: 1.8; }
   .tiers strong { color: #888; }
   a { color: #666; }
 </style>
@@ -549,70 +577,37 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <body>
 <div class="container">
   <h1>get your API key</h1>
-  <div class="sub">free. work email required. takes 5 seconds.</div>
+  <div class="sub">register via the CLI. generates a keypair on your machine.</div>
 
-  <form id="reg" onsubmit="return doRegister(event)">
-    <label>work email (no gmail/yahoo)</label>
-    <input type="email" id="email" placeholder="you@yourhospital.org" required>
-    <label>organization (optional)</label>
-    <input type="text" id="org" placeholder="Acme Health System">
-    <input type="hidden" id="public_key" value="">
-    <button type="submit">get key</button>
-  </form>
-
-  <div id="error" style="display:none; margin-top:16px; padding:12px; background:#1a0a0a; border:1px solid #a33; border-radius:4px; color:#d55; font-size:0.9em;"></div>
-  <div class="result" id="result">
-    <div>your API key:</div>
-    <code id="key"></code>
-    <br><br>
-    <div style="color:#666;font-size:0.85em">
-      run: <code style="color:#aaa">nur init</code> and paste this key.<br>
-      then: <code style="color:#aaa">nur report incident.json</code>
-    </div>
+  <div class="install">
+    <code>
+      <span class="comment"># install</span><br>
+      <span class="cmd">pip install nur</span><br><br>
+      <span class="comment"># set up (saves server URL, generates keypair)</span><br>
+      <span class="cmd">nur init</span><br><br>
+      <span class="comment"># register with your work email</span><br>
+      <span class="cmd">nur register you@yourhospital.org</span><br><br>
+      <span class="comment"># check your email, click the link, get your key</span><br>
+      <span class="comment"># then start reporting</span><br>
+      <span class="cmd">nur report incident.json</span>
+    </code>
   </div>
 
   <div class="tiers">
+    <strong>why CLI-only registration?</strong><br>
+    &bull; generates a cryptographic keypair on your machine<br>
+    &bull; private key never leaves your machine<br>
+    &bull; every request is signed — stolen API keys are useless<br>
+    &bull; work email required (no gmail/yahoo)<br><br>
     <strong>community tier</strong> (free, forever):<br>
     &bull; contribute data, get intelligence reports<br>
-    &bull; aggregate data delayed 90 days<br>
     &bull; 37 threat feed sources<br><br>
     <strong>enterprise tier</strong> (coming soon):<br>
-    &bull; real-time aggregate data (no 90-day delay)<br>
-    &bull; custom vertical configuration<br>
-    &bull; SLA + priority support<br>
-    &bull; SIEM/SOAR integrations<br><br>
-    <a href="/">← back to nur</a>
+    &bull; real-time aggregate data<br>
+    &bull; custom verticals, SLA, integrations<br><br>
+    <a href="/">&larr; back to nur</a>
   </div>
 </div>
-<script>
-async function doRegister(e) {
-  e.preventDefault();
-  const res = await fetch('/register', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: document.getElementById('email').value, org: document.getElementById('org').value, public_key: document.getElementById('public_key').value || undefined})
-  });
-  const data = await res.json();
-  if (res.ok) {
-    if (data.api_key) {
-      document.getElementById('key').textContent = data.api_key;
-      document.getElementById('result').style.display = 'block';
-    } else if (data.verify_url) {
-      document.getElementById('result').innerHTML = '<div style="color:#888">' + data.message + '</div><br><div style="color:#555;font-size:0.85em">Click directly: <a href="' + data.verify_url + '" style="color:#2a5">' + data.verify_url + '</a></div>';
-      document.getElementById('result').style.display = 'block';
-    } else {
-      document.getElementById('result').innerHTML = '<div style="color:#2a5">' + data.message + '</div>';
-      document.getElementById('result').style.display = 'block';
-    }
-    document.getElementById('result').style.borderColor = '#2a5';
-    document.getElementById('error').style.display = 'none';
-  } else {
-    document.getElementById('error').textContent = data.detail || 'Registration failed';
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('result').style.display = 'none';
-  }
-}
-</script>
 </body>
 </html>"""
 

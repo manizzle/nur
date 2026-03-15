@@ -51,6 +51,15 @@ class Client:
         if self.api_key:
             headers["X-API-Key"] = self.api_key
 
+        # Sign the request with private key
+        try:
+            from .keystore import get_or_create_keypair, sign_request
+            _, priv = get_or_create_keypair()
+            body_bytes = json.dumps(payload, sort_keys=True).encode()
+            headers["X-Signature"] = sign_request(body_bytes, priv)
+        except Exception:
+            pass  # signature is best-effort on client side
+
         url = f"{self.api_url}{_route_for(contrib)}"
 
         # Generate receipt before sending
