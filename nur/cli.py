@@ -319,6 +319,128 @@ def preview(file, epsilon, json_output):
             click.echo(render(contrib))
 
 
+# ── Eval (interactive vendor evaluation) ──────────────────────────────────────
+
+@main.command()
+@click.option("--vendor", default=None, help="Vendor slug (e.g. crowdstrike)")
+@click.option("--file", "eval_file", default=None, type=click.Path(exists=True), help="Load eval from JSON file")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON instead of submitting")
+def eval(vendor, eval_file, api_url, api_key, json_output):
+    """Submit a tool evaluation. Interactive or from file.
+
+    \b
+    Examples:
+      nur eval                                # interactive walkthrough
+      nur eval --vendor crowdstrike           # skip vendor prompt
+      nur eval --file my_eval.json            # load from file
+    """
+    import httpx
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+
+    if eval_file:
+        # Load from file
+        data = json.loads(open(eval_file).read())
+    elif vendor:
+        # Semi-interactive with vendor pre-filled
+        data = _interactive_eval(vendor)
+    else:
+        # Fully interactive
+        click.echo("\n  Tool Evaluation")
+        click.echo("  " + "=" * 40)
+        click.echo("  Rate a security tool you've used.\n")
+
+        vendor = click.prompt("  Vendor slug", type=str)
+        data = _interactive_eval(vendor)
+
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+
+    # Submit directly — eval data is already in the right format
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
+    try:
+        from .keystore import get_or_create_keypair, sign_request
+        _, priv_key = get_or_create_keypair()
+    except Exception:
+        priv_key = None
+
+    body = json.dumps(data, sort_keys=True).encode()
+    if priv_key:
+        headers["X-Signature"] = sign_request(body, priv_key)
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.post(f"{api_url.rstrip('/')}/analyze", json=data, headers=headers)
+
+    if resp.status_code == 200:
+        result = resp.json()
+        intel = result.get("intelligence", {})
+        click.echo(f"\n  Submitted! Your {data.get('vendor', '?')} eval is in the pool.")
+        if intel.get("your_score") and intel.get("category_avg"):
+            click.echo(f"  Your score: {intel['your_score']} vs category avg: {intel['category_avg']}")
+        if intel.get("known_gaps"):
+            click.echo(f"  Known gaps: {', '.join(intel['known_gaps'][:5])}")
+        click.echo()
+    else:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+
+
+def _interactive_eval(vendor: str) -> dict:
+    """Walk the user through an interactive tool evaluation."""
+    categories = ["edr", "siem", "cnapp", "iam", "pam", "email", "ztna", "vm", "waf", "ndr", "soar", "dlp", "threat-intel"]
+    industries = ["healthcare", "financial", "tech", "government", "energy", "manufacturing", "retail", "education", "other"]
+    sizes = ["1-100", "100-500", "500-1000", "1000-5000", "5000-10000", "10000+"]
+
+    category = click.prompt("  Category", type=click.Choice(categories), default="edr")
+    score = click.prompt("  Overall score (0-10)", type=float, default=7.0)
+    detection = click.prompt("  Detection rate % (0-100, or skip)", default="", show_default=False)
+    fp_rate = click.prompt("  False positive rate % (or skip)", default="", show_default=False)
+    deploy = click.prompt("  Deploy days (or skip)", default="", show_default=False)
+    would_buy = click.confirm("  Would you buy again?", default=True)
+    strength = click.prompt("  Top strength (one line)", default="", show_default=False)
+    friction = click.prompt("  Top friction (one line)", default="", show_default=False)
+    industry = click.prompt("  Your industry", type=click.Choice(industries), default="tech")
+    org_size = click.prompt("  Org size", type=click.Choice(sizes), default="1000-5000")
+
+    data = {
+        "vendor": vendor,
+        "category": category,
+        "overall_score": score,
+        "would_buy": would_buy,
+        "context": {"industry": industry, "org_size": org_size},
+    }
+    if detection:
+        data["detection_rate"] = float(detection)
+    if fp_rate:
+        data["fp_rate"] = float(fp_rate)
+    if deploy:
+        data["deploy_days"] = int(deploy)
+    if strength:
+        data["top_strength"] = strength
+    if friction:
+        data["top_friction"] = friction
+
+    click.echo(f"\n  Preview:")
+    click.echo(f"    Vendor:    {vendor}")
+    click.echo(f"    Category:  {category}")
+    click.echo(f"    Score:     {score}/10")
+    click.echo(f"    Would buy: {'yes' if would_buy else 'no'}")
+    if not click.confirm("\n  Submit this evaluation?", default=True):
+        click.echo("  Cancelled.")
+        raise SystemExit(0)
+
+    return data
+
+
 # ── Audit log ────────────────────────────────────────────────────────────────
 
 @main.command()

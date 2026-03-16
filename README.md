@@ -75,13 +75,22 @@ Also: `nur report attack_map.json` for detection gaps, `nur report eval.json` fo
 ## 🛡️ Peacetime — build defenses
 
 ```bash
+# Evaluate tools — upload your eval, get benchmarks back
+nur eval                                             # interactive walkthrough
+nur eval --vendor crowdstrike                        # evaluate a specific tool
+nur eval --file our_eval.json                        # submit from file
+
+# Research & plan
 nur market edr                                       # vendor rankings
 nur search vendor crowdstrike                        # real scores, not Gartner
 nur search compare crowdstrike sentinelone           # side-by-side
+nur rfp crowdstrike sentinelone ms-defender           # procurement comparison
+
+# Threat analysis
 nur threat-map "ransomware" --tools crowdstrike      # coverage gaps
-nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare  # full threat model
+nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare
 nur patterns healthcare                              # attack methodology patterns
-nur simulate --stack crowdstrike,splunk,okta --vertical healthcare     # attack chain simulation
+nur simulate --stack crowdstrike,splunk,okta --vertical healthcare
 ```
 
 **Threat modeling** — generate MITRE-mapped threat models for your stack, compatible with [threatcl](https://github.com/threatcl/threatcl):
