@@ -268,10 +268,10 @@ def report(file, api_url, api_key, json_output):
             # IOC bundle specific
             if "campaign_match" in intel:
                 click.echo(f"  Campaign Match: {'Yes' if intel['campaign_match'] else 'No'}")
-                click.echo(f"  Summary: {intel.get('campaign_summary', '')}")
                 click.echo(f"  Shared IOCs: {intel.get('shared_ioc_count', 0)}")
-                if intel.get("threat_actors"):
-                    click.echo(f"  Threat Actors: {', '.join(intel['threat_actors'])}")
+                ioc_dist = intel.get("ioc_type_distribution", {})
+                if ioc_dist:
+                    click.echo(f"  IOC Types: {', '.join(f'{k}={v}' for k, v in ioc_dist.items())}")
 
             # Attack map specific
             if "coverage_score" in intel:
@@ -281,7 +281,14 @@ def report(file, api_url, api_key, json_output):
                 if gaps:
                     click.echo(f"  Detection Gaps: {len(gaps)}")
                     for g in gaps[:5]:
-                        click.echo(f"    - {g['technique_id']}: {g.get('technique_name', '')}")
+                        freq = g.get('frequency', '')
+                        click.echo(f"    - {g['technique_id']}: {freq}x observed, {g.get('caught_by_count', '?')} tools detect it")
+                hints = intel.get("remediation_hints")
+                if hints:
+                    cats = hints.get("most_effective_categories", [])
+                    if cats:
+                        best = cats[0]
+                        click.echo(f"  Best Remediation: {best['category']} ({int(best['success_rate'] * 100)}% success rate)")
 
             # Eval record specific
             if "your_vendor" in intel:
@@ -289,6 +296,11 @@ def report(file, api_url, api_key, json_output):
                 click.echo(f"  Your Score: {intel.get('your_score', '?')}")
                 click.echo(f"  Category Avg: {intel.get('category_avg', '?')}")
                 click.echo(f"  Percentile: {intel.get('percentile', '?')}th")
+                if intel.get("contributor_count"):
+                    click.echo(f"  Based On: {intel['contributor_count']} evaluations")
+                gaps_count = intel.get("known_gaps_count", 0)
+                if gaps_count > 0:
+                    click.echo(f"  Detection Gaps: {gaps_count} techniques")
 
             # Actions (common to all types)
             actions = intel.get("actions", [])

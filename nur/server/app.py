@@ -34,6 +34,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .db import Database
+from .proofs import ProofEngine
 from .routes.query import router as query_router
 from .routes.secagg import router as secagg_router
 from .routes.intelligence import router as intel_router
@@ -50,6 +51,16 @@ def get_db() -> Database:
     if _db is None:
         raise RuntimeError("Database not initialized")
     return _db
+
+
+_proof_engine: ProofEngine | None = None
+
+
+def get_proof_engine() -> ProofEngine:
+    global _proof_engine
+    if _proof_engine is None:
+        _proof_engine = ProofEngine()
+    return _proof_engine
 
 
 async def _feed_ingest_loop(app: FastAPI):
@@ -76,10 +87,11 @@ async def _feed_ingest_loop(app: FastAPI):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _db
+    global _db, _proof_engine
     db_url = app.state.db_url if hasattr(app.state, "db_url") else "sqlite+aiosqlite:///nur.db"
     _db = Database(db_url)
     await _db.init()
+    _proof_engine = ProofEngine()
 
     # Start auto-ingest background task if enabled
     ingest_task = None
@@ -96,6 +108,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
+    _proof_engine = None
     await _db.close()
     _db = None
 
@@ -194,6 +207,9 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     app.include_router(intel_router)
     app.include_router(search_router)
     app.include_router(tiers_router)
+
+    from .routes.verify import router as verify_router
+    app.include_router(verify_router)
 
     # Conditionally include FL router
     try:
@@ -1189,7 +1205,12 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             raise HTTPException(status_code=400, detail="Notes too long (max 10,000 chars)")
         db = get_db()
         cid = await db.store_eval_record(body)
-        return {"status": "accepted", "contribution_id": cid}
+        # Proof layer: translate → commit → receipt
+        from .proofs import translate_eval
+        engine = get_proof_engine()
+        vendor, category, values = translate_eval(body)
+        receipt = engine.commit_contribution(vendor, category, values)
+        return {"status": "accepted", "contribution_id": cid, "receipt": receipt.to_dict()}
 
     @app.post("/contribute/attack-map")
     async def contribute_attack_map(body: dict[str, Any]):
@@ -1198,7 +1219,12 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             raise HTTPException(status_code=400, detail="Too many techniques (max 500)")
         db = get_db()
         cid = await db.store_attack_map(body)
-        return {"status": "accepted", "contribution_id": cid}
+        # Proof layer
+        from .proofs import translate_attack_map
+        engine = get_proof_engine()
+        params = translate_attack_map(body)
+        receipt = engine.commit_attack_map(**params)
+        return {"status": "accepted", "contribution_id": cid, "receipt": receipt.to_dict()}
 
     @app.post("/contribute/ioc-bundle")
     async def contribute_ioc_bundle(body: dict[str, Any]):
@@ -1207,7 +1233,12 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             raise HTTPException(status_code=400, detail="Too many IOCs (max 10,000)")
         db = get_db()
         cid = await db.store_ioc_bundle(body)
-        return {"status": "accepted", "contribution_id": cid}
+        # Proof layer
+        from .proofs import translate_ioc_bundle
+        engine = get_proof_engine()
+        ioc_count, ioc_types = translate_ioc_bundle(body)
+        receipt = engine.commit_ioc_bundle(ioc_count, ioc_types)
+        return {"status": "accepted", "contribution_id": cid, "receipt": receipt.to_dict()}
 
     # ── Webhook ingest (wartime integrations) ────────────────────────
 
@@ -1259,10 +1290,23 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
                 await db.store_ioc_bundle(ioc_data)
                 items_stored += 1
 
+            # Proof layer
+            from .proofs import translate_webhook_crowdstrike
+            engine = get_proof_engine()
+            translated = translate_webhook_crowdstrike(body)
+            receipts = []
+            if translated["attack_map_params"]:
+                r = engine.commit_attack_map(**translated["attack_map_params"])
+                receipts.append(r.to_dict())
+            if translated["ioc_params"]:
+                r = engine.commit_ioc_bundle(*translated["ioc_params"])
+                receipts.append(r.to_dict())
+
             return {
                 "status": "accepted",
                 "format_detected": "crowdstrike",
                 "items_stored": items_stored,
+                "receipts": receipts,
             }
 
         # ── 2. Sentinel incident format ──────────────────────────────
@@ -1325,10 +1369,23 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
                 await db.store_ioc_bundle(ioc_data)
                 items_stored += 1
 
+            # Proof layer
+            from .proofs import translate_webhook_sentinel
+            engine = get_proof_engine()
+            translated = translate_webhook_sentinel(body)
+            receipts = []
+            if translated["attack_map_params"]:
+                r = engine.commit_attack_map(**translated["attack_map_params"])
+                receipts.append(r.to_dict())
+            if translated["ioc_params"]:
+                r = engine.commit_ioc_bundle(*translated["ioc_params"])
+                receipts.append(r.to_dict())
+
             return {
                 "status": "accepted",
                 "format_detected": "sentinel",
                 "items_stored": items_stored,
+                "receipts": receipts,
             }
 
         # ── 3. CEF/Syslog format ────────────────────────────────────
@@ -1426,6 +1483,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     @app.post("/analyze")
     async def analyze(body: dict[str, Any]):
         db = get_db()
+        engine = get_proof_engine()
         from .analyze import (
             analyze_ioc_bundle, analyze_attack_map, analyze_eval_record,
             detect_contribution_type,
@@ -1436,11 +1494,11 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
             raise HTTPException(status_code=400, detail=str(e))
 
         if contrib_type == "ioc_bundle":
-            return await analyze_ioc_bundle(body, db)
+            return await analyze_ioc_bundle(body, db, engine=engine)
         elif contrib_type == "attack_map":
-            return await analyze_attack_map(body, db)
+            return await analyze_attack_map(body, db, engine=engine)
         elif contrib_type == "eval":
-            return await analyze_eval_record(body, db)
+            return await analyze_eval_record(body, db, engine=engine)
         else:
             raise HTTPException(status_code=400, detail="Unknown contribution type")
 
@@ -1800,6 +1858,9 @@ clean = [anonymize(d) for d in data]
       <tr><td>POST</td><td>/intelligence/simulate</td><td>Simulate attack chain against your stack</td></tr>
       <tr><td>GET</td><td>/search/vendor/{name}</td><td>Vendor scores and details</td></tr>
       <tr><td>GET</td><td>/search/compare?a=X&amp;b=Y</td><td>Side-by-side vendor comparison</td></tr>
+      <tr><td>POST</td><td>/verify/receipt</td><td>Verify a contribution receipt (Merkle inclusion proof)</td></tr>
+      <tr><td>GET</td><td>/verify/aggregate/{vendor}</td><td>Generate + verify aggregate proof for a vendor</td></tr>
+      <tr><td>GET</td><td>/proof/stats</td><td>Platform proof stats (Merkle root, contribution counts, unique vendors)</td></tr>
       <tr><td>GET</td><td>/dashboard</td><td>Visual dashboard with charts</td></tr>
       <tr><td>GET</td><td>/guide</td><td>This documentation page</td></tr>
       <tr><td>GET</td><td>/health</td><td>Liveness check</td></tr>
@@ -1891,6 +1952,46 @@ clean = [anonymize(d) for d in data]
       <li>Free-text notes or remediation descriptions</li>
       <li>Your private key or org identity</li>
     </ul>
+
+    <h3>Fully trustless responses</h3>
+    <p style="color:#999;font-size:0.85em;margin-top:4px;">
+      Every <code>/analyze</code> response comes from <strong>aggregate histograms only</strong> &mdash;
+      never individual contributions. The DB stores contributions for aggregate recomputation,
+      but query responses come from ProofEngine running sums and template logic.<br><br>
+      <strong>What you get:</strong> "containment stops attacks 87% of the time", "T1490 observed 47x,
+      your tools miss it, 5 other tools detect it"<br>
+      <strong>What you never get:</strong> "Org X used this sigma rule", "Hospital Y in healthcare did this"<br><br>
+      No individual org's actions, sigma rules, tool choices, or incident details are ever returned.
+      Remediation hints tell you <em>what category</em> of response works and at what success rate
+      across the collective, not what any specific org did.
+    </p>
+
+    <h3>Verify anything</h3>
+    <pre><span class="comment"># Every submission returns a receipt</span>
+<span class="cmd">POST /contribute/submit</span> &rarr; {"receipt": {"commitment_hash": "a3c7...", "merkle_proof": [...]}}
+
+<span class="comment"># Verify any receipt (Merkle inclusion proof)</span>
+<span class="cmd">POST /verify/receipt</span> &rarr; {"valid": true, "receipt_id": "..."}
+
+<span class="comment"># Verify any vendor aggregate</span>
+<span class="cmd">GET /verify/aggregate/CrowdStrike</span> &rarr; {"proof": {...}, "verification": {"valid": true}}
+
+<span class="comment"># Platform-wide proof stats</span>
+<span class="cmd">GET /proof/stats</span> &rarr; {"total_contributions": 547, "merkle_root": "38978f...", ...}</pre>
+
+    <h3>Blind category discovery</h3>
+    <p>Contributors can propose new threat actors, malware families, or tool categories that aren&rsquo;t in the public taxonomy yet. The server counts how many independent orgs submit the same <strong>hashed</strong> category name &mdash; it never sees the plaintext until a quorum agrees to reveal it.</p>
+    <pre><span class="comment"># Contributor hashes category locally (server never sees plaintext)</span>
+H = SHA-256("DarkAngel:shared-salt")
+
+<span class="comment"># Submit blind proposal</span>
+<span class="cmd">POST /category/propose</span> &rarr; {"status": "pending", "supporter_count": 1, "threshold": 3}
+
+<span class="comment"># When 3+ orgs independently submit the same hash &rarr; threshold met</span>
+<span class="comment"># Contributors vote to reveal plaintext</span>
+<span class="cmd">POST /category/reveal</span> &rarr; {"status": "revealed", "revealed_name": "darkangel"}
+
+<span class="comment"># Category enters public taxonomy &rarr; aggregation begins</span></pre>
   </div>
 
   <!-- Self-Hosting -->

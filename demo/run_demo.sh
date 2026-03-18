@@ -225,6 +225,42 @@ echo ""
 echo -e "  ${GREEN}✓ Compliance can verify exactly what left the machine${NC}"
 echo -e "  ${GREEN}✓ Receipts prove you contributed without revealing content${NC}"
 
+# ── Step 10: Trustless pipeline verification ────────────────────────────
+
+step 10 "Verify the trustless pipeline — cryptographic proof chain"
+
+echo -e "  Every submission returned a cryptographic receipt."
+echo -e "  Let's verify the proof chain:"
+echo ""
+
+echo -e "  ${BOLD}Proof stats:${NC}"
+curl -s http://localhost:8765/proof/stats | python3 -m json.tool
+echo ""
+
+echo -e "  ${BOLD}Verify CrowdStrike aggregate:${NC}"
+curl -s http://localhost:8765/verify/aggregate/CrowdStrike | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+proof = data.get('proof', {})
+verif = data.get('verification', {})
+print(f'  contributor_count: {proof.get(\"contributor_count\", \"?\")}')
+print(f'  merkle_root:       {proof.get(\"merkle_root\", \"?\")[:32]}...')
+print(f'  valid:             {verif.get(\"valid\", \"?\")}')
+for check, passed in verif.get('checks', {}).items():
+    print(f'  {check}: {\"PASS\" if passed else \"FAIL\"}')
+" 2>/dev/null || echo -e "  (no CrowdStrike aggregate yet)"
+echo ""
+
+echo -e "  ${BOLD}Full trustless demo (10 steps):${NC}"
+echo -e "  ${GREEN}python demo/trustless_demo.py${NC}"
+echo ""
+echo -e "  ${GREEN}✓ Every submission → commitment hash + Merkle proof + server signature${NC}"
+echo -e "  ${GREEN}✓ Every aggregate → provable against commitment chain${NC}"
+echo -e "  ${GREEN}✓ Translators strip all free text — only category + effectiveness survive${NC}"
+echo -e "  ${GREEN}✓ ProofEngine stores ZERO individual values — only running sums${NC}"
+
+pause
+
 # ── Cleanup ───────────────────────────────────────────────────────────
 kill $SERVER_PID 2>/dev/null
 rm -f demo_nur.db
@@ -241,7 +277,8 @@ echo -e "  2. ${GREEN}Detection gaps${NC} — SentinelOne catches T1490 (VSS del
 echo -e "     CrowdStrike misses it — now all three know to add coverage"
 echo -e "  3. ${GREEN}Benchmarking${NC} — Anonymous aggregate: CrowdStrike 9.2, SentinelOne 8.8"
 echo -e "  4. ${GREEN}Privacy${NC} — Zero patient data, zero network details, zero org names exposed"
-echo -e "  5. ${GREEN}Proof${NC} — ADTC attestation chain + VAP = cryptographic guarantee"
+echo -e "  5. ${GREEN}Proof${NC} — Cryptographic receipts, Merkle proofs, aggregate verification"
+echo -e "  6. ${GREEN}Trustless${NC} — Server on a cryptographic leash: commits, proves, discards"
 echo ""
 echo -e "  ${BOLD}Without nur:${NC} Each hospital fights alone, misses the campaign connection."
 echo -e "  ${BOLD}With nur:${NC} Collaborative defense with mathematical privacy guarantees."

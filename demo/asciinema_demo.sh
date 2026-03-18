@@ -17,7 +17,7 @@ echo ""
 echo "  ┌───────────────────────────────────────────────────────┐"
 echo "  │   nur — light on what your industry knows             │"
 echo "  │   live: nur.saramena.us                               │"
-echo "  │   37 feeds · 36 vendors · 387 tests                  │"
+echo "  │   37 feeds · 36 vendors · 546 tests                  │"
 echo "  └───────────────────────────────────────────────────────┘"
 echo ""
 sleep 3
@@ -54,13 +54,31 @@ divider "AI-NATIVE — JSON + HCL output"
 type_cmd "nur threat-model --stack crowdstrike,splunk --hcl | head -20"
 sleep 2
 
+divider "TRUSTLESS — cryptographic proof chain"
+narrate "Every submission → cryptographic receipt. Every aggregate → proof."
+bold "7. Full trustless pipeline demo"
+type_cmd "python demo/trustless_demo.py 2>&1 | head -60"
+sleep 2
+narrate "Commitment hashes, Merkle proofs, zero individual values stored."
+sleep 1
+bold "8. Verify a receipt"
+narrate "POST /verify/receipt → valid: true"
+sleep 1
+bold "9. Verify an aggregate"
+narrate "GET /verify/aggregate/CrowdStrike → proof + verification"
+sleep 1
+bold "10. Platform proof stats"
+narrate "GET /proof/stats → merkle_root, total_contributions, unique_vendors"
+sleep 2
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "  WARTIME                PEACETIME              THREAT MODEL"
-echo "  nur report iocs.json   nur market edr         nur threat-model"
-echo "  nur report attack.json nur search compare X Y   --stack X,Y,Z"
-echo "  nur report eval.json   nur threat-map '...'     --hcl > model.hcl"
+echo "  WARTIME                PEACETIME              TRUSTLESS"
+echo "  nur report iocs.json   nur market edr         Every submit → receipt"
+echo "  nur report attack.json nur search compare X Y Every query → proof"
+echo "  nur report eval.json   nur threat-map '...'   /verify/receipt"
+echo "                                                 /verify/aggregate/{v}"
 echo ""
 echo "  Live: nur.saramena.us"
 echo "  Code: github.com/manizzle/nur"

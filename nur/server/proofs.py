@@ -185,17 +185,38 @@ class ProofEngine:
     """
     Server-side commitment and proof engine.
 
-    Flow:
-    1. Contribution arrives (anonymized)
-    2. Engine computes commitment hash
-    3. Engine updates running aggregate (sum/count)
-    4. Engine adds commitment to Merkle tree
-    5. Engine returns receipt to contributor
-    6. Individual values are NOT stored — only commitments + aggregates
+    Data flow::
+
+        raw payload ──▶ translator ──▶ commit_*() ──▶ receipt
+                            │              │
+                      drop free text   running sum ──▶ _aggregates
+                      (notes, sigma,       │
+                       action text)   Merkle tree ──▶ _commitments
+                                           │
+                                     prove_aggregate() ──▶ AggregateProof
+                                           │
+                                     /verify/aggregate ──▶ consumer verifies
+
+    What is stored vs discarded::
+
+        STORED                          DISCARDED
+        ──────                          ─────────
+        commitment hashes (SHA-256)     individual scores
+        running sums per vendor         per-org attribution
+        technique freq counters         free-text notes
+        Merkle tree                     sigma rules, action strings
+        blind category hashes           raw IOC values
+
+    On contribution:
+    1. Translator extracts structured fields, drops free text
+    2. commit_*() hashes data, updates running sums, adds to Merkle tree
+    3. Individual values discarded — only commitment hash retained
+    4. Receipt returned (commitment hash + Merkle proof + signature)
 
     On query:
-    7. Engine generates aggregate proof (Merkle root + commitment list)
-    8. Anyone can verify the proof
+    5. get_aggregate() returns avg from running sums (not individual records)
+    6. prove_aggregate() generates proof (Merkle root + commitment list)
+    7. Anyone can verify: commitment count matches, Merkle root is real
     """
 
     def __init__(self, server_secret: bytes | None = None):
@@ -224,6 +245,10 @@ class ProofEngine:
         # Attack map contribution count
         self._attack_map_count: int = 0
         self._ioc_bundle_count: int = 0
+
+        # Blind category discovery (threshold reveal protocol)
+        from .blind_categories import BlindCategoryDiscovery
+        self.blind_categories = BlindCategoryDiscovery()
 
     def _agg_id(self, vendor: str, category: str) -> str:
         return f"{vendor.lower()}:{category.lower()}"
@@ -554,6 +579,8 @@ class ProofEngine:
             "unique_vendors": len(set(b.vendor for b in self._aggregates.values())),
             "unique_techniques": len(self._technique_freq),
             "merkle_root": self._merkle_root,
+            "pending_categories": self.blind_categories.pending_count,
+            "revealed_categories": self.blind_categories.revealed_count,
         }
 
     def _rebuild_merkle(self) -> None:
@@ -723,6 +750,159 @@ def verify_aggregate_proof(
     }
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Translators — raw payloads → structured aggregatable form
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _match_category(text: str, categories: list[str]) -> str:
+    """Substring match against category list, fallback to 'other'."""
+    if not text:
+        return "other"
+    text_lower = text.lower()
+    for cat in categories:
+        # Match with underscores replaced by spaces for natural language matching
+        cat_spaced = cat.replace("_", " ")
+        if cat in text_lower or cat_spaced in text_lower or text_lower in cat or text_lower in cat_spaced:
+            return cat
+    return "other"
+
+
+def translate_eval(body: dict) -> tuple[str, str, dict]:
+    """Translate an eval record payload into (vendor, category, values_dict)."""
+    d = body.get("data", body)
+    vendor = d.get("vendor", "unknown")
+    category = d.get("category", "general")
+
+    values = {}
+    # Numeric fields
+    for fld in NUMERIC_FIELDS:
+        val = d.get(fld)
+        if val is not None:
+            try:
+                values[fld] = float(val)
+            except (ValueError, TypeError):
+                pass
+
+    # Bool fields
+    for fld in BOOL_FIELDS:
+        val = d.get(fld)
+        if val is not None:
+            values[fld] = bool(val)
+
+    # Map free-text strength/friction to categories
+    top_strength = d.get("top_strength", "")
+    if top_strength:
+        values["top_strength"] = _match_category(top_strength, STRENGTH_CATEGORIES)
+    top_friction = d.get("top_friction", "")
+    if top_friction:
+        values["top_friction"] = _match_category(top_friction, FRICTION_CATEGORIES)
+
+    # NOTE: 'notes' field is intentionally dropped — no free text in proof layer
+    return (vendor, category, values)
+
+
+def translate_attack_map(body: dict) -> dict:
+    """Translate an attack map payload into structured proof params."""
+    techniques = []
+    for t in body.get("techniques", []):
+        entry = {
+            "technique_id": t.get("technique_id", ""),
+            "observed": t.get("observed", True),
+            "detected_by": [v.lower().replace(" ", "-") for v in t.get("detected_by", [])],
+            "missed_by": [v.lower().replace(" ", "-") for v in t.get("missed_by", [])],
+        }
+        if entry["technique_id"]:
+            techniques.append(entry)
+
+    severity = body.get("severity")
+    if severity:
+        severity = _match_category(severity, SEVERITY_LEVELS)
+
+    time_to_detect = body.get("time_to_detect")
+    if time_to_detect:
+        time_to_detect = _match_category(time_to_detect, TIME_BUCKETS)
+
+    time_to_contain = body.get("time_to_contain")
+    if time_to_contain:
+        time_to_contain = _match_category(time_to_contain, TIME_BUCKETS)
+
+    remediation = []
+    for action in body.get("remediation", body.get("actions", [])):
+        if isinstance(action, dict):
+            cat = _match_category(action.get("category", ""), REMEDIATION_CATEGORIES)
+            eff = _match_category(action.get("effectiveness", ""), EFFECTIVENESS_LEVELS)
+            remediation.append({"category": cat, "effectiveness": eff})
+    # NOTE: free-text notes, action strings, sigma_rule YAML all dropped
+
+    return {
+        "techniques": techniques,
+        "severity": severity,
+        "time_to_detect": time_to_detect,
+        "time_to_contain": time_to_contain,
+        "remediation": remediation,
+    }
+
+
+def translate_ioc_bundle(body: dict) -> tuple[int, list[str]]:
+    """Translate an IOC bundle into (ioc_count, ioc_types_list)."""
+    iocs = body.get("iocs", [])
+    ioc_types = list({ioc.get("ioc_type", "unknown") for ioc in iocs if isinstance(ioc, dict)})
+    return (len(iocs), ioc_types)
+
+
+def translate_webhook_crowdstrike(body: dict) -> dict:
+    """Translate CrowdStrike webhook into structured proof params."""
+    det = body.get("detection", {})
+    result = {"attack_map_params": None, "ioc_params": None}
+
+    technique = det.get("technique", "")
+    if technique:
+        severity = det.get("severity", "medium")
+        result["attack_map_params"] = {
+            "techniques": [{"technique_id": technique, "observed": True, "detected_by": [], "missed_by": []}],
+            "severity": _match_category(severity, SEVERITY_LEVELS),
+        }
+
+    ioc_type = det.get("ioc_type")
+    if ioc_type:
+        result["ioc_params"] = (1, [ioc_type])
+
+    return result
+
+
+def translate_webhook_sentinel(body: dict) -> dict:
+    """Translate Sentinel webhook into structured proof params."""
+    props = body.get("properties", {})
+    result = {"attack_map_params": None, "ioc_params": None}
+
+    techniques_raw = props.get("techniques", [])
+    if techniques_raw:
+        technique_entries = [
+            {"technique_id": t if isinstance(t, str) else str(t), "observed": True, "detected_by": [], "missed_by": []}
+            for t in techniques_raw
+        ]
+        severity = _match_category(props.get("severity", "medium").lower(), SEVERITY_LEVELS)
+        result["attack_map_params"] = {
+            "techniques": technique_entries,
+            "severity": severity,
+        }
+
+    entities = props.get("entities", [])
+    if entities:
+        ioc_types = set()
+        count = 0
+        for entity in entities:
+            if isinstance(entity, dict):
+                kind = entity.get("kind", entity.get("type", "")).lower()
+                if kind in ("ip", "host", "filehash", "hash", "url"):
+                    ioc_types.add(kind)
+                    count += 1
+        if count > 0:
+            result["ioc_params"] = (count, list(ioc_types))
+
+    return result
+
+
 __all__ = [
     "AggregateProof",
     "ContributionReceipt",
@@ -734,4 +914,9 @@ __all__ = [
     "REMEDIATION_CATEGORIES",
     "EFFECTIVENESS_LEVELS",
     "SEVERITY_LEVELS",
+    "translate_eval",
+    "translate_attack_map",
+    "translate_ioc_bundle",
+    "translate_webhook_crowdstrike",
+    "translate_webhook_sentinel",
 ]

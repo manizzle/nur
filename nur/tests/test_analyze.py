@@ -80,7 +80,8 @@ async def test_analyze_ioc_bundle():
         intel = data["intelligence"]
         assert intel["campaign_match"] is True
         assert intel["shared_ioc_count"] >= 1
-        assert "LockBit" in intel["threat_actors"]
+        # No individual threat_actor attribution — only aggregate counts
+        assert "ioc_type_distribution" in intel
         assert len(intel["actions"]) > 0
 
 

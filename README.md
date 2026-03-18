@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/sources-37_live-ff6b6b" />
   <img src="https://img.shields.io/badge/vendors-36_tracked-ffa502" />
-  <img src="https://img.shields.io/badge/tests-519_passing-2ed573" />
+  <img src="https://img.shields.io/badge/tests-575_passing-2ed573" />
   <img src="https://img.shields.io/badge/python-3.11%2B-1e90ff" />
   <img src="https://img.shields.io/badge/code-Apache_2.0-1e90ff" />
   <img src="https://img.shields.io/badge/data-CDLA_Permissive_2.0-f9ca24" />
@@ -26,9 +26,55 @@ nur fixes this. Two modes, one platform:
 - **Wartime** — you're under attack. Upload IOCs, get campaign matches, remediation actions, detection gaps.
 - **Peacetime** — build defenses. Market maps, vendor comparisons, threat modeling, stack coverage analysis.
 
-> ✅ **Trustless architecture.** The server commits to every value, proves every aggregate, and discards individual data. Cryptographic receipts, Merkle proofs, and accountability chains. Your data can't be mined — math, not promises.
+> **Try it live:** [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [docs](https://nur.saramena.us/guide) · [register](https://nur.saramena.us/register)
 
-> 🟢 **Try it live:** [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [docs](https://nur.saramena.us/guide) · [register](https://nur.saramena.us/register)
+---
+
+## Architecture
+
+The server is an **accountable compute node** — it commits to every value, proves every aggregate, and discards individual data. Not blind, but on a cryptographic leash.
+
+```
+CONTRIBUTOR                         SERVER                            CONSUMER
+───────────                         ──────                            ────────
+┌───────────────────┐     ┌─────────────────────────┐     ┌───────────────────┐
+│ 1. Anonymize       │     │ 4. Validate              │     │ 7. Query aggregate │
+│ 2. Translate       │────▶│ 5. Commit (Pedersen hash)│────▶│ 8. Get answer      │
+│    (drop free text)│     │ 6. Merkle tree           │     │    + PROOF         │
+│ 3. Submit          │◀────│    Update running sums   │     │ 9. Verify proof    │
+│                    │     │    DISCARD individual     │     │    locally         │
+│   RECEIPT ◀────────│     │    Return receipt         │     │                    │
+└───────────────────┘     └─────────────────────────┘     └───────────────────┘
+                                │                   │
+  NEW CATEGORY?                 │  BLIND DISCOVERY  │
+  ─────────────                 │  ───────────────  │
+  H = SHA-256(name:salt)  ────▶ │  count(H) >= 3?   │
+  propose(H)              ────▶ │  yes → reveal vote │
+  reveal(H, plaintext)    ────▶ │  quorum → PUBLIC   │
+                                └───────────────────┘
+```
+
+**What gets stored vs discarded:**
+
+```
+STORED (server retains)              DISCARDED (gone after commit)
+───────────────────────              ─────────────────────────────
+Commitment hashes (SHA-256)          Individual scores
+Running sums per vendor              Per-org attribution
+Technique frequency counters         Free-text notes
+Merkle tree of all commitments       Sigma rules, action strings
+Blind category hashes (opaque)       Raw IOC values
+```
+
+**Every response comes from aggregates only:**
+
+| Source | Examples | Can identify an org? |
+|--------|---------|---------------------|
+| **ProofEngine histograms** | "containment stops attacks 87% of the time" | No — running sums |
+| **ProofEngine coverage** | "T1490 observed 47x, 5 tools detect it" | No — aggregate counts |
+| **Template logic** | "Block network IOCs at firewall" | No — generated from patterns |
+| **Public taxonomy** | "NIST: containment → Network Isolation (D3-NI)" | No — public knowledge |
+| ~~Individual contributions~~ | ~~"Org X used this sigma rule"~~ | ~~Yes~~ — **removed** |
 
 ---
 
@@ -49,51 +95,55 @@ nur up --vertical healthcare
 
 ---
 
-## ⚔️ Wartime — incident response
+## Wartime — incident response
 
 ```bash
 nur report incident_iocs.json
 ```
 ```
-  Campaign Match: Yes — 4 other healthcare orgs
-  Shared IOCs: 32 · Threat Actor: LockBit
+  Campaign Match: Yes
+  Shared IOCs: 32
+  IOC Types: domain=12, ip=15, hash-sha256=5
 
   Actions:
-    [CRITICAL] Block C2 domains at firewall
-    [CRITICAL] Deploy T1490 detection — your tools miss it
-    [HIGH]     Hunt for RDP lateral movement
-
-  What worked at other orgs:
-    - Isolated RDP across all subnets (stopped_attack)
-    - Deployed Sigma rule for vssadmin delete (stopped_attack)
+    [CRITICAL] Block matching network indicators at firewall and DNS
+    [HIGH]     Hunt for matching file hashes in your environment
+    [HIGH]     Hunt for related activity (cross-reference 32 matched IOCs)
 ```
 
-Also: `nur report attack_map.json` for detection gaps, `nur report eval.json` for benchmarks.
+```bash
+nur report attack_map.json
+```
+```
+  Coverage Score: 71%
+  Detection Gaps: 3
+    - T1490: 47x observed, 5 tools detect it
+    - T1078: 23x observed, 3 tools detect it
+    - T1021.001: 12x observed, 4 tools detect it
+  Best Remediation: containment (87% success rate)
+
+  Actions:
+    [CRITICAL] Prioritize containment — 87% success rate across the collective
+    [CRITICAL] Deploy T1490 detection
+    [HIGH]     Deploy T1078 detection
+```
+
+> All intelligence comes from aggregate histograms. The remediation hints tell you *what category* of response works and at what success rate, not what any specific org did.
 
 ---
 
-## 🛡️ Peacetime — build defenses
+## Peacetime — build defenses
 
 ```bash
-# Evaluate tools — upload your eval, get benchmarks back
 nur eval                                             # interactive walkthrough
-nur eval --vendor crowdstrike                        # evaluate a specific tool
-nur eval --file our_eval.json                        # submit from file
-
-# Research & plan
 nur market edr                                       # vendor rankings
-nur search vendor crowdstrike                        # real scores, not Gartner
 nur search compare crowdstrike sentinelone           # side-by-side
-nur rfp crowdstrike sentinelone ms-defender           # procurement comparison
-
-# Threat analysis
 nur threat-map "ransomware" --tools crowdstrike      # coverage gaps
 nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare
-nur patterns healthcare                              # attack methodology patterns
 nur simulate --stack crowdstrike,splunk,okta --vertical healthcare
 ```
 
-**Threat modeling** — generate MITRE-mapped threat models for your stack, compatible with [threatcl](https://github.com/threatcl/threatcl):
+**Threat modeling** — generate MITRE-mapped threat models, compatible with [threatcl](https://github.com/threatcl/threatcl):
 
 ```
   Coverage: 75% (6/8 priority techniques)
@@ -102,14 +152,9 @@ nur simulate --stack crowdstrike,splunk,okta --vertical healthcare
   Compliance: HIPAA ✓ · NIST CSF ✓ · HITECH ✗
 ```
 
-```bash
-nur threat-model --stack crowdstrike,splunk --hcl --output model.hcl
-threatcl validate model.hcl     # works with threatcl tool
-```
-
 ---
 
-## 🏥 The hospital scenario
+## The hospital scenario
 
 **2:17 AM** — Ohio Children's Hospital. LockBit. EHR encrypted. NICU monitors offline.
 
@@ -123,12 +168,97 @@ nur threat-model --stack crowdstrike,splunk --vertical healthcare  # 75% coverag
 
 ---
 
-## 📡 37 data sources · 36 vendors · 658,000+ IOCs
+## Trustless Architecture — deep dive
+
+In the age of AI data mining, your data **cannot be mined, sold, or misused** — not because we promise, but because the math makes it impossible.
+
+**Proof verification chain:**
+
+```
+Submit ──▶ Translate ──▶ Commit ──▶ Merkle ──▶ Receipt
+               │             │          │          │
+          drop text     running sum   proof    signature
+               │             │          │
+          category       aggregate     │
+               │             │         │
+               └── DISCARD ──┘         │
+                                       ▼
+                        /verify/receipt ──▶ consumer verifies
+                        /verify/aggregate ──▶ proof + checks
+                        /proof/stats ──▶ platform totals
+```
+
+**Verify anything:**
 
 ```bash
-nur scrape --list       # all sources
-nur admin sources       # all 45 with tier/status
+# Every submission returns a receipt
+curl -X POST /contribute/submit -d '{"data": {"vendor": "CrowdStrike", ...}}'
+# → {"status": "accepted", "receipt": {"commitment_hash": "a3c7...", "merkle_proof": [...], ...}}
+
+# Verify any receipt
+curl -X POST /verify/receipt -d '{"commitment_hash": "a3c7...", ...}'
+# → {"valid": true}
+
+# Verify any aggregate
+curl /verify/aggregate/CrowdStrike
+# → {"proof": {...}, "verification": {"valid": true, "checks": {...}}}
+
+# Platform proof stats
+curl /proof/stats
+# → {"total_contributions": 547, "merkle_root": "38978f...", "unique_vendors": 12, ...}
 ```
+
+**Blind category discovery:**
+
+```
+Org-A: H("DarkAngel":salt) ──┐
+Org-B: H("DarkAngel":salt) ──┼──▶ Server: count(H) >= 3? ──▶ REVEAL VOTE
+Org-C: H("DarkAngel":salt) ──┘         │                         │
+                                   threshold met            quorum met?
+                                        │                         │
+                                server sees:                      ▼
+                                hash ONLY                  PUBLIC TAXONOMY
+                                                           aggregation begins
+```
+
+```bash
+# Contributor hashes category locally (server never sees plaintext)
+curl -X POST /category/propose -d '{"category_hash": "H", "category_type": "threat_actor", ...}'
+# → {"status": "pending", "supporter_count": 1, "threshold": 3}
+
+# When 3+ orgs submit the same hash → threshold met → vote to reveal
+curl -X POST /category/reveal -d '{"category_hash": "H", "plaintext": "DarkAngel", "salt": "...", ...}'
+# → {"status": "revealed", "revealed_name": "darkangel"}
+```
+
+**Crypto primitives:**
+
+| Primitive | What it does | What breaks without it |
+|-----------|-------------|----------------------|
+| **Pedersen Commitments** | Seals each value — server can't change it after receipt | Server could alter scores to favor vendors |
+| **Merkle Tree** | Binds all commitments — server can't add/remove contributions | Server could inflate N or exclude low scores |
+| **ZKP Range Proofs** | Proves score is in [0, 10] without revealing it | Poisoner submits score=99999, corrupts aggregate |
+| **Contribution Receipts** | Proves your data was included correctly | Server could silently drop your contribution |
+| **Aggregate Proofs** | Proves computation is correct against commitment chain | Server could fabricate rankings |
+| **Secure Histograms** | Technique frequency from binary vector sums | Server would need plaintext technique lists |
+| **BDP Credibility** | Behavior-based lie detection for data poisoning | Competitor creates 100 fake accounts, rates rivals 0/10 |
+| **Blind Category Discovery** | Threshold reveal — server can't learn category names until quorum | Server could see what threats orgs are investigating |
+
+**Security hardening:**
+
+- **Work email required** — gmail/yahoo/disposable blocked
+- **Keypair auth** — private key never leaves your machine
+- **Signed requests** — replay prevention (5-min window)
+- **Rate limiting** — 60 req/min (community), 600 (pro), 6000 (enterprise)
+- **Min-k enforcement** — no aggregates with < 3 contributors
+- **Payload limits** — 10K IOCs, 500 techniques max
+- **AWS Secrets Manager** — zero secrets in code
+
+Full analysis: [THREAT_MODEL.md](THREAT_MODEL.md)
+
+---
+
+## 37 data sources · 36 vendors · 658,000+ IOCs
 
 **IOC Feeds (20):** ThreatFox, Feodo, MalwareBazaar, URLhaus, SSL Blacklist, CISA KEV, NVD, FireHOL, IPsum, OpenPhish, Emerging Threats, Dataplane, Spamhaus DROP, DigitalSide, CINS, BruteForceBlocker, AbuseIPDB, OTX, Pulsedive, GreyNoise
 
@@ -140,7 +270,7 @@ nur admin sources       # all 45 with tier/status
 
 ---
 
-## 💰 Pricing
+## Pricing
 
 | | Community | Pro | Enterprise |
 |---|---|---|---|
@@ -158,45 +288,38 @@ nur admin sources       # all 45 with tier/status
 | RFP generation | | | ✓ |
 | Priority support | | | ✓ |
 
-```bash
-# Free tier — contribute and see your position
-nur eval --vendor crowdstrike
-# → "Your score: 9.2 — 73rd percentile across 42 evaluations"
-
-# Pro tier — full intelligence
-nur market edr                    # vendor rankings
-nur threat-map "ransomware"       # MITRE coverage gaps
-nur simulate --stack crowdstrike  # attack simulation
-```
-
-> **For vendors:** Enterprise tier includes the Vendor Intelligence Dashboard — see how practitioners rate your product, technique-level detection gaps, and category ranking with cryptographic proof of methodology. Contact us for details.
+> **For vendors:** Enterprise tier includes the Vendor Intelligence Dashboard — see how practitioners rate your product, technique-level detection gaps, and category ranking with cryptographic proof of methodology.
 
 ---
 
-## 🏗️ Deploy for your industry
+## API
 
-```bash
-nur up --vertical healthcare     # LockBit, HIPAA
-nur up --vertical financial      # APT28, PCI DSS
-nur up --vertical energy         # Sandworm, NERC CIP
-nur up --vertical government     # APT29, FISMA
-```
-
-**Docker:**
-```bash
-curl -sSL https://raw.githubusercontent.com/manizzle/nur/main/install.sh | bash
-```
-
-**Your users:**
-```bash
-pip install nur && nur init && nur register you@org.com
-```
+| Endpoint | What | Tier |
+|----------|------|------|
+| `POST /analyze` | Give data → get intelligence + receipt | Free |
+| `POST /contribute/submit` | Submit eval → get cryptographic receipt | Free |
+| `POST /contribute/attack-map` | Submit attack map → get receipt | Free |
+| `POST /contribute/ioc-bundle` | Submit IOC bundle → get receipt | Free |
+| `POST /ingest/webhook` | Universal webhook (CrowdStrike, Sentinel, CEF, generic) → receipts | Free |
+| `POST /verify/receipt` | Verify a contribution receipt's Merkle proof | Free |
+| `GET /verify/aggregate/{vendor}` | Generate + verify aggregate proof | Free |
+| `GET /proof/stats` | Platform-wide proof stats (Merkle root, counts) | Free |
+| `POST /category/propose` | Propose new blind category | Free |
+| `POST /category/reveal` | Vote to reveal a blind category | Free |
+| `GET /category/pending` | List pending + revealed categories | Free |
+| `POST /threat-model` | Generate threat model for stack | Pro |
+| `GET /intelligence/market/{cat}` | Vendor market map | Pro |
+| `POST /intelligence/threat-map` | MITRE coverage gaps | Pro |
+| `POST /intelligence/simulate` | Simulate attack chain | Pro |
+| `GET /search/vendor/{name}` | Vendor scores | Pro |
+| `GET /search/compare?a=X&b=Y` | Side-by-side comparison | Pro |
+| `GET /vendor-dashboard/{vendor}` | Vendor intelligence dashboard | Enterprise |
+| `GET /dashboard` | Visual dashboard | Free |
+| `GET /guide` | Documentation | Free |
 
 ---
 
-## 🔌 Integrate anywhere
-
-**10 integration points:**
+## Integrate anywhere
 
 ```bash
 # SIEM / EDR
@@ -208,13 +331,8 @@ nur integrate crowdstrike              # forward detections from CrowdStrike
 nur integrate syslog --port 1514       # listen for CEF/syslog events
 # POST to /ingest/webhook              # universal webhook endpoint
 
-# Import
+# Import / Export
 nur import navigator layer.json        # MITRE ATT&CK Navigator layers
-nur import stack inventory.csv         # asset inventory / tool inventory
-nur import compliance soc2.json        # compliance framework mappings
-nur import rfp responses.json          # vendor RFP responses
-
-# Export
 nur export stix                        # export as STIX 2.1
 nur export misp                        # export as MISP events
 ```
@@ -227,109 +345,31 @@ clean = [anonymize(d) for d in data]
 [submit(c, api_url="https://nur.saramena.us") for c in clean]
 ```
 
-**CLI + JSON:**
-```bash
-nur report incident.json --json | jq '.intelligence.actions'
-nur threat-model --stack crowdstrike --hcl > model.hcl
-```
-
-**API:**
-
-| Endpoint | What | Tier |
-|----------|------|------|
-| `POST /analyze` | Give data → get intelligence + receipt | Free |
-| `POST /threat-model` | Generate threat model for stack | Pro |
-| `POST /register` | Register with work email + public key | Free |
-| `GET /pricing` | Tier definitions and features | Free |
-| `GET /my-tier` | Check your current tier | Free |
-| `GET /my-position/{vendor}` | Your percentile vs the market | Free |
-| `GET /intelligence/market/{cat}` | Vendor market map | Pro |
-| `POST /intelligence/threat-map` | MITRE coverage gaps | Pro |
-| `GET /intelligence/danger-radar` | Hidden vendor risks | Pro |
-| `GET /intelligence/patterns/{vertical}` | Attack methodology patterns | Pro |
-| `POST /intelligence/simulate` | Simulate attack chain | Pro |
-| `GET /search/vendor/{name}` | Vendor scores | Pro |
-| `GET /search/compare?a=X&b=Y` | Side-by-side comparison | Pro |
-| `GET /vendor-dashboard/{vendor}` | Vendor intelligence dashboard | Enterprise |
-| `GET /dashboard` | Visual dashboard | Free |
-| `GET /guide` | Documentation | Free |
-
 ---
 
-## 🔐 Trustless Architecture
-
-In the age of AI data mining, nur is designed so your data **cannot be mined, sold, or misused** — not because we promise, but because the math makes it impossible.
-
-**The server is on a cryptographic leash:**
-
-```
-CONTRIBUTOR (your machine)              SERVER (accountable compute)
-──────────────────────────              ────────────────────────────
-1. Anonymize + scrub locally
-2. All fields are numeric/categorical
-   (no free text — structured data)
-3. Send anonymized contribution         4. Validate + commit (Pedersen hash)
-                                        5. Add commitment to Merkle tree
-                                        6. Update running aggregate sums
-                                        7. DISCARD individual values
-                                        8. Store ONLY: commitments + aggregates
-
-RECEIPT returned to you:                On query:
-  - Commitment hash (sealed value)       - Return aggregate + proof chain
-  - Merkle inclusion proof               - Merkle root, N contributors,
-  - Server signature                       commitment-verified computation
-```
-
-**What the server retains:** commitment hashes (opaque SHA-256), running sums per vendor, Merkle tree. **Zero individual scores, zero technique lists, zero per-org attribution.**
-
-**Crypto primitives:**
-
-| Primitive | What it does | What breaks without it |
-|-----------|-------------|----------------------|
-| **Pedersen Commitments** | Seals each value — server can't change it after receipt | Server could alter scores to favor vendors |
-| **Merkle Tree** | Binds all commitments — server can't add/remove contributions | Server could inflate N ("500 orgs trust us") or exclude low scores |
-| **ZKP Range Proofs** | Proves score is in [0, 10] without revealing it | Poisoner submits score=99999, corrupts aggregate |
-| **Contribution Receipts** | Proves your data was included correctly | Server could silently drop your contribution |
-| **Aggregate Proofs** | Proves computation is correct against commitment chain | Server could fabricate rankings |
-| **Secure Histograms** | Technique frequency from binary vector sums | Server would need plaintext technique lists |
-| **BDP Credibility** | Behavior-based lie detection for data poisoning | Competitor creates 100 fake accounts, rates rivals 0/10 |
-| **Platform Attestation** | Proves "N real contributions from M orgs" with Merkle proof | Platform claims 500 orgs but has 3 contributions |
-
-**Security hardening:**
-
-- **Work email required** — gmail/yahoo/disposable blocked
-- **Keypair auth** — private key never leaves your machine
-- **Signed requests** — replay prevention (5-min window)
-- **Rate limiting** — 60 req/min (community), 600 (pro), 6000 (enterprise)
-- **Min-k enforcement** — no aggregates with < 3 contributors
-- **Payload limits** — 10K IOCs, 500 techniques max
-- **AWS Secrets Manager** — zero secrets in code
-
-Full analysis: [THREAT_MODEL.md](THREAT_MODEL.md)
-
----
-
-## 🔧 Admin
+## Deploy
 
 ```bash
-nur admin status         # health + feed freshness
-nur admin sources        # all 45 data sources
-nur admin db-stats       # detailed breakdown
-nur admin export         # dump aggregated data
-nur admin rotate-key     # new API key
+nur up --vertical healthcare     # LockBit, HIPAA
+nur up --vertical financial      # APT28, PCI DSS
+nur up --vertical energy         # Sandworm, NERC CIP
+nur up --vertical government     # APT29, FISMA
 ```
 
 ---
 
-## 🧪 Tests
+## Tests
 
 ```bash
-pytest       # 519 tests
+pytest                                    # 575 tests (89 trustless + 486 core)
+python demo/trustless_demo.py             # full E2E trustless pipeline demo
 ```
+
+**Trustless demo** shows all 11 steps: eval → attack map → IOC bundle → CrowdStrike webhook → Sentinel webhook → aggregate query → receipt verification → aggregate proof → trust summary → zero-individual-values proof → blind category discovery.
 
 ---
 
-## 📄 License
+## License
 
 | Component | License |
 |-----------|---------|

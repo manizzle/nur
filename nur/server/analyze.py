@@ -1,8 +1,36 @@
 """
-Actionable intelligence analysis — the core value proposition.
+Actionable intelligence analysis — fully trustless.
 
-Takes a contribution, stores it, then cross-references against the collective
-intelligence DB to return prioritized actions.
+Takes a contribution, stores it in the DB (for aggregate computation),
+commits it to the ProofEngine (for cryptographic proofs), then returns
+intelligence derived ONLY from aggregates — never individual contributions.
+
+Response source diagram::
+
+    ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+    │  ProofEngine     │     │  Template Logic   │     │  Public Taxonomy    │
+    │  (aggregates)    │     │  (patterns)       │     │  (NIST/D3FEND)      │
+    ├─────────────────┤     ├──────────────────┤     ├─────────────────────┤
+    │ coverage_score   │     │ "Block C2 at FW"  │     │ containment: 87%    │
+    │ detection_gaps[] │     │ "Deploy T1490"     │     │   → Network Isol.   │
+    │ remediation_hints│     │ "Hunt in SIEM"     │     │   → Host Isolation  │
+    │ contributor_count│     │                    │     │ T1490 mitigations   │
+    │ ioc_type_distrib │     │                    │     │   → M1053 Backup    │
+    └────────┬────────┘     └────────┬─────────┘     └──────────┬──────────┘
+             │                       │                           │
+             └───────────────────────┼───────────────────────────┘
+                                     │
+                              /analyze response
+                                     │
+                    ┌────────────────┴────────────────┐
+                    │  NEVER in response:              │
+                    │  - individual org actions         │
+                    │  - sigma rules from specific orgs │
+                    │  - "from_industry" attribution    │
+                    │  - raw IOC values                 │
+                    └─────────────────────────────────┘
+
+Nothing in the response can be traced to an individual organization.
 """
 from __future__ import annotations
 
@@ -10,6 +38,8 @@ import json
 from typing import Any
 
 from .db import Database
+from .proofs import ProofEngine, translate_eval, translate_attack_map, translate_ioc_bundle
+from .taxonomy import enrich_remediation_hints, get_technique_guidance
 
 
 def detect_contribution_type(data: dict[str, Any]) -> str:
@@ -23,61 +53,68 @@ def detect_contribution_type(data: dict[str, Any]) -> str:
     raise ValueError("Cannot detect contribution type: missing 'iocs', 'techniques', or 'vendor' key")
 
 
-async def analyze_ioc_bundle(data: dict[str, Any], db: Database) -> dict:
-    """Analyze an IOC bundle against collective intelligence."""
-    # Store the contribution first
+async def analyze_ioc_bundle(data: dict[str, Any], db: Database, *, engine: ProofEngine | None = None) -> dict:
+    """Analyze an IOC bundle — returns only aggregate counts, never individual match details."""
+    # Store the contribution
     cid = await db.store_ioc_bundle(data)
 
-    # Extract submitted hashes
+    # Extract submitted hashes for aggregate matching
     iocs = data.get("iocs", [])
     hashes = [ioc.get("value_hash", "") for ioc in iocs if ioc.get("value_hash")]
 
-    # Find matches in existing DB (exclude the contribution we just stored)
+    # Find matches — but we only use the COUNT, not individual match details
     matches = await db.get_ioc_matches(hashes, exclude_contribution_id=cid) if hashes else []
-
-    # Deduplicate: only count IOCs from OTHER contributions (not the one we just stored)
     shared_ioc_count = len(matches)
-    threat_actors = list({m["threat_actor"] for m in matches if m.get("threat_actor")})
-    campaigns = list({m["campaign"] for m in matches if m.get("campaign")})
+
+    # Aggregate IOC type distribution from matches (no org attribution)
+    ioc_type_counts: dict[str, int] = {}
+    for m in matches:
+        t = m.get("ioc_type", "unknown")
+        ioc_type_counts[t] = ioc_type_counts.get(t, 0) + 1
+
+    # Proof layer
+    receipt_dict = None
+    if engine is not None:
+        ioc_count, ioc_types = translate_ioc_bundle(data)
+        receipt = engine.commit_ioc_bundle(ioc_count, ioc_types)
+        receipt_dict = receipt.to_dict()
 
     if shared_ioc_count == 0:
         return {
             "status": "analyzed",
             "contribution_id": cid,
+            "receipt": receipt_dict,
             "intelligence": {
                 "campaign_match": False,
-                "campaign_summary": (
-                    "No matching IOCs found in collective intelligence. "
-                    "Your contribution has been stored and will help future analyses."
-                ),
                 "shared_ioc_count": 0,
-                "threat_actors": [],
+                "ioc_type_distribution": {},
                 "actions": [],
             },
         }
 
-    # Build campaign summary
-    actor_str = ", ".join(threat_actors) if threat_actors else "unknown threat actors"
-    campaign_str = ", ".join(campaigns) if campaigns else "unnamed campaigns"
-    summary = (
-        f"Your IOCs match {shared_ioc_count} indicators seen by other organizations. "
-        f"Associated threat actors: {actor_str}. Campaigns: {campaign_str}."
-    )
-
-    # Build actions
+    # Template-based actions — derived from aggregate patterns, not individual orgs
     actions = []
-    if threat_actors:
-        domain_matches = sum(1 for m in matches if m.get("ioc_type") == "domain")
-        ip_matches = sum(1 for m in matches if m.get("ioc_type") == "ip")
-        if domain_matches > 0 or ip_matches > 0:
-            actions.append({
-                "priority": "critical",
-                "action": "Block C2 domains/IPs at firewall and DNS",
-                "detail": (
-                    f"{domain_matches + ip_matches} network IOCs match known "
-                    f"{actor_str} infrastructure seen across multiple orgs"
-                ),
-            })
+    network_matches = ioc_type_counts.get("domain", 0) + ioc_type_counts.get("ip", 0)
+    if network_matches > 0:
+        actions.append({
+            "priority": "critical",
+            "action": "Block matching network indicators at firewall and DNS",
+            "detail": (
+                f"{network_matches} network IOCs (domains/IPs) match indicators "
+                f"seen across other organizations in the collective"
+            ),
+        })
+
+    hash_matches = ioc_type_counts.get("hash-sha256", 0) + ioc_type_counts.get("hash-md5", 0)
+    if hash_matches > 0:
+        actions.append({
+            "priority": "high",
+            "action": "Hunt for matching file hashes in your environment",
+            "detail": (
+                f"{hash_matches} file hash IOCs match the collective — "
+                f"search SIEM/EDR logs for the last 30 days"
+            ),
+        })
 
     actions.append({
         "priority": "high",
@@ -88,31 +125,22 @@ async def analyze_ioc_bundle(data: dict[str, Any], db: Database) -> dict:
         ),
     })
 
-    actions.append({
-        "priority": "medium",
-        "action": "Share findings with your sector ISAC",
-        "detail": (
-            f"Campaign correlation suggests coordinated activity — "
-            f"sector-level sharing accelerates collective defense"
-        ),
-    })
-
     return {
         "status": "analyzed",
         "contribution_id": cid,
+        "receipt": receipt_dict,
         "intelligence": {
-            "campaign_match": True,
-            "campaign_summary": summary,
+            "campaign_match": shared_ioc_count > 0,
             "shared_ioc_count": shared_ioc_count,
-            "threat_actors": threat_actors,
+            "ioc_type_distribution": ioc_type_counts,
             "actions": actions,
         },
     }
 
 
-async def analyze_attack_map(data: dict[str, Any], db: Database) -> dict:
-    """Analyze an attack map against collective technique data."""
-    # Store the contribution first
+async def analyze_attack_map(data: dict[str, Any], db: Database, *, engine: ProofEngine | None = None) -> dict:
+    """Analyze an attack map — intelligence from ProofEngine histograms only."""
+    # Store the contribution
     cid = await db.store_attack_map(data)
 
     tools = data.get("tools_in_scope", [])
@@ -122,134 +150,149 @@ async def analyze_attack_map(data: dict[str, Any], db: Database) -> dict:
         except (json.JSONDecodeError, TypeError):
             tools = []
 
-    # Find techniques that our tools miss (exclude current contribution)
-    gaps = await db.get_techniques_for_tools(tools, exclude_contribution_id=cid) if tools else []
+    # Proof layer — commit first so histograms include this contribution
+    receipt_dict = None
+    if engine is not None:
+        params = translate_attack_map(data)
+        receipt = engine.commit_attack_map(**params)
+        receipt_dict = receipt.to_dict()
 
-    # Get top techniques for context
-    top_techniques = await db.get_top_techniques(50)
-    top_ids = {t["technique_id"] for t in top_techniques}
-    techniques_seen = [t["technique_id"] for t in top_techniques]
-
-    if not gaps:
-        return {
-            "status": "analyzed",
-            "contribution_id": cid,
-            "intelligence": {
-                "detection_gaps": [],
-                "coverage_score": 1.0,
-                "techniques_seen_by_others": techniques_seen,
-                "actions": [
-                    {
-                        "priority": "info",
-                        "action": "Coverage looks good",
-                        "detail": (
-                            "No detection gaps found for your tools based on current "
-                            "collective intelligence. Continue monitoring for new threats."
-                        ),
-                    }
-                ],
-            },
-        }
-
-    # Build detection gaps
+    # === All intelligence comes from ProofEngine aggregates ===
+    # Detection gaps: from ProofEngine technique coverage (histogram-based)
     detection_gaps = []
-    seen_ids = set()
-    for g in gaps:
-        tid = g["technique_id"]
-        if tid in seen_ids:
-            continue
-        seen_ids.add(tid)
-        caught_by = [t for t in g.get("detected_by", []) if t.lower() not in {t2.lower() for t2 in tools}]
-        detection_gaps.append({
-            "technique_id": tid,
-            "technique_name": g.get("technique_name", ""),
-            "your_tools_miss": True,
-            "caught_by": caught_by,
-            "recommendation": (
-                f"Add detection rule for {g.get('technique_name', tid)}. "
-                f"{'Tools that catch it: ' + ', '.join(caught_by) + '.' if caught_by else 'No known tool detections — consider custom Sigma rule.'}"
-            ),
-        })
+    coverage_score = 1.0
+    techniques_seen = []
 
-    # Coverage score
-    coverage_score = round(
-        max(0.0, 1.0 - (len(detection_gaps) / max(len(top_techniques), 1))),
-        2,
-    )
+    if engine is not None and tools:
+        coverage = engine.get_technique_coverage(tools)
+        coverage_score = round(coverage.get("coverage_pct", 100) / 100, 2)
+        techniques_seen = [t for t in engine._technique_freq.keys()]
 
-    # Build actions
+        for gap in coverage.get("gap_details", []):
+            gap_entry = {
+                "technique_id": gap["technique_id"],
+                "frequency": gap["frequency"],
+                "your_tools_miss": True,
+                "caught_by_count": len(gap.get("caught_by", [])),
+            }
+            # Enrich with public MITRE guidance
+            tg = get_technique_guidance(gap["technique_id"])
+            if tg:
+                gap_entry["name"] = tg["name"]
+                gap_entry["mitigations"] = tg["mitigations"]
+                gap_entry["recommended_categories"] = tg["recommended_categories"]
+            detection_gaps.append(gap_entry)
+    else:
+        # Fallback to DB for gap analysis when no engine
+        gaps = await db.get_techniques_for_tools(tools, exclude_contribution_id=cid) if tools else []
+        top_techniques = await db.get_top_techniques(50)
+        techniques_seen = [t["technique_id"] for t in top_techniques]
+
+        seen_ids = set()
+        for g in gaps:
+            tid = g["technique_id"]
+            if tid in seen_ids:
+                continue
+            seen_ids.add(tid)
+            caught_by = [t for t in g.get("detected_by", []) if t.lower() not in {t2.lower() for t2 in tools}]
+            gap_entry = {
+                "technique_id": tid,
+                "frequency": 1,
+                "your_tools_miss": True,
+                "caught_by_count": len(caught_by),
+            }
+            tg = get_technique_guidance(tid)
+            if tg:
+                gap_entry["name"] = tg["name"]
+                gap_entry["mitigations"] = tg["mitigations"]
+                gap_entry["recommended_categories"] = tg["recommended_categories"]
+            detection_gaps.append(gap_entry)
+        coverage_score = round(
+            max(0.0, 1.0 - (len(detection_gaps) / max(len(top_techniques), 1))),
+            2,
+        )
+
+    # Template-based actions from aggregate gap analysis
     actions = []
     for i, gap in enumerate(detection_gaps[:5]):
         priority = "critical" if i == 0 else "high" if i < 3 else "medium"
         actions.append({
             "priority": priority,
             "action": f"Deploy {gap['technique_id']} detection",
-            "detail": gap["recommendation"],
+            "detail": (
+                f"Technique {gap['technique_id']} observed {gap['frequency']}x across the collective. "
+                f"Your tools miss it. {gap['caught_by_count']} other tools detect it."
+            ),
         })
 
-    # Get remediation intelligence — what others did that actually worked
-    technique_ids = [t.get("technique_id") for t in data.get("techniques", []) if t.get("technique_id")]
-    remediation_intel = await db.get_remediation_for_threat(
-        threat_name=data.get("threat_name"),
-        technique_ids=technique_ids,
-        exclude_contribution_id=cid,
-    )
+    # Remediation hints from ProofEngine histograms (aggregate only)
+    # These are category-level patterns, NOT individual org actions
+    remediation_hints = {}
+    if engine is not None:
+        rem_stats = engine.get_remediation_stats()
+        if rem_stats["total_actions"] > 0:
+            # What categories of remediation are most effective across the collective
+            effective_categories = []
+            for cat, eff_map in rem_stats.get("by_category", {}).items():
+                stopped = eff_map.get("stopped_attack", 0)
+                slowed = eff_map.get("slowed_attack", 0)
+                total = sum(eff_map.values())
+                if total > 0:
+                    effective_categories.append({
+                        "category": cat,
+                        "success_rate": round((stopped + slowed) / total, 2),
+                        "total_reports": total,
+                    })
+            effective_categories.sort(key=lambda x: -x["success_rate"])
 
-    # Extract the most effective actions from other orgs
-    what_worked = []
-    for r in remediation_intel:
-        for a in r.get("actions", []):
-            if a.get("effectiveness") in ("stopped_attack", "slowed_attack"):
-                what_worked.append({
-                    "action": a.get("action", ""),
-                    "category": a.get("category", "other"),
-                    "effectiveness": a.get("effectiveness", ""),
-                    "tool_used": a.get("tool_used"),
-                    "sigma_rule": a.get("sigma_rule"),
-                    "from_industry": r.get("industry"),
-                    "from_severity": r.get("severity"),
+            if effective_categories:
+                best = effective_categories[0]
+                actions.insert(0, {
+                    "priority": "critical",
+                    "action": f"Prioritize {best['category']} — {int(best['success_rate'] * 100)}% success rate across the collective",
+                    "detail": (
+                        f"Across {rem_stats['attack_map_count']} attack reports, "
+                        f"{best['category']} actions stopped or slowed attacks "
+                        f"{int(best['success_rate'] * 100)}% of the time"
+                    ),
                 })
 
-    # Add remediation actions to the response
-    if what_worked:
-        actions.insert(0, {
-            "priority": "critical",
-            "action": f"Proven remediation from {len(remediation_intel)} other orgs",
-            "detail": f"{len(what_worked)} actions that stopped or slowed this attack at other organizations",
-        })
+            gap_ids = [g["technique_id"] for g in detection_gaps]
+            remediation_hints = enrich_remediation_hints({
+                "most_effective_categories": effective_categories[:5],
+                "severity_distribution": rem_stats.get("severity_distribution", {}),
+                "typical_detect_time": rem_stats.get("time_to_detect", {}),
+                "typical_contain_time": rem_stats.get("time_to_contain", {}),
+                "total_attack_reports": rem_stats["attack_map_count"],
+            }, gap_technique_ids=gap_ids)
 
-    # Incident response metrics from other orgs
-    ir_metrics = {}
-    if remediation_intel:
-        detect_times = [r["time_to_detect"] for r in remediation_intel if r.get("time_to_detect")]
-        contain_times = [r["time_to_contain"] for r in remediation_intel if r.get("time_to_contain")]
-        exfil_count = sum(1 for r in remediation_intel if r.get("data_exfiltrated"))
-        paid_count = sum(1 for r in remediation_intel if r.get("ransom_paid"))
-        ir_metrics = {
-            "orgs_reporting": len(remediation_intel),
-            "common_detect_time": max(set(detect_times), key=detect_times.count) if detect_times else None,
-            "common_contain_time": max(set(contain_times), key=contain_times.count) if contain_times else None,
-            "data_exfiltrated_pct": round(exfil_count / len(remediation_intel) * 100) if remediation_intel else None,
-            "ransom_paid_pct": round(paid_count / len(remediation_intel) * 100) if remediation_intel else None,
-        }
+    if not actions:
+        actions.append({
+            "priority": "info",
+            "action": "Coverage looks good",
+            "detail": (
+                "No detection gaps found for your tools based on current "
+                "collective intelligence. Continue monitoring for new threats."
+            ),
+        })
 
     return {
         "status": "analyzed",
         "contribution_id": cid,
+        "receipt": receipt_dict,
         "intelligence": {
             "detection_gaps": detection_gaps,
             "coverage_score": coverage_score,
-            "techniques_seen_by_others": techniques_seen,
+            "techniques_seen_by_others": techniques_seen[:50],
             "actions": actions,
-            "what_worked": what_worked,
-            "ir_metrics": ir_metrics if ir_metrics else None,
+            "remediation_hints": remediation_hints if remediation_hints else None,
         },
     }
 
 
-async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
-    """Analyze an eval record against vendor aggregates."""
-    # Store the contribution first
+async def analyze_eval_record(data: dict[str, Any], db: Database, *, engine: ProofEngine | None = None) -> dict:
+    """Analyze an eval record — aggregates only, no individual contribution details."""
+    # Store the contribution
     cid = await db.store_eval_record(data)
 
     # Support both wire format and flat format
@@ -258,17 +301,24 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
     category = d.get("category")
     your_score = d.get("overall_score")
 
+    # Proof layer
+    receipt_dict = None
+    if engine is not None:
+        vendor_t, category_t, values_t = translate_eval(data)
+        receipt = engine.commit_contribution(vendor_t, category_t, values_t)
+        receipt_dict = receipt.to_dict()
+
     if not vendor:
         return {
             "status": "analyzed",
             "contribution_id": cid,
+            "receipt": receipt_dict,
             "intelligence": {
                 "your_vendor": None,
                 "your_score": your_score,
                 "category_avg": None,
                 "percentile": None,
-                "better_alternatives": [],
-                "known_gaps": [],
+                "known_gaps_count": 0,
                 "actions": [
                     {
                         "priority": "info",
@@ -279,22 +329,30 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
             },
         }
 
-    # Get aggregate data
+    # Get aggregate data (these are already aggregates, not individual records)
     aggregate = await db.get_vendor_aggregate(vendor)
     category_avg = await db.get_category_average(category) if category else None
-    vendor_gaps = await db.get_vendor_gaps(vendor)
 
-    if not aggregate:
+    # Vendor gaps — aggregate technique gap count, not individual details
+    vendor_gap_ids = await db.get_vendor_gaps(vendor)
+    gaps_count = len(vendor_gap_ids)
+
+    # ProofEngine aggregate if available
+    engine_agg = None
+    if engine is not None:
+        engine_agg = engine.get_aggregate(vendor)
+
+    if not aggregate and not engine_agg:
         return {
             "status": "analyzed",
             "contribution_id": cid,
+            "receipt": receipt_dict,
             "intelligence": {
                 "your_vendor": vendor,
                 "your_score": your_score,
                 "category_avg": category_avg,
                 "percentile": None,
-                "better_alternatives": [],
-                "known_gaps": vendor_gaps,
+                "known_gaps_count": gaps_count,
                 "actions": [
                     {
                         "priority": "info",
@@ -308,7 +366,13 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
             },
         }
 
-    avg_score = aggregate.get("avg_score")
+    # Use ProofEngine aggregate if available (cryptographically verified)
+    if engine_agg:
+        avg_score = engine_agg.get("avg_overall_score")
+        contributor_count = engine_agg.get("contributor_count", 0)
+    else:
+        avg_score = aggregate.get("avg_score") if aggregate else None
+        contributor_count = aggregate.get("contributor_count", 0) if aggregate else 0
 
     # Simple percentile estimate
     if your_score is not None and avg_score is not None:
@@ -321,15 +385,14 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
     else:
         percentile = None
 
-    # Build actions
+    # Template-based actions from aggregate patterns
     actions = []
-    if vendor_gaps:
-        gap_list = ", ".join(vendor_gaps[:5])
+    if gaps_count > 0:
         actions.append({
             "priority": "medium",
-            "action": f"Supplement {vendor} with additional detection rules",
+            "action": f"Supplement {vendor} — {gaps_count} known detection gaps",
             "detail": (
-                f"{vendor} has known gaps in: {gap_list}. "
+                f"{vendor} has {gaps_count} technique gaps reported across the collective. "
                 f"Consider custom Sigma rules or a complementary tool."
             ),
         })
@@ -340,9 +403,10 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
                 "priority": "info",
                 "action": f"{vendor} scores at or above average",
                 "detail": (
-                    f"Your score ({your_score}) vs category average "
-                    f"({round(avg_score, 1) if avg_score else '?'}). "
-                    f"{'Address known gaps to maximize value.' if vendor_gaps else 'No known gaps detected.'}"
+                    f"Your score ({your_score}) vs collective average "
+                    f"({round(avg_score, 1) if avg_score else '?'}) "
+                    f"across {contributor_count} evaluations. "
+                    f"{'Address detection gaps to maximize value.' if gaps_count > 0 else 'No known gaps detected.'}"
                 ),
             })
         else:
@@ -350,8 +414,9 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
                 "priority": "high",
                 "action": f"Investigate {vendor} underperformance",
                 "detail": (
-                    f"Your score ({your_score}) is below the category average "
-                    f"({round(avg_score, 1)}). Review configuration and deployment."
+                    f"Your score ({your_score}) is below the collective average "
+                    f"({round(avg_score, 1)}) across {contributor_count} evaluations. "
+                    f"Review configuration and deployment."
                 ),
             })
 
@@ -365,13 +430,14 @@ async def analyze_eval_record(data: dict[str, Any], db: Database) -> dict:
     return {
         "status": "analyzed",
         "contribution_id": cid,
+        "receipt": receipt_dict,
         "intelligence": {
             "your_vendor": vendor,
             "your_score": your_score,
             "category_avg": round(category_avg, 1) if category_avg is not None else None,
             "percentile": percentile,
-            "better_alternatives": [],
-            "known_gaps": vendor_gaps,
+            "contributor_count": contributor_count,
+            "known_gaps_count": gaps_count,
             "actions": actions,
         },
     }

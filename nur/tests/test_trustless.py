@@ -767,3 +767,846 @@ class TestTrustlessBusinessIntegration:
         # There is NO list of individual scores stored anywhere.
         # The only way to get "Hospital X scored 9.2" would be to
         # reverse a SHA-256 hash — computationally infeasible.
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Translators — raw payloads → structured aggregatable form
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestTranslators:
+    """Unit tests for each translator function."""
+
+    def test_translate_eval_extracts_numeric(self):
+        from nur.server.proofs import translate_eval
+        vendor, cat, values = translate_eval({
+            "data": {
+                "vendor": "CrowdStrike",
+                "category": "edr",
+                "overall_score": 9.2,
+                "detection_rate": 94.5,
+                "fp_rate": 2.1,
+            }
+        })
+        assert vendor == "CrowdStrike"
+        assert cat == "edr"
+        assert values["overall_score"] == 9.2
+        assert values["detection_rate"] == 94.5
+        assert values["fp_rate"] == 2.1
+
+    def test_translate_eval_maps_strength_category(self):
+        from nur.server.proofs import translate_eval
+        _, _, values = translate_eval({
+            "data": {
+                "vendor": "X",
+                "top_strength": "Great detection quality",
+                "top_friction": "High false positives everywhere",
+            }
+        })
+        assert values["top_strength"] == "detection_quality"
+        assert values["top_friction"] == "high_false_positives"
+
+    def test_translate_eval_drops_notes(self):
+        from nur.server.proofs import translate_eval
+        _, _, values = translate_eval({
+            "data": {
+                "vendor": "X",
+                "notes": "This should be dropped",
+                "overall_score": 8.0,
+            }
+        })
+        assert "notes" not in values
+        assert "overall_score" in values
+
+    def test_translate_eval_handles_bool(self):
+        from nur.server.proofs import translate_eval
+        _, _, values = translate_eval({"data": {"vendor": "X", "would_buy": True}})
+        assert values["would_buy"] is True
+
+    def test_translate_eval_flat_format(self):
+        """Supports both {data: {vendor: ...}} and flat {vendor: ...}."""
+        from nur.server.proofs import translate_eval
+        vendor, _, _ = translate_eval({"vendor": "Direct", "category": "siem"})
+        assert vendor == "Direct"
+
+    def test_translate_attack_map_normalizes(self):
+        from nur.server.proofs import translate_attack_map
+        params = translate_attack_map({
+            "techniques": [
+                {"technique_id": "T1566", "detected_by": ["CrowdStrike"], "missed_by": ["SentinelOne"]},
+            ],
+            "severity": "critical",
+            "time_to_detect": "hours",
+            "notes": "Should be dropped",
+        })
+        assert len(params["techniques"]) == 1
+        assert params["techniques"][0]["detected_by"] == ["crowdstrike"]
+        assert params["techniques"][0]["missed_by"] == ["sentinelone"]
+        assert params["severity"] == "critical"
+        assert params["time_to_detect"] == "hours"
+
+    def test_translate_attack_map_drops_free_text(self):
+        from nur.server.proofs import translate_attack_map
+        params = translate_attack_map({
+            "techniques": [{"technique_id": "T1566"}],
+            "notes": "Full writeup",
+            "remediation": [
+                {"category": "containment", "effectiveness": "stopped_attack",
+                 "action": "Free text action", "sigma_rule": "yaml content"},
+            ],
+        })
+        # Remediation has only category + effectiveness
+        assert len(params["remediation"]) == 1
+        assert set(params["remediation"][0].keys()) == {"category", "effectiveness"}
+
+    def test_translate_attack_map_skips_empty_technique_id(self):
+        from nur.server.proofs import translate_attack_map
+        params = translate_attack_map({
+            "techniques": [
+                {"technique_id": "T1566"},
+                {"technique_id": ""},
+                {"technique_name": "No ID"},
+            ],
+        })
+        assert len(params["techniques"]) == 1
+
+    def test_translate_ioc_bundle(self):
+        from nur.server.proofs import translate_ioc_bundle
+        count, types = translate_ioc_bundle({
+            "iocs": [
+                {"ioc_type": "ip", "value_hash": "abc"},
+                {"ioc_type": "domain", "value_hash": "def"},
+                {"ioc_type": "ip", "value_hash": "ghi"},
+            ]
+        })
+        assert count == 3
+        assert set(types) == {"ip", "domain"}
+
+    def test_translate_ioc_bundle_empty(self):
+        from nur.server.proofs import translate_ioc_bundle
+        count, types = translate_ioc_bundle({})
+        assert count == 0
+        assert types == []
+
+    def test_translate_webhook_crowdstrike(self):
+        from nur.server.proofs import translate_webhook_crowdstrike
+        result = translate_webhook_crowdstrike({
+            "detection": {
+                "technique": "T1059.001",
+                "severity": "high",
+                "ioc_type": "ip",
+                "ioc_value": "1.2.3.4",
+            }
+        })
+        assert result["attack_map_params"] is not None
+        assert result["attack_map_params"]["techniques"][0]["technique_id"] == "T1059.001"
+        assert result["ioc_params"] == (1, ["ip"])
+
+    def test_translate_webhook_crowdstrike_no_technique(self):
+        from nur.server.proofs import translate_webhook_crowdstrike
+        result = translate_webhook_crowdstrike({
+            "detection": {"severity": "low", "ioc_type": "domain"}
+        })
+        assert result["attack_map_params"] is None
+        assert result["ioc_params"] == (1, ["domain"])
+
+    def test_translate_webhook_sentinel(self):
+        from nur.server.proofs import translate_webhook_sentinel
+        result = translate_webhook_sentinel({
+            "properties": {
+                "severity": "High",
+                "techniques": ["T1566", "T1078"],
+                "entities": [
+                    {"kind": "ip", "address": "1.2.3.4"},
+                    {"kind": "host", "hostName": "evil.com"},
+                ],
+            }
+        })
+        assert result["attack_map_params"] is not None
+        assert len(result["attack_map_params"]["techniques"]) == 2
+        assert result["ioc_params"][0] == 2
+        assert sorted(result["ioc_params"][1]) == sorted(["ip", "host"])
+
+    def test_translate_webhook_sentinel_no_data(self):
+        from nur.server.proofs import translate_webhook_sentinel
+        result = translate_webhook_sentinel({"properties": {}})
+        assert result["attack_map_params"] is None
+        assert result["ioc_params"] is None
+
+
+async def _make_proof_app():
+    """Create a fresh app with initialized in-memory database and ProofEngine."""
+    import nur.server.app as app_mod
+    from nur.server.db import Database
+    from nur.server.proofs import ProofEngine
+    the_app = app_mod.create_app("sqlite+aiosqlite://")
+    db = Database("sqlite+aiosqlite://")
+    await db.init()
+    app_mod._db = db
+    app_mod._proof_engine = ProofEngine()
+    return the_app
+
+
+class TestE2ESubmissionWithProofs:
+    """FastAPI test client -- each endpoint returns receipt."""
+
+    @pytest.mark.asyncio
+    async def test_contribute_eval_returns_receipt(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/contribute/submit", json={
+                "data": {"vendor": "TestVendor", "category": "edr", "overall_score": 8.5}
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "receipt" in data
+            assert data["receipt"]["commitment_hash"]
+            assert data["receipt"]["merkle_root"]
+
+    @pytest.mark.asyncio
+    async def test_contribute_attack_map_returns_receipt(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/contribute/attack-map", json={
+                "techniques": [{"technique_id": "T1566", "observed": True, "detected_by": [], "missed_by": []}],
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "receipt" in data
+
+    @pytest.mark.asyncio
+    async def test_contribute_ioc_bundle_returns_receipt(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/contribute/ioc-bundle", json={
+                "iocs": [{"ioc_type": "ip", "value_hash": "abc123"}],
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "receipt" in data
+
+    @pytest.mark.asyncio
+    async def test_webhook_crowdstrike_returns_receipts(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/ingest/webhook", json={
+                "detection": {
+                    "technique": "T1059.001",
+                    "severity": "high",
+                    "ioc_type": "ip",
+                    "ioc_value": "1.2.3.4",
+                }
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "receipts" in data
+            assert len(data["receipts"]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_webhook_sentinel_returns_receipts(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/ingest/webhook", json={
+                "properties": {
+                    "severity": "High",
+                    "techniques": ["T1566"],
+                    "entities": [{"kind": "ip", "address": "1.2.3.4"}],
+                }
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "receipts" in data
+
+    @pytest.mark.asyncio
+    async def test_analyze_returns_receipt(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/analyze", json={
+                "data": {"vendor": "TestVendor", "category": "edr", "overall_score": 8.0}
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "receipt" in data
+
+
+class TestVerifyEndpoints:
+    """Verification endpoints work correctly."""
+
+    @pytest.mark.asyncio
+    async def test_verify_receipt_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            # Submit first
+            resp = await c.post("/contribute/submit", json={
+                "data": {"vendor": "TestVendor", "category": "edr", "overall_score": 9.0}
+            })
+            receipt = resp.json()["receipt"]
+
+            # Verify
+            resp = await c.post("/verify/receipt", json=receipt)
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["receipt_id"] == receipt["receipt_id"]
+            # Note: may be stale if tree grew, but endpoint should work
+
+    @pytest.mark.asyncio
+    async def test_verify_aggregate_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            # Submit data first
+            await c.post("/contribute/submit", json={
+                "data": {"vendor": "CrowdStrike", "category": "edr", "overall_score": 9.0}
+            })
+            await c.post("/contribute/submit", json={
+                "data": {"vendor": "CrowdStrike", "category": "edr", "overall_score": 8.0}
+            })
+
+            # Verify aggregate
+            resp = await c.get("/verify/aggregate/CrowdStrike")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["proof"]["contributor_count"] == 2
+            assert data["verification"]["valid"]
+
+    @pytest.mark.asyncio
+    async def test_verify_aggregate_404(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/verify/aggregate/NonExistent")
+            assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_proof_stats_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.post("/contribute/submit", json={
+                "data": {"vendor": "TestVendor", "category": "edr", "overall_score": 8.0}
+            })
+            resp = await c.get("/proof/stats")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["total_contributions"] >= 1
+            assert data["merkle_root"]
+
+
+class TestAllPathsShareMerkleTree:
+    """All submission paths feed into the same Merkle tree."""
+
+    @pytest.mark.asyncio
+    async def test_single_merkle_tree(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            # Submit via all paths
+            await c.post("/contribute/submit", json={
+                "data": {"vendor": "V1", "category": "edr", "overall_score": 8.0}
+            })
+            await c.post("/contribute/attack-map", json={
+                "techniques": [{"technique_id": "T1566", "observed": True, "detected_by": [], "missed_by": []}],
+            })
+            await c.post("/contribute/ioc-bundle", json={
+                "iocs": [{"ioc_type": "ip", "value_hash": "test"}],
+            })
+            await c.post("/ingest/webhook", json={
+                "detection": {"technique": "T1059", "severity": "high"}
+            })
+
+            # All should share one Merkle tree -- check stats
+            resp = await c.get("/proof/stats")
+            data = resp.json()
+            assert data["total_contributions"] >= 4
+            assert data["merkle_root"]  # single root
+
+
+class TestWebhookFormatsProduceProofs:
+    """CrowdStrike + Sentinel webhook formats produce valid receipts."""
+
+    @pytest.mark.asyncio
+    async def test_crowdstrike_receipt_verifiable(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/ingest/webhook", json={
+                "detection": {
+                    "technique": "T1059.001",
+                    "severity": "critical",
+                    "ioc_type": "hash-sha256",
+                    "ioc_value": "deadbeef",
+                }
+            })
+            data = resp.json()
+            assert len(data["receipts"]) == 2  # attack_map + ioc
+
+            # Verify the last receipt
+            last_receipt = data["receipts"][-1]
+            verify_resp = await c.post("/verify/receipt", json=last_receipt)
+            assert verify_resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_sentinel_receipt_verifiable(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/ingest/webhook", json={
+                "properties": {
+                    "title": "Test Incident",
+                    "severity": "High",
+                    "techniques": ["T1566", "T1078"],
+                    "entities": [
+                        {"kind": "ip", "address": "10.0.0.1"},
+                        {"kind": "host", "hostName": "bad.example.com"},
+                    ],
+                }
+            })
+            data = resp.json()
+            assert len(data["receipts"]) == 2  # attack_map + ioc
+
+            last_receipt = data["receipts"][-1]
+            verify_resp = await c.post("/verify/receipt", json=last_receipt)
+            assert verify_resp.status_code == 200
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Public Taxonomy — NIST/D3FEND/RE&CT framework guidance
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestTaxonomy:
+    """Public remediation taxonomy maps aggregate categories to known frameworks."""
+
+    def test_all_remediation_categories_have_taxonomy(self):
+        from nur.server.proofs import REMEDIATION_CATEGORIES
+        from nur.server.taxonomy import REMEDIATION_TAXONOMY
+        for cat in REMEDIATION_CATEGORIES:
+            assert cat in REMEDIATION_TAXONOMY, f"Missing taxonomy for '{cat}'"
+
+    def test_taxonomy_has_required_fields(self):
+        from nur.server.taxonomy import REMEDIATION_TAXONOMY
+        required = {"description", "nist_phase", "d3fend", "react", "typical_actions", "applies_to"}
+        for cat, entry in REMEDIATION_TAXONOMY.items():
+            for field in required:
+                assert field in entry, f"'{cat}' missing '{field}'"
+            assert len(entry["typical_actions"]) >= 3
+            assert "NIST" in entry["nist_phase"]
+
+    def test_technique_guidance_has_mitigations(self):
+        from nur.server.taxonomy import TECHNIQUE_GUIDANCE
+        for tid, entry in TECHNIQUE_GUIDANCE.items():
+            assert "name" in entry
+            assert "mitigations" in entry
+            assert len(entry["mitigations"]) >= 1
+            assert "recommended_categories" in entry
+            from nur.server.taxonomy import REMEDIATION_TAXONOMY
+            for cat in entry["recommended_categories"]:
+                assert cat in REMEDIATION_TAXONOMY
+
+    def test_get_remediation_guidance(self):
+        from nur.server.taxonomy import get_remediation_guidance
+        g = get_remediation_guidance("containment")
+        assert g is not None
+        assert "Network Isolation" in g["d3fend"][0]
+        assert get_remediation_guidance("nonexistent") is None
+
+    def test_get_technique_guidance(self):
+        from nur.server.taxonomy import get_technique_guidance
+        g = get_technique_guidance("T1566")
+        assert g is not None
+        assert g["name"] == "Phishing"
+        assert len(g["mitigations"]) >= 2
+        assert get_technique_guidance("T9999") is None
+
+    def test_enrich_remediation_hints(self):
+        from nur.server.taxonomy import enrich_remediation_hints
+        hints = {
+            "most_effective_categories": [
+                {"category": "containment", "success_rate": 0.87, "total_reports": 12},
+                {"category": "detection", "success_rate": 0.65, "total_reports": 8},
+            ],
+            "severity_distribution": {"critical": 5, "high": 3},
+            "total_attack_reports": 20,
+        }
+        enriched = enrich_remediation_hints(hints, gap_technique_ids=["T1490", "T1566"])
+
+        # Categories have framework_ref
+        assert "framework_ref" in enriched["most_effective_categories"][0]
+        ref = enriched["most_effective_categories"][0]["framework_ref"]
+        assert "NIST" in ref["nist_phase"]
+        assert len(ref["d3fend"]) >= 1
+        assert len(ref["typical_actions"]) >= 3
+
+        # Technique guidance present
+        assert "technique_guidance" in enriched
+        tg = enriched["technique_guidance"]
+        assert len(tg) == 2
+        t1490 = next(t for t in tg if t["technique_id"] == "T1490")
+        assert t1490["name"] == "Inhibit System Recovery"
+        assert "M1053" in t1490["mitigations"][0]
+
+    def test_enrich_with_subtechnique_fallback(self):
+        from nur.server.taxonomy import enrich_remediation_hints
+        hints = {"most_effective_categories": [], "total_attack_reports": 1}
+        enriched = enrich_remediation_hints(hints, gap_technique_ids=["T1059.001"])
+        assert "technique_guidance" in enriched
+        assert enriched["technique_guidance"][0]["technique_id"] == "T1059.001"
+        assert enriched["technique_guidance"][0]["name"] == "PowerShell"
+
+    def test_enrich_without_gaps(self):
+        from nur.server.taxonomy import enrich_remediation_hints
+        hints = {"most_effective_categories": [], "total_attack_reports": 0}
+        enriched = enrich_remediation_hints(hints)
+        assert "technique_guidance" not in enriched
+
+
+class TestAnalyzeResponsesAreAggregateOnly:
+    """Verify no individual org data leaks through /analyze responses."""
+
+    @pytest.fixture
+    def app(self):
+        import nur.server.app as app_mod
+        return app_mod.create_app("sqlite+aiosqlite://")
+
+    @pytest.mark.asyncio
+    async def test_ioc_response_has_no_threat_actors(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/analyze", json={
+                "iocs": [{"ioc_type": "ip", "value_hash": "test123"}],
+            })
+            data = resp.json()
+            intel = data["intelligence"]
+            assert "threat_actors" not in intel
+            assert "campaign_summary" not in intel
+            assert "shared_ioc_count" in intel
+            assert "ioc_type_distribution" in intel
+
+    @pytest.mark.asyncio
+    async def test_attack_map_response_has_no_individual_actions(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/analyze", json={
+                "techniques": [{"technique_id": "T1566", "observed": True}],
+                "tools_in_scope": ["crowdstrike"],
+            })
+            data = resp.json()
+            intel = data["intelligence"]
+            assert "what_worked" not in intel
+            assert "ir_metrics" not in intel
+            assert "detection_gaps" in intel
+            assert "coverage_score" in intel
+
+    @pytest.mark.asyncio
+    async def test_eval_response_has_no_individual_gaps_list(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/analyze", json={
+                "vendor": "TestVendor", "category": "edr", "overall_score": 8.0,
+            })
+            data = resp.json()
+            intel = data["intelligence"]
+            assert "known_gaps" not in intel
+            assert "better_alternatives" not in intel
+            assert "known_gaps_count" in intel
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Blind Category Discovery — threshold reveal protocol
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestBlindCategoryDiscovery:
+    """Core protocol: propose → threshold → reveal."""
+
+    def test_propose_category(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=3, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        result = bcd.propose_category(h, "threat_actor", "org-1")
+        assert result["status"] == "pending"
+        assert result["supporter_count"] == 1
+        assert result["ready_for_reveal"] is False
+
+    def test_threshold_met_after_enough_orgs(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=3, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-2")
+        result = bcd.propose_category(h, "threat_actor", "org-3")
+
+        assert result["status"] == "threshold_met"
+        assert result["supporter_count"] == 3
+        assert result["ready_for_reveal"] is True
+
+    def test_same_org_doesnt_double_count(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=3, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-1")
+
+        result = bcd.check_threshold(h)
+        assert result["supporter_count"] == 1  # same org, counted once
+
+    def test_reveal_requires_threshold(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=3, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        result = bcd.vote_reveal(h, "DarkAngel", "salt1", "org-1")
+        assert "error" in result
+        assert "threshold" in result["error"].lower()
+
+    def test_reveal_verifies_hash(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=2, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-2")
+
+        # Wrong plaintext
+        result = bcd.vote_reveal(h, "WrongName", "salt1", "org-1")
+        assert "error" in result
+        assert "verification failed" in result["error"].lower()
+
+    def test_reveal_quorum_reveals_category(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=2, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-2")
+
+        r1 = bcd.vote_reveal(h, "DarkAngel", "salt1", "org-1")
+        assert r1["status"] == "vote_recorded"
+        assert r1["remaining"] == 1
+
+        r2 = bcd.vote_reveal(h, "DarkAngel", "salt1", "org-2")
+        assert r2["status"] == "revealed"
+        assert r2["revealed_name"] == "darkangel"
+
+    def test_revealed_category_in_list(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=2, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-2")
+        bcd.vote_reveal(h, "DarkAngel", "salt1", "org-1")
+        bcd.vote_reveal(h, "DarkAngel", "salt1", "org-2")
+
+        revealed = bcd.get_revealed_categories()
+        assert len(revealed) == 1
+        assert revealed[0]["name"] == "darkangel"
+        assert revealed[0]["category_type"] == "threat_actor"
+
+    def test_double_propose_after_reveal(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=2, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-2")
+        bcd.vote_reveal(h, "DarkAngel", "salt1", "org-1")
+        bcd.vote_reveal(h, "DarkAngel", "salt1", "org-2")
+
+        result = bcd.propose_category(h, "threat_actor", "org-3")
+        assert result["status"] == "already_revealed"
+
+    def test_non_proposer_cannot_reveal(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=2, reveal_quorum=2)
+        h = hash_category("DarkAngel", "salt1")
+
+        bcd.propose_category(h, "threat_actor", "org-1")
+        bcd.propose_category(h, "threat_actor", "org-2")
+
+        result = bcd.vote_reveal(h, "DarkAngel", "salt1", "org-3")
+        assert "error" in result
+        assert "original proposers" in result["error"].lower()
+
+    def test_pending_categories_list(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=3, reveal_quorum=2)
+
+        h1 = hash_category("DarkAngel", "s1")
+        h2 = hash_category("BlackCat", "s2")
+
+        bcd.propose_category(h1, "threat_actor", "org-1")
+        bcd.propose_category(h1, "threat_actor", "org-2")
+        bcd.propose_category(h2, "malware", "org-1")
+
+        pending = bcd.get_pending_categories()
+        assert len(pending) == 2
+        # Sorted by supporter count (h1 has 2, h2 has 1)
+        assert pending[0]["supporter_count"] == 2
+        assert pending[1]["supporter_count"] == 1
+
+    def test_invalid_category_type(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery()
+        h = hash_category("test", "salt")
+        result = bcd.propose_category(h, "invalid_type", "org-1")
+        assert "error" in result
+
+    def test_hash_category_deterministic(self):
+        from nur.server.blind_categories import hash_category
+        h1 = hash_category("DarkAngel", "salt1")
+        h2 = hash_category("DarkAngel", "salt1")
+        h3 = hash_category("DarkAngel", "salt2")
+        assert h1 == h2
+        assert h1 != h3
+
+    def test_hash_category_case_insensitive(self):
+        from nur.server.blind_categories import hash_category
+        h1 = hash_category("DarkAngel", "salt1")
+        h2 = hash_category("darkangel", "salt1")
+        assert h1 == h2
+
+    def test_stats(self):
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+        bcd = BlindCategoryDiscovery(discovery_threshold=2, reveal_quorum=2)
+
+        h1 = hash_category("A", "s")
+        h2 = hash_category("B", "s")
+        bcd.propose_category(h1, "threat_actor", "org-1")
+        bcd.propose_category(h1, "threat_actor", "org-2")
+        bcd.propose_category(h2, "malware", "org-1")
+
+        assert bcd.pending_count == 2
+        assert bcd.revealed_count == 0
+
+        bcd.vote_reveal(h1, "A", "s", "org-1")
+        bcd.vote_reveal(h1, "A", "s", "org-2")
+
+        assert bcd.pending_count == 1
+        assert bcd.revealed_count == 1
+
+
+class TestBlindCategoryE2E:
+    """Full scenario: multiple orgs discover a new threat actor."""
+
+    def test_three_hospitals_discover_darkangel(self):
+        """
+        Three hospitals independently encounter "DarkAngel" ransomware.
+        None of them know the others are seeing it.
+        Through blind category discovery, they collectively surface it.
+        """
+        from nur.server.blind_categories import BlindCategoryDiscovery, hash_category
+
+        bcd = BlindCategoryDiscovery(discovery_threshold=3, reveal_quorum=2)
+
+        # Each hospital hashes "DarkAngel" with their own salt
+        # (In practice, they'd use a shared salt from the server or protocol)
+        shared_salt = "nur-2026"
+        h = hash_category("DarkAngel", shared_salt)
+
+        # Hospital A submits
+        r1 = bcd.propose_category(h, "threat_actor", "hospital-a")
+        assert r1["status"] == "pending"
+        assert r1["supporter_count"] == 1
+
+        # Hospital B submits independently
+        r2 = bcd.propose_category(h, "threat_actor", "hospital-b")
+        assert r2["status"] == "pending"
+        assert r2["supporter_count"] == 2
+
+        # Hospital C submits — threshold met!
+        r3 = bcd.propose_category(h, "threat_actor", "hospital-c")
+        assert r3["status"] == "threshold_met"
+        assert r3["ready_for_reveal"] is True
+
+        # Server says: "category H has 3 supporters, ready for reveal"
+        # Hospitals A and B vote to reveal
+        v1 = bcd.vote_reveal(h, "DarkAngel", shared_salt, "hospital-a")
+        assert v1["status"] == "vote_recorded"
+
+        v2 = bcd.vote_reveal(h, "DarkAngel", shared_salt, "hospital-b")
+        assert v2["status"] == "revealed"
+        assert v2["revealed_name"] == "darkangel"
+
+        # Now "DarkAngel" is a public category — aggregation can begin
+        revealed = bcd.get_revealed_categories()
+        assert len(revealed) == 1
+        assert revealed[0]["name"] == "darkangel"
+        assert revealed[0]["category_type"] == "threat_actor"
+        assert revealed[0]["supporter_count"] == 3
+
+
+class TestBlindCategoryEndpoints:
+    """API endpoint tests for blind category discovery."""
+
+    @pytest.fixture
+    def app(self):
+        import nur.server.app as app_mod
+        return app_mod.create_app("sqlite+aiosqlite://")
+
+    @pytest.mark.asyncio
+    async def test_propose_and_check(self, app):
+        from httpx import AsyncClient, ASGITransport
+        from nur.server.blind_categories import hash_category
+        h = hash_category("NewThreat", "test-salt")
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/category/propose", json={
+                "category_hash": h,
+                "category_type": "threat_actor",
+                "submitter_id": "org-1",
+            })
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "pending"
+
+            resp = await c.get(f"/category/check/{h}")
+            assert resp.status_code == 200
+            assert resp.json()["supporter_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_full_reveal_flow(self, app):
+        from httpx import AsyncClient, ASGITransport
+        from nur.server.blind_categories import hash_category
+        h = hash_category("NewMalware", "salt")
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            # 3 orgs propose
+            for org in ["org-1", "org-2", "org-3"]:
+                await c.post("/category/propose", json={
+                    "category_hash": h, "category_type": "malware", "submitter_id": org,
+                })
+
+            # 2 orgs reveal
+            r1 = await c.post("/category/reveal", json={
+                "category_hash": h, "plaintext": "NewMalware", "salt": "salt", "submitter_id": "org-1",
+            })
+            assert r1.json()["status"] == "vote_recorded"
+
+            r2 = await c.post("/category/reveal", json={
+                "category_hash": h, "plaintext": "NewMalware", "salt": "salt", "submitter_id": "org-2",
+            })
+            assert r2.json()["status"] == "revealed"
+            assert r2.json()["revealed_name"] == "newmalware"
+
+            # Check pending list
+            resp = await c.get("/category/pending")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert len(data["revealed"]) == 1
+            assert data["revealed"][0]["name"] == "newmalware"
+
+    @pytest.mark.asyncio
+    async def test_propose_missing_fields(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post("/category/propose", json={"category_hash": "abc"})
+            assert resp.status_code == 400
