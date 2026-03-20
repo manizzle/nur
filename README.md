@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/vendors-36_tracked-ffa502" />
   <img src="https://img.shields.io/badge/tests-575_passing-2ed573" />
   <img src="https://img.shields.io/badge/python-3.11%2B-1e90ff" />
-  <img src="https://img.shields.io/badge/code-Apache_2.0-1e90ff" />
+  <img src="https://img.shields.io/badge/code-AGPL--3.0-1e90ff" />
   <img src="https://img.shields.io/badge/data-CDLA_Permissive_2.0-f9ca24" />
 </p>
 
@@ -327,6 +327,6 @@ bash demo/demo.sh         # narrated walkthrough — the hospital story
 
 | Component | License |
 |-----------|---------|
-| Code | [Apache 2.0](LICENSE) |
+| Code | [AGPL-3.0](LICENSE) |
 | Data | [CDLA-Permissive-2.0](DATA_LICENSE.md) |
-| Feeds | CC0 (abuse.ch) · Public Domain (CISA) · Apache 2.0 (MITRE) |
+| Feeds | CC0 (abuse.ch) · Public Domain (CISA) · AGPL-3.0 (MITRE) |
