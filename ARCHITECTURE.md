@@ -1,10 +1,52 @@
 # Architecture — Detailed Three-Party Flow
 
-## Swimlane Diagram
+## Sequence Diagram
 
-**[View interactive diagram on swimlanes.io](https://swimlanes.io##dGl0bGU6IG51ciDigJQgVHJ1c3RsZXNzIFBpcGVsaW5lIEFyY2hpdGVjdHVyZQoKb3JkZXI6IENsaWVudCwgU2VydmVyLCBDb25zdW1lcgoKYXV0b251bWJlcgoKPTogKipDT05UUklCVVRJT04gUEhBU0UqKgoKbm90ZSBDbGllbnQ6CioqMS4gQ09MTEVDVCoqCkxvYWQgaW5jaWRlbnQuanNvbgoKbm90ZSBDbGllbnQ6CioqMi4gU0NSVUIqKgpSZW1vdmUgUElJIGxvY2FsbHkKSGFzaCBJT0MgdmFsdWVzIChITUFDLVNIQTI1NikKCm5vdGUgQ2xpZW50OgoqKjMuIFRSQU5TTEFURSoqCnRyYW5zbGF0ZV9ldmFsKCkgLyB0cmFuc2xhdGVfYXR0YWNrX21hcCgpCioqRFJPUFBFRDoqKiBub3Rlcywgc2lnbWEgcnVsZXMsIGFjdGlvbiB0ZXh0CioqS0VQVDoqKiBvdmVyYWxsX3Njb3JlOiA5LjIsIGNhdGVnb3J5OiBkZXRlY3Rpb25fcXVhbGl0eQoKQ2xpZW50IC0-IFNlcnZlcjogUE9TVCAvY29udHJpYnV0ZS9zdWJtaXQKClNlcnZlciAtPiBTZXJ2ZXI6ICoqNC4gVkFMSURBVEUqKgoKU2VydmVyIC0-IFNlcnZlcjogKio1LiBDT01NSVQqKiBTSEEtMjU2KGRhdGEgKyB0aW1lc3RhbXApCgpTZXJ2ZXIgLT4gU2VydmVyOiAqKjYuIEFHR1JFR0FURSoqIHJ1bm5pbmdfc3VtICs9IHZhbHVlCgpTZXJ2ZXIgLT4gU2VydmVyOiAqKjcuIE1FUktMRSBUUkVFKiogY29tbWl0bWVudCAtPiBsZWFmIC0-IHJvb3QKClNlcnZlciAtPiBTZXJ2ZXI6ICoqOC4gRElTQ0FSRCoqIGluZGl2aWR1YWwgdmFsdWVzIEdPTkUKClNlcnZlciAtLT4gQ2xpZW50OiBSRUNFSVBUIChjb21taXRtZW50X2hhc2ggKyBtZXJrbGVfcHJvb2YgKyBzaWduYXR1cmUpCgo9OiAqKlFVRVJZICsgVkVSSUZJQ0FUSU9OIFBIQVNFKioKCkNvbnN1bWVyIC0-IFNlcnZlcjogR0VUIC92ZXJpZnkvYWdncmVnYXRlL0Nyb3dkU3RyaWtlCgpTZXJ2ZXIgLT4gU2VydmVyOiAqKjkuIFBST1ZFKiogTWVya2xlIHJvb3QgKyBjb21taXRtZW50cyArIHNpZ25hdHVyZQoKU2VydmVyIC0tPiBDb25zdW1lcjogUHJvb2YgcmVzcG9uc2UKCkNvbnN1bWVyIC0-IENvbnN1bWVyOiAqKjEwLiBWRVJJRlkqKiBjb21taXRtZW50cz09Y291bnQ_IHJvb3QgdmFsaWQ_IHNpZ25hdHVyZT8KCj06ICoqQkxJTkQgQ0FURUdPUlkgRElTQ09WRVJZKioKCkNsaWVudCAtPiBTZXJ2ZXI6IHByb3Bvc2UoSCkgd2hlcmUgSCA9IFNIQS0yNTYobmFtZTpzYWx0KQoKU2VydmVyIC0-IFNlcnZlcjogY291bnQoSCkgPj0gMz8KClNlcnZlciAtLT4gQ2xpZW50OiB0aHJlc2hvbGQgbWV0CgpDbGllbnQgLT4gU2VydmVyOiByZXZlYWwoSCwgcGxhaW50ZXh0LCBzYWx0KQoKU2VydmVyIC0-IFNlcnZlcjogVmVyaWZ5IGhhc2ggLT4gUFVCTElDIFRBWE9OT01ZCg)** — click to view and edit interactively
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client<br/>(your machine)
+    participant S as Server<br/>(accountable compute)
+    participant Q as Consumer<br/>(querier)
 
-To edit or regenerate, paste this markup into [swimlanes.io](https://swimlanes.io):
+    rect rgb(40, 60, 40)
+    Note over C,Q: CONTRIBUTION PHASE
+    Note over C: 1. COLLECT — Load incident.json
+    Note over C: 2. SCRUB — Remove PII, hash IOCs (HMAC-SHA256)
+    Note over C: 3. TRANSLATE — Drop free text, keep scores + categories
+    C->>S: POST /contribute/submit (structured data only)
+    S->>S: 4. VALIDATE (API key, rate limit, payload)
+    S->>S: 5. COMMIT — SHA-256(data + timestamp) → commitment_hash
+    S->>S: 6. AGGREGATE — running_sum += value, count += 1
+    S->>S: 7. MERKLE TREE — commitment → leaf → rebuild root
+    S->>S: 8. DISCARD — individual values GONE
+    S-->>C: RECEIPT (commitment_hash + merkle_proof + signature)
+    Note over C: Store receipt locally — proves you contributed
+    end
+
+    rect rgb(40, 40, 60)
+    Note over C,Q: QUERY + VERIFICATION PHASE
+    Q->>S: GET /verify/aggregate/CrowdStrike
+    S->>S: 9. PROVE — Merkle root + commitment_hashes + signature
+    S-->>Q: Proof response (aggregate values + proof chain)
+    Q->>Q: 10. VERIFY — commitments==count? root valid? signature?
+    Note over Q: TRUST: aggregate is real. Math, not promises.
+    end
+
+    rect rgb(60, 40, 40)
+    Note over C,Q: BLIND CATEGORY DISCOVERY
+    C->>S: propose(H) where H = SHA-256("DarkAngel":salt)
+    Note over S: Server sees ONLY the hash
+    S->>S: count(H) >= 3 orgs?
+    S-->>C: Threshold met — ready for reveal
+    C->>S: reveal(H, "DarkAngel", salt)
+    S->>S: Verify hash → Category enters PUBLIC TAXONOMY
+    end
+```
+
+## Swimlanes.io Version
+
+For a richer interactive view, copy the markup below and paste it into [swimlanes.io](https://swimlanes.io):
 
 ```
 title: nur — Trustless Pipeline Architecture
