@@ -1861,6 +1861,9 @@ clean = [anonymize(d) for d in data]
       <tr><td>POST</td><td>/verify/receipt</td><td>Verify a contribution receipt (Merkle inclusion proof)</td></tr>
       <tr><td>GET</td><td>/verify/aggregate/{vendor}</td><td>Generate + verify aggregate proof for a vendor</td></tr>
       <tr><td>GET</td><td>/proof/stats</td><td>Platform proof stats (Merkle root, contribution counts, unique vendors)</td></tr>
+      <tr><td>POST</td><td>/category/propose</td><td>Propose a new blind category (threshold reveal protocol)</td></tr>
+      <tr><td>POST</td><td>/category/reveal</td><td>Vote to reveal a blind category&rsquo;s name</td></tr>
+      <tr><td>GET</td><td>/category/pending</td><td>List pending + revealed blind categories</td></tr>
       <tr><td>GET</td><td>/dashboard</td><td>Visual dashboard with charts</td></tr>
       <tr><td>GET</td><td>/guide</td><td>This documentation page</td></tr>
       <tr><td>GET</td><td>/health</td><td>Liveness check</td></tr>

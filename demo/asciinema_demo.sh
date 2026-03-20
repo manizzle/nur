@@ -17,7 +17,7 @@ echo ""
 echo "  ┌───────────────────────────────────────────────────────┐"
 echo "  │   nur — light on what your industry knows             │"
 echo "  │   live: nur.saramena.us                               │"
-echo "  │   37 feeds · 36 vendors · 546 tests                  │"
+echo "  │   37 feeds · 36 vendors · 575 tests                  │"
 echo "  └───────────────────────────────────────────────────────┘"
 echo ""
 sleep 3

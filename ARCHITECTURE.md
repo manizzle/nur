@@ -56,16 +56,6 @@ sequenceDiagram
 | Blind category hashes (opaque) | Raw IOC values |
 | Revealed category names | Who proposed what (until reveal) |
 
-## Response Sources — Everything is Aggregate
-
-| Source | Examples | Can identify an org? |
-|--------|---------|---------------------|
-| **ProofEngine histograms** | "containment stops attacks 87% of the time" | No — running sums |
-| **ProofEngine coverage** | "T1490 observed 47x, 5 tools detect it" | No — aggregate counts |
-| **Template logic** | "Block network IOCs at firewall" | No — generated from patterns |
-| **Public taxonomy** | "NIST: containment → Network Isolation (D3-NI)" | No — public knowledge |
-| ~~Individual contributions~~ | ~~"Org X used this sigma rule"~~ | ~~Yes~~ — **removed** |
-
 ## Regulatory Compliance
 
 See [COMPLIANCE.md](COMPLIANCE.md) for the full legal analysis covering CIRCIA, NERC CIP, SEC 8-K, state breach laws, and CISA 2015 safe harbor protections.
