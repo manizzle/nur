@@ -277,217 +277,345 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <title>nur</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag('js',new Date());gtag('config','G-YLL9Y97GG0');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root {{ color-scheme: dark; }}
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{
-    background: #1a1a1e;
-    color: #c0c0c0;
-    font-family: 'Courier New', monospace;
+    background:
+      radial-gradient(circle at top, rgba(34, 197, 94, 0.12), transparent 32%),
+      #0a0a0f;
+    color: #e4e4e7;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }}
-  .container {{
-    max-width: 640px;
-    padding: 40px 24px;
-    text-align: center;
+  a {{
+    color: inherit;
+    text-decoration: none;
+  }}
+  .page {{
+    width: min(1100px, calc(100% - 48px));
+    margin: 0 auto;
+  }}
+  .hero {{
+    padding: 112px 0 88px;
+    border-bottom: 1px solid #1e1e2e;
+  }}
+  .hero-grid {{
+    display: grid;
+    gap: 32px;
+    align-items: end;
   }}
   h1 {{
-    font-size: 4em;
-    color: #f0f0f0;
+    font-size: clamp(5.2rem, 15vw, 7rem);
+    line-height: 0.95;
+    color: #fafafa;
     letter-spacing: 0.3em;
-    margin-bottom: 8px;
-    text-shadow: 0 0 40px rgba(255,255,255,0.1);
+    text-transform: lowercase;
+    margin-left: 0.3em;
   }}
-  .meaning {{
-    margin-bottom: 40px;
-  }}
-  .meaning-scripts {{
-    font-size: 1.5em;
-    color: #555;
-    margin-bottom: 12px;
+  .hero-subtitle {{
+    font-size: 0.82rem;
+    font-weight: 700;
     letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #22c55e;
+    margin-top: 20px;
   }}
-  .meaning-scripts span {{
-    margin: 0 12px;
+  .hero-copy {{
+    max-width: 680px;
+    margin-top: 24px;
+    font-size: 1.2rem;
+    line-height: 1.7;
+    color: #a1a1aa;
   }}
-  .meaning-langs {{
-    font-size: 0.7em;
-    color: #3a3a3a;
-    letter-spacing: 0.1em;
-    margin-bottom: 10px;
+  .cta-row {{
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 36px;
   }}
-  .meaning-text {{
-    font-size: 0.85em;
-    color: #999;
-    font-style: italic;
+  .btn {{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 172px;
+    padding: 16px 22px;
+    border-radius: 999px;
+    border: 1px solid #1e1e2e;
+    font-size: 0.96rem;
+    font-weight: 700;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
   }}
-  .tagline {{
-    font-size: 1.1em;
-    color: #888;
-    margin-bottom: 48px;
-    line-height: 1.6;
+  .btn:hover {{
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+  }}
+  .btn-primary {{
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #0a0a0f;
+  }}
+  .btn-secondary {{
+    background: transparent;
+    color: #fafafa;
+  }}
+  .btn-secondary:hover {{
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #22c55e;
   }}
   .stats {{
     display: flex;
-    justify-content: center;
-    gap: 32px;
-    margin-bottom: 48px;
+    gap: 18px;
     flex-wrap: wrap;
+    margin-top: 56px;
   }}
   .stat {{
-    text-align: center;
+    flex: 1 1 220px;
+    min-width: 0;
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 18px;
+    padding: 26px 24px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }}
+  .stat:hover {{
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
   }}
   .stat-num {{
-    font-size: 2em;
-    color: #f0f0f0;
     display: block;
+    font-size: clamp(2.2rem, 5vw, 3rem);
+    font-weight: 800;
+    color: #fafafa;
+    margin-bottom: 8px;
   }}
   .stat-label {{
-    font-size: 0.75em;
-    color: #999;
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.16em;
+    color: #a1a1aa;
   }}
-  .divider {{
-    border: none;
-    border-top: 1px solid #333;
-    margin: 40px 0;
+  .hero-meta {{
+    margin-top: 24px;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #a1a1aa;
   }}
-  .install {{
-    background: #222228;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 32px;
-    text-align: left;
-    font-size: 0.9em;
+  .section {{
+    padding: 88px 0;
   }}
-  .install code {{
-    color: #aaa;
+  .section-heading {{
+    max-width: 720px;
+    margin-bottom: 28px;
   }}
-  .install .cmd {{
-    color: #e0e0e0;
+  .section-label {{
+    display: inline-block;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #22c55e;
   }}
-  .install .comment {{
-    color: #777;
+  .section-heading h2 {{
+    font-size: clamp(2rem, 4vw, 3rem);
+    color: #fafafa;
+    margin-bottom: 14px;
   }}
-  .links {{
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-bottom: 40px;
-    flex-wrap: wrap;
-  }}
-  .links a {{
-    color: #888;
-    text-decoration: none;
-    border-bottom: 1px solid #333;
-    padding-bottom: 2px;
-    transition: color 0.2s, border-color 0.2s;
-    font-size: 0.9em;
-  }}
-  .links a:hover {{
-    color: #f0f0f0;
-    border-color: #666;
-  }}
-  .footer {{
-    color: #999;
-    font-size: 0.8em;
-    margin-top: 48px;
+  .section-heading p {{
+    color: #a1a1aa;
     line-height: 1.8;
   }}
-  .footer a {{
-    color: #aaa;
-    text-decoration: none;
+  .card-grid {{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
   }}
-  .pulse {{
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    background: #2a5;
-    border-radius: 50%;
-    margin-right: 6px;
-    animation: pulse 2s infinite;
+  .card {{
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    padding: 32px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }}
-  @keyframes pulse {{
-    0%, 100% {{ opacity: 1; }}
-    50% {{ opacity: 0.3; }}
+  .card:hover {{
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+  }}
+  .card h3 {{
+    color: #fafafa;
+    font-size: 1.25rem;
+    margin-bottom: 14px;
+  }}
+  .card p {{
+    color: #a1a1aa;
+    line-height: 1.8;
+  }}
+  .code-card {{
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 20px;
+    padding: 32px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }}
+  .code-card:hover {{
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+  }}
+  pre {{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.98rem;
+    line-height: 2;
+    color: #e4e4e7;
+    white-space: pre-wrap;
+  }}
+  .footer {{
+    padding: 40px 0 56px;
+    border-top: 1px solid #1e1e2e;
+  }}
+  .footer-links {{
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }}
+  .footer-links a {{
+    color: #a1a1aa;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }}
+  .footer-links a:hover {{
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.4);
+  }}
+  .license {{
+    margin-top: 18px;
+    color: #a1a1aa;
+    line-height: 1.8;
+  }}
+  .license a {{
+    color: #fafafa;
+  }}
+  @media (max-width: 900px) {{
+    .card-grid {{
+      grid-template-columns: 1fr;
+    }}
+  }}
+  @media (max-width: 640px) {{
+    .page {{
+      width: min(1100px, calc(100% - 32px));
+    }}
+    .hero {{
+      padding: 88px 0 72px;
+    }}
+    h1 {{
+      letter-spacing: 0.2em;
+      margin-left: 0.2em;
+    }}
+    .btn {{
+      width: 100%;
+    }}
+    .stat {{
+      flex-basis: 100%;
+    }}
+    .section {{
+      padding: 72px 0;
+    }}
+    .card,
+    .code-card {{
+      padding: 24px;
+    }}
   }}
 </style>
 </head>
 <body>
-<div class="container">
-
-  <h1>nur</h1>
-  <div class="meaning">
-    <div class="meaning-scripts">
-      <span dir="rtl">نور</span>
-      <span dir="rtl">ܢܘܪܐ</span>
-      <span>nûr</span>
-      <span>nuru</span>
+<main class="page">
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <h1>nur</h1>
+        <div class="hero-subtitle">collective security intelligence</div>
+        <p class="hero-copy">Your industry should be smarter together than any single company is alone.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/register">Get Started <span>&rarr;</span></a>
+          <a class="btn btn-secondary" href="/dashboard">Dashboard</a>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-num">{total}</span>
+            <span class="stat-label">Contributions</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">{iocs + attacks}</span>
+            <span class="stat-label">Threat Signals</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">36</span>
+            <span class="stat-label">Vendors</span>
+          </div>
+        </div>
+        <p class="hero-meta">Built from {iocs} IOC bundles, {attacks} attack maps, and {evals} vendor evaluations. {vendors} unique vendors currently appear in contributed data.</p>
+      </div>
     </div>
-    <div class="meaning-text">
-      "light" &mdash; one word, shared across languages, cultures, and continents
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <span class="section-label">How It Works</span>
+      <h2>Contribute once. Query forever. Verify every result.</h2>
+      <p>nur is designed so industries can exchange signal without turning raw incident data into another product for someone else.</p>
     </div>
-  </div>
-  <div class="tagline">
-    collective security intelligence for industries.<br>
-    give data, get smarter.
-  </div>
-
-  <div class="stats">
-    <div class="stat">
-      <span class="stat-num">{total}</span>
-      <span class="stat-label">contributions</span>
+    <div class="card-grid">
+      <article class="card">
+        <h3>Contribute</h3>
+        <p>Upload anonymized evals, attack maps, or IOCs. Your data is committed, aggregated, and individual values are discarded.</p>
+      </article>
+      <article class="card">
+        <h3>Query</h3>
+        <p>Get vendor benchmarks, detection gaps, and remediation intel &mdash; all from aggregate histograms, never individual data.</p>
+      </article>
+      <article class="card">
+        <h3>Verify</h3>
+        <p>Every aggregate comes with a cryptographic proof. Merkle trees, commitment hashes, server signatures. Math, not promises.</p>
+      </article>
     </div>
-    <div class="stat">
-      <span class="stat-num">{iocs + attacks}</span>
-      <span class="stat-label">threat signals</span>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <span class="section-label">Quick Start</span>
+      <h2>CLI in four lines.</h2>
+      <p>Install the client, initialize your key material locally, register your work email, then contribute an incident report.</p>
     </div>
-    <div class="stat">
-      <span class="stat-num">36</span>
-      <span class="stat-label">vendors tracked</span>
+    <div class="code-card">
+      <pre>pip install nur
+nur init
+nur register you@yourorg.com
+nur report incident.json</pre>
     </div>
-    <div class="stat">
-      <span class="stat-num">37</span>
-      <span class="stat-label">live feeds</span>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/dashboard">dashboard</a>
+      <a href="/guide">docs/guide</a>
+      <a href="https://github.com/manizzle/nur">github</a>
+      <a href="/register">register</a>
     </div>
-  </div>
-
-  <div class="install">
-    <code>
-      <span class="cmd">pip install nur</span><br>
-      <span class="cmd">nur init</span><br>
-      <span class="cmd">nur register you@yourorg.com</span><br>
-      <span class="cmd">nur report incident.json</span>
-    </code>
-  </div>
-
-  <div style="text-align:center;margin-bottom:24px;">
-    <a href="/register" style="display:inline-block;background:#3b7;color:#1a1a1e;font-family:'Courier New',monospace;font-weight:bold;font-size:0.9em;padding:10px 28px;border-radius:3px;text-decoration:none;letter-spacing:0.05em;">get started &rarr;</a>
-  </div>
-
-  <div class="links">
-    <a href="/dashboard">dashboard</a>
-    <a href="/guide">docs</a>
-    <a href="https://github.com/manizzle/nur">github</a>
-    <a href="https://github.com/manizzle/nur/issues/4">add your feed</a>
-  </div>
-
-  <hr class="divider">
-
-  <div class="footer">
-    <span class="pulse"></span> live &mdash; scraping 37 threat feeds<br><br>
-    attackers share everything.<br>
-    defenders share nothing.<br>
-    nur fixes that.<br><br>
-    <a href="https://github.com/manizzle/nur">apache 2.0</a> &bull;
-    <a href="https://github.com/manizzle/nur/blob/main/DATA_LICENSE.md">cdla-permissive-2.0</a>
-  </div>
-
-</div>
+    <div class="license">
+      Attackers share everything. Defenders should be able to share proofs instead of trust.
+      <br>
+      <a href="https://github.com/manizzle/nur">apache 2.0</a> &bull; <a href="https://github.com/manizzle/nur/blob/main/DATA_LICENSE.md">cdla-permissive-2.0</a>
+    </div>
+  </footer>
+</main>
 </body>
 </html>"""
 
@@ -652,124 +780,146 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag('js',new Date());gtag('config','G-YLL9Y97GG0');</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root {{ color-scheme: dark; }}
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{
-    background: #1a1a1e;
-    color: #c0c0c0;
-    font-family: 'Courier New', monospace;
+    background:
+      radial-gradient(circle at top, rgba(34, 197, 94, 0.12), transparent 28%),
+      #0a0a0f;
+    color: #e4e4e7;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
     padding: 0;
+  }}
+  a {{
+    color: inherit;
+    text-decoration: none;
   }}
 
   /* ── Header ─────────────────────────────────────── */
   .dash-header {{
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 96px 24px 40px;
     text-align: center;
-    padding: 48px 24px 32px;
-    border-bottom: 1px solid #333338;
   }}
   .dash-header h1 {{
-    font-size: 2.4em;
-    color: #f0f0f0;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    color: #fafafa;
     letter-spacing: 0.25em;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
   }}
   .dash-header h1 span {{
-    color: #3b7;
+    color: #22c55e;
   }}
   .hero-stat {{
-    font-size: 4.5em;
-    font-weight: bold;
-    color: #3b7;
+    font-size: clamp(4rem, 12vw, 6rem);
+    font-weight: 800;
+    color: #22c55e;
     line-height: 1;
-    margin-bottom: 8px;
-    text-shadow: 0 0 60px rgba(34,170,85,0.3);
+    margin-bottom: 10px;
+    text-shadow: 0 0 50px rgba(34, 197, 94, 0.2);
   }}
   .hero-label {{
-    font-size: 0.85em;
-    color: #999;
-    letter-spacing: 0.1em;
+    font-size: 0.9rem;
+    color: #fafafa;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }}
   .dash-subtitle {{
-    margin-top: 12px;
-    font-size: 0.8em;
-    color: #777;
+    margin-top: 16px;
+    font-size: 0.95rem;
+    color: #a1a1aa;
   }}
   .pulse {{
     display: inline-block;
-    width: 6px;
-    height: 6px;
-    background: #3b7;
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
     border-radius: 50%;
-    margin-right: 6px;
+    margin-right: 8px;
     animation: pulse 2s infinite;
   }}
   @keyframes pulse {{
     0%, 100% {{ opacity: 1; }}
-    50% {{ opacity: 0.3; }}
+    50% {{ opacity: 0.35; }}
   }}
 
   /* ── Layout ─────────────────────────────────────── */
   .dash-grid {{
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    max-width: 1200px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    max-width: 1240px;
     margin: 0 auto;
+    padding: 0 24px 32px;
   }}
   .dash-section {{
-    padding: 32px 28px;
-    border-bottom: 1px solid #333338;
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 20px;
+    padding: 32px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }}
+  .dash-section:hover {{
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
   }}
   .dash-section:nth-child(odd) {{
-    border-right: 1px solid #333338;
+    border-right: 1px solid #1e1e2e;
   }}
   .dash-section.full {{
     grid-column: 1 / -1;
-    border-right: none;
   }}
   .section-title {{
-    font-size: 0.7em;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.2em;
-    color: #888;
-    margin-bottom: 20px;
+    color: #a1a1aa;
+    margin-bottom: 22px;
   }}
   .section-title::before {{
     content: '/// ';
-    color: #666;
+    color: #22c55e;
   }}
 
   /* ── Stat boxes ─────────────────────────────────── */
   .stat-grid {{
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
   }}
   .stat-box {{
-    background: #222228;
-    border: 1px solid #333338;
-    border-radius: 4px;
-    padding: 20px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 16px;
+    padding: 24px 18px;
     text-align: center;
-    transition: border-color 0.3s;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }}
   .stat-box:hover {{
-    border-color: #3b7;
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
   }}
   .stat-box .num {{
-    font-size: 2.2em;
-    font-weight: bold;
-    color: #f0f0f0;
+    font-size: 2.35rem;
+    font-weight: 800;
+    color: #fafafa;
     display: block;
     line-height: 1.1;
   }}
   .stat-box .label {{
-    font-size: 0.65em;
-    color: #888;
+    font-size: 0.72rem;
+    color: #a1a1aa;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-top: 6px;
+    letter-spacing: 0.14em;
+    margin-top: 8px;
     display: block;
   }}
 
@@ -777,45 +927,80 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   .chart-wrap {{
     position: relative;
     width: 100%;
-    background: #222228;
-    border: 1px solid #333338;
-    border-radius: 4px;
-    padding: 16px;
+    min-height: 360px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 18px;
+    padding: 20px;
   }}
   .chart-wrap canvas {{
     width: 100% !important;
   }}
   .chart-empty {{
     text-align: center;
-    padding: 48px 16px;
-    color: #666;
-    font-size: 0.85em;
+    padding: 96px 16px;
+    color: #a1a1aa;
+    font-size: 0.95rem;
+  }}
+  .info-panel {{
+    padding: 8px 0 0;
+  }}
+  .info-heading {{
+    color: #fafafa;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }}
+  .info-copy {{
+    color: #a1a1aa;
+    font-size: 0.92rem;
+    line-height: 1.9;
+  }}
+  .inline-link {{
+    display: inline-flex;
+    margin-top: 18px;
+    color: #22c55e;
+    border-bottom: 1px solid rgba(34, 197, 94, 0.3);
+    padding-bottom: 3px;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }}
+  .inline-link:hover {{
+    border-color: #22c55e;
+  }}
+  .sim-card {{
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 16px;
+    padding: 16px 18px;
+  }}
+  .sim-card code,
+  .cta-install code {{
+    color: #e4e4e7;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.92rem;
+    line-height: 1.9;
   }}
 
   /* ── CTA section ────────────────────────────────── */
   .cta {{
     text-align: center;
-    padding: 48px 24px;
+    padding: 56px 32px;
   }}
   .cta-tagline {{
-    font-size: 1.3em;
-    color: #888;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    color: #fafafa;
     margin-bottom: 24px;
   }}
   .cta-install {{
-    background: #222228;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 20px 28px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 18px;
+    padding: 24px 28px;
     display: block;
-    max-width: 380px;
-    margin: 0 auto 24px;
+    max-width: 420px;
+    margin: 0 auto 28px;
     text-align: left;
-    font-size: 0.9em;
   }}
-  .cta-install code {{ color: #aaa; }}
-  .cta-install .cmd {{ color: #e0e0e0; }}
-  .cta-install .comment {{ color: #777; }}
   .cta-links {{
     display: flex;
     justify-content: center;
@@ -823,61 +1008,79 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     flex-wrap: wrap;
   }}
   .cta-links a {{
-    color: #888;
-    text-decoration: none;
-    border-bottom: 1px solid #333;
+    color: #a1a1aa;
+    border-bottom: 1px solid transparent;
     padding-bottom: 2px;
-    transition: color 0.2s, border-color 0.2s;
-    font-size: 0.9em;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    font-size: 0.92rem;
   }}
   .cta-links a:hover {{
-    color: #3b7;
-    border-color: #3b7;
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.35);
   }}
   .cta-btn {{
-    display: inline-block;
-    background: #3b7;
-    color: #1a1a1e;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    font-size: 0.9em;
-    padding: 10px 28px;
-    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #22c55e;
+    color: #0a0a0f;
+    font-weight: 700;
+    font-size: 0.96rem;
+    padding: 14px 26px;
+    border-radius: 999px;
+    border: 1px solid #22c55e;
     text-decoration: none;
-    letter-spacing: 0.05em;
-    transition: background 0.2s;
-    margin-bottom: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 22px;
   }}
   .cta-btn:hover {{
-    background: #3b6;
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
   }}
 
   /* ── Footer ─────────────────────────────────────── */
   .dash-footer {{
     text-align: center;
-    padding: 24px;
-    color: #666;
-    font-size: 0.7em;
-    border-top: 1px solid #333338;
+    padding: 8px 24px 56px;
+    color: #a1a1aa;
+    font-size: 0.8rem;
   }}
   .dash-footer a {{
-    color: #777;
-    text-decoration: none;
+    color: #fafafa;
   }}
 
   /* ── Responsive ─────────────────────────────────── */
-  @media (max-width: 768px) {{
+  @media (max-width: 960px) {{
     .dash-grid {{
       grid-template-columns: 1fr;
     }}
-    .dash-section:nth-child(odd) {{
-      border-right: none;
+    .dash-section.full {{
+      grid-column: auto;
     }}
     .stat-grid {{
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }}
-    .hero-stat {{
-      font-size: 3em;
+  }}
+  @media (max-width: 640px) {{
+    .dash-header {{
+      padding: 84px 16px 32px;
+    }}
+    .dash-grid {{
+      padding: 0 16px 24px;
+    }}
+    .dash-section,
+    .cta {{
+      padding: 24px;
+    }}
+    .stat-grid {{
+      grid-template-columns: 1fr;
+    }}
+    .chart-wrap {{
+      min-height: 320px;
+      padding: 16px;
+    }}
+    .cta-btn {{
+      width: 100%;
     }}
   }}
 </style>
@@ -945,36 +1148,36 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   <!-- Attack Intelligence -->
   <div class="dash-section">
     <div class="section-title">Attack Intelligence</div>
-    <div style="padding:16px;">
-      <div style="color:#ccc;font-size:1.1em;margin-bottom:12px;">Healthcare Ransomware</div>
-      <div style="color:#888;font-size:0.85em;line-height:1.8;">
+    <div class="info-panel">
+      <div class="info-heading">Healthcare Ransomware</div>
+      <div class="info-copy">
         Initial access: Spearphishing (89%)<br>
         Avg dwell time: 4.2 days<br>
         Most missed technique: T1490 (71%)<br>
         Ransom paid: 12% of cases<br>
         Avg recovery: 2.1 weeks
       </div>
-      <a href="/intelligence/patterns/healthcare" style="color:#3b7;font-size:0.8em;text-decoration:none;border-bottom:1px solid #333;">view all patterns &rarr;</a>
+      <a class="inline-link" href="/intelligence/patterns/healthcare">view all patterns &rarr;</a>
     </div>
   </div>
 
   <!-- Attack Chain Simulator -->
   <div class="dash-section">
     <div class="section-title">Attack Chain Simulator</div>
-    <div style="padding:16px;">
-      <div style="background:#222228;border:1px solid #333;border-radius:4px;padding:12px;font-size:0.85em;">
-        <code style="color:#aaa;">
+    <div class="info-panel">
+      <div class="sim-card">
+        <code>
           nur simulate &#92;<br>
           &nbsp;&nbsp;--stack crowdstrike,splunk,okta &#92;<br>
           &nbsp;&nbsp;--vertical healthcare
         </code>
       </div>
-      <div style="color:#888;font-size:0.8em;margin-top:12px;line-height:1.6;">
+      <div class="info-copy" style="margin-top:16px;">
         Simulates the most common attack chain<br>
         against your tools. Shows exactly where<br>
         your defenses break.
       </div>
-      <a href="/intelligence/simulate" style="color:#3b7;font-size:0.8em;text-decoration:none;border-bottom:1px solid #333;">try via API &rarr;</a>
+      <a class="inline-link" href="/intelligence/simulate">try via API &rarr;</a>
     </div>
   </div>
 
@@ -983,10 +1186,10 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     <div class="cta-tagline">give data, get smarter.</div>
     <div class="cta-install">
       <code>
-        <span class="cmd">pip install nur</span><br>
-        <span class="cmd">nur init</span><br>
-        <span class="cmd">nur register you@yourorg.com</span><br>
-        <span class="cmd">nur report incident.json</span>
+        pip install nur<br>
+        nur init<br>
+        nur register you@yourorg.com<br>
+        nur report incident.json
       </code>
     </div>
     <a class="cta-btn" href="/register">get started &rarr;</a>
@@ -1009,17 +1212,17 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   // ── Color helpers ──────────────────────────────────────────
   function greenGradient(count, max) {{
     var ratio = max > 0 ? count / max : 0;
-    var r = Math.round(10 + ratio * 24);
-    var g = Math.round(60 + ratio * 110);
-    var b = Math.round(20 + ratio * 65);
+    var r = Math.round(18 + ratio * 16);
+    var g = Math.round(92 + ratio * 105);
+    var b = Math.round(45 + ratio * 49);
     return 'rgb(' + r + ',' + g + ',' + b + ')';
   }}
 
   // ── Chart.js global defaults ───────────────────────────────
-  Chart.defaults.color = '#666';
-  Chart.defaults.borderColor = '#1a1a1a';
-  Chart.defaults.font.family = "'Courier New', monospace";
-  Chart.defaults.font.size = 11;
+  Chart.defaults.color = '#a1a1aa';
+  Chart.defaults.borderColor = '#1e1e2e';
+  Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+  Chart.defaults.font.size = 12;
 
   // ── Submissions by type (donut chart) ────────────────────
   fetch('/stats')
@@ -1028,7 +1231,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
       var bt = data.by_type || {{}};
       var labels = [];
       var counts = [];
-      var colors = ['#3b7', '#2980b9', '#e67e22', '#9b59b6', '#e74c3c'];
+      var colors = ['#22c55e', '#16a34a', '#65a30d', '#14b8a6', '#84cc16'];
       var typeNames = {{
         'ioc_bundle': 'IOC Bundles',
         'attack_map': 'Attack Maps',
@@ -1050,7 +1253,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
           datasets: [{{
             data: counts,
             backgroundColor: colors.slice(0, counts.length),
-            borderColor: '#1a1a1e',
+            borderColor: '#0a0a0f',
             borderWidth: 3,
           }}]
         }},
@@ -1061,14 +1264,16 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
           plugins: {{
             legend: {{
               position: 'bottom',
-              labels: {{ color: '#aaa', font: {{ size: 12, family: "'Courier New', monospace" }}, padding: 16 }},
+              labels: {{ color: '#a1a1aa', font: {{ size: 12, family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}, padding: 16 }},
             }},
             tooltip: {{
-              backgroundColor: '#222',
-              titleColor: '#f0f0f0',
-              bodyColor: '#aaa',
-              borderColor: '#3b7',
+              backgroundColor: '#111118',
+              titleColor: '#fafafa',
+              bodyColor: '#e4e4e7',
+              borderColor: '#1e1e2e',
               borderWidth: 1,
+              titleFont: {{ family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }},
+              bodyFont: {{ family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }},
             }},
           }},
         }},
@@ -1099,7 +1304,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
         backgroundColor: catColors,
         borderColor: 'transparent',
         borderWidth: 0,
-        borderRadius: 2,
+        borderRadius: 8,
       }}]
     }},
     options: {{
@@ -1109,21 +1314,23 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
       plugins: {{
         legend: {{ display: false }},
         tooltip: {{
-          backgroundColor: '#222',
-          titleColor: '#f0f0f0',
-          bodyColor: '#aaa',
-          borderColor: '#3b7',
+          backgroundColor: '#111118',
+          titleColor: '#fafafa',
+          bodyColor: '#e4e4e7',
+          borderColor: '#1e1e2e',
           borderWidth: 1,
+          titleFont: {{ family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }},
+          bodyFont: {{ family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }},
         }},
       }},
       scales: {{
         x: {{
-          grid: {{ color: '#2a2a30' }},
-          ticks: {{ color: '#888' }},
+          grid: {{ color: '#1e1e2e' }},
+          ticks: {{ color: '#a1a1aa', font: {{ family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }} }},
         }},
         y: {{
           grid: {{ display: false }},
-          ticks: {{ color: '#ccc', font: {{ size: 11 }} }},
+          ticks: {{ color: '#e4e4e7', font: {{ size: 11, family: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }} }},
         }},
       }},
     }},
@@ -1159,55 +1366,306 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <title>nur — get your API key</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-YLL9Y97GG0");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root { color-scheme: dark; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1e; color: #c0c0c0; font-family: 'Courier New', monospace; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-  .container { max-width: 520px; padding: 40px 24px; text-align: center; }
-  h1 { font-size: 2em; color: #f0f0f0; margin-bottom: 8px; }
-  .sub { color: #999; margin-bottom: 32px; font-size: 0.9em; }
-  .install { background: #222228; border: 1px solid #222; border-radius: 4px; padding: 20px; text-align: left; font-size: 0.9em; margin-bottom: 32px; }
-  .install code { color: #aaa; }
-  .install .cmd { color: #e0e0e0; }
-  .install .comment { color: #777; }
-  .tiers { text-align: left; font-size: 0.8em; color: #888; line-height: 1.8; }
-  .tiers strong { color: #888; }
-  a { color: #999; }
+  body {
+    background:
+      radial-gradient(circle at top, rgba(34, 197, 94, 0.12), transparent 30%),
+      #0a0a0f;
+    color: #e4e4e7;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+  .page {
+    width: min(1100px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 96px 0 72px;
+  }
+  .hero {
+    padding-bottom: 56px;
+  }
+  .eyebrow {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #22c55e;
+  }
+  h1 {
+    font-size: clamp(3rem, 8vw, 4.8rem);
+    color: #fafafa;
+    line-height: 1.02;
+    margin-bottom: 14px;
+  }
+  .sub {
+    max-width: 620px;
+    color: #a1a1aa;
+    font-size: 1.05rem;
+    line-height: 1.8;
+  }
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 24px;
+    padding: 24px 0 88px;
+  }
+  .card {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 20px;
+    padding: 32px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+  }
+  .card h2 {
+    font-size: 1.4rem;
+    color: #fafafa;
+    margin-bottom: 18px;
+  }
+  pre, code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  }
+  .install {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .install code {
+    display: block;
+    color: #e4e4e7;
+    font-size: 0.95rem;
+    line-height: 2;
+    white-space: pre-wrap;
+  }
+  .comment { color: #a1a1aa; }
+  .cmd { color: #fafafa; }
+  .why-list {
+    list-style: none;
+    display: grid;
+    gap: 14px;
+    color: #a1a1aa;
+    line-height: 1.8;
+  }
+  .why-list li {
+    position: relative;
+    padding-left: 18px;
+  }
+  .why-list li::before {
+    content: '';
+    position: absolute;
+    top: 0.8em;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #22c55e;
+  }
+  .tiers-section {
+    padding-top: 8px;
+  }
+  .tiers-heading {
+    margin-bottom: 22px;
+  }
+  .tiers-heading span {
+    display: inline-block;
+    margin-bottom: 14px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #22c55e;
+  }
+  .tiers-heading h2 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    color: #fafafa;
+    margin-bottom: 12px;
+  }
+  .tiers-heading p {
+    color: #a1a1aa;
+    line-height: 1.8;
+  }
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .tier {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 20px;
+    padding: 32px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tier:hover {
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+  }
+  .tier-name {
+    font-size: 1.2rem;
+    color: #fafafa;
+    margin-bottom: 8px;
+  }
+  .tier-price {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #22c55e;
+    margin-bottom: 12px;
+  }
+  .tier-copy {
+    color: #a1a1aa;
+    line-height: 1.8;
+    margin-bottom: 18px;
+  }
+  .tier ul {
+    list-style: none;
+    display: grid;
+    gap: 12px;
+    color: #e4e4e7;
+    line-height: 1.7;
+  }
+  .tier li {
+    position: relative;
+    padding-left: 18px;
+  }
+  .tier li::before {
+    content: '';
+    position: absolute;
+    top: 0.75em;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.9);
+  }
+  .back-link {
+    display: inline-flex;
+    margin-top: 36px;
+    color: #a1a1aa;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .back-link:hover {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.35);
+  }
+  @media (max-width: 960px) {
+    .content-grid,
+    .tiers {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 640px) {
+    .page {
+      width: min(1100px, calc(100% - 32px));
+      padding: 80px 0 56px;
+    }
+    .card,
+    .tier {
+      padding: 24px;
+    }
+    .install {
+      padding: 18px;
+    }
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>get your API key</h1>
-  <div class="sub">register via the CLI. generates a keypair on your machine.</div>
+<main class="page">
+  <section class="hero">
+    <div class="eyebrow">CLI-first registration</div>
+    <h1>Get your API key</h1>
+    <div class="sub">Register via the CLI. Generates a keypair on your machine.</div>
+  </section>
 
-  <div class="install">
-    <code>
-      <span class="comment"># install</span><br>
-      <span class="cmd">pip install nur</span><br><br>
-      <span class="comment"># set up (saves server URL, generates keypair)</span><br>
-      <span class="cmd">nur init</span><br><br>
-      <span class="comment"># register with your work email</span><br>
-      <span class="cmd">nur register you@yourhospital.org</span><br><br>
-      <span class="comment"># check your email, click the link, get your key</span><br>
-      <span class="comment"># then start reporting</span><br>
-      <span class="cmd">nur report incident.json</span>
-    </code>
-  </div>
+  <section class="content-grid">
+    <article class="card">
+      <h2>Register in four commands</h2>
+      <div class="install">
+        <code><span class="comment"># install the client</span>
+<span class="cmd">pip install nur</span>
 
-  <div class="tiers">
-    <strong>why CLI-only registration?</strong><br>
-    &bull; generates a cryptographic keypair on your machine<br>
-    &bull; private key never leaves your machine<br>
-    &bull; every request is signed — stolen API keys are useless<br>
-    &bull; work email required (no gmail/yahoo)<br><br>
-    <strong>community tier</strong> (free, forever):<br>
-    &bull; contribute data, get intelligence reports<br>
-    &bull; 37 threat feed sources<br><br>
-    <strong>enterprise tier</strong> (coming soon):<br>
-    &bull; real-time aggregate data<br>
-    &bull; custom verticals, SLA, integrations<br><br>
-    <a href="/">&larr; back to nur</a>
-  </div>
-</div>
+<span class="comment"># save the server URL and generate a local keypair</span>
+<span class="cmd">nur init</span>
+
+<span class="comment"># register with your work email</span>
+<span class="cmd">nur register you@yourhospital.org</span>
+
+<span class="comment"># click the link in your inbox, then contribute</span>
+<span class="cmd">nur report incident.json</span></code>
+      </div>
+    </article>
+
+    <article class="card">
+      <h2>Why CLI-only?</h2>
+      <ul class="why-list">
+        <li>Generates a cryptographic keypair on your machine</li>
+        <li>Private key never leaves your machine</li>
+        <li>Every request is signed — stolen API keys are useless</li>
+        <li>Work email required (no gmail/yahoo)</li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="tiers-section">
+    <div class="tiers-heading">
+      <span>Plans</span>
+      <h2>Start free. Upgrade when you need guaranteed speed and support.</h2>
+      <p>The community tier is enough to contribute data and receive collective intelligence. Paid tiers add response speed, support, and operational guarantees.</p>
+    </div>
+
+    <div class="tiers">
+      <article class="tier">
+        <div class="tier-name">Community</div>
+        <div class="tier-price">Free forever</div>
+        <div class="tier-copy">For teams that want to contribute data, query shared intelligence, and join the network.</div>
+        <ul>
+          <li>Contribute data</li>
+          <li>Get intelligence</li>
+          <li>37 feeds</li>
+        </ul>
+      </article>
+
+      <article class="tier">
+        <div class="tier-name">Pro</div>
+        <div class="tier-price">$99/mo</div>
+        <div class="tier-copy">For practitioners who need faster aggregate visibility and direct operator support.</div>
+        <ul>
+          <li>Real-time aggregates</li>
+          <li>Priority support</li>
+          <li>Custom alerts</li>
+        </ul>
+      </article>
+
+      <article class="tier">
+        <div class="tier-name">Enterprise</div>
+        <div class="tier-price">$499/mo</div>
+        <div class="tier-copy">For teams running nur as critical infrastructure inside a larger security program.</div>
+        <ul>
+          <li>Dedicated instance</li>
+          <li>SLA</li>
+          <li>Integrations</li>
+          <li>Unlimited queries</li>
+        </ul>
+      </article>
+    </div>
+
+    <a class="back-link" href="/">&larr; Back to /</a>
+  </section>
+</main>
 </body>
 </html>"""
 
@@ -1599,173 +2057,236 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 <title>nur — guide</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-YLL9Y97GG0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-YLL9Y97GG0');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root { color-scheme: dark; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    background: #1a1a1e;
-    color: #c0c0c0;
-    font-family: 'Courier New', monospace;
+    background:
+      radial-gradient(circle at top, rgba(34, 197, 94, 0.12), transparent 24%),
+      #0a0a0f;
+    color: #e4e4e7;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
     padding: 0;
   }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  strong { color: #fafafa; }
   .guide-header {
+    max-width: 1120px;
+    margin: 0 auto;
     text-align: center;
-    padding: 48px 24px 32px;
-    border-bottom: 1px solid #333338;
+    padding: 96px 24px 40px;
   }
   .guide-header h1 {
-    font-size: 2.4em;
-    color: #f0f0f0;
+    font-size: clamp(2.6rem, 7vw, 4.2rem);
+    color: #fafafa;
     letter-spacing: 0.25em;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
-  .guide-header h1 span { color: #3b7; }
+  .guide-header h1 span { color: #22c55e; }
   .guide-header p {
-    color: #888;
-    font-size: 0.9em;
+    color: #a1a1aa;
+    font-size: 1rem;
+    line-height: 1.8;
   }
-  html { scroll-behavior: smooth; }
   .guide-nav {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #1a1a1e;
-    border-bottom: 1px solid #333338;
-    padding: 12px 24px;
+    background: rgba(10, 10, 15, 0.88);
+    border-top: 1px solid #1e1e2e;
+    border-bottom: 1px solid #1e1e2e;
+    padding: 14px 24px;
     display: flex;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(16px);
   }
   .guide-nav a {
-    color: #888;
-    text-decoration: none;
-    font-size: 0.8em;
-    padding: 4px 8px;
-    border-radius: 3px;
-    transition: color 0.2s, background 0.2s;
+    color: #a1a1aa;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   }
-  .guide-nav a:hover { color: #3b7; background: #222228; }
-  .guide-nav a.active { color: #3b7; background: #222228; }
+  .guide-nav a:hover {
+    color: #fafafa;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(34, 197, 94, 0.25);
+  }
+  .guide-nav a.active {
+    color: #0a0a0f;
+    background: #22c55e;
+    border-color: #22c55e;
+  }
   .back-to-top {
     position: fixed;
     bottom: 24px;
     right: 24px;
-    background: #222228;
-    border: 1px solid #333;
-    color: #888;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    color: #a1a1aa;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
     display: none;
     align-items: center;
     justify-content: center;
-    text-decoration: none;
-    font-size: 1.2em;
-    transition: color 0.2s, border-color 0.2s;
+    font-size: 1.1rem;
+    transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     z-index: 100;
   }
-  .back-to-top:hover { color: #3b7; border-color: #3b7; }
+  .back-to-top:hover {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+    transform: translateY(-1px);
+  }
   .guide-content {
-    max-width: 900px;
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 0 24px 64px;
+    padding: 8px 24px 88px;
   }
   .guide-section {
-    padding: 40px 0 32px;
-    border-bottom: 1px solid #2a2a2e;
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 24px;
+    padding: 80px 48px;
+    margin-top: 24px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
-  .guide-section:last-child { border-bottom: none; }
+  .guide-section:hover {
+    transform: translateY(-2px);
+    border-color: rgba(34, 197, 94, 0.35);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.05);
+  }
   .guide-section h2 {
-    font-size: 1.1em;
+    font-size: 1.2rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: #f0f0f0;
-    margin-bottom: 20px;
+    letter-spacing: 0.16em;
+    color: #fafafa;
+    margin-bottom: 24px;
   }
   .guide-section h2::before {
     content: '/// ';
-    color: #3b7;
+    color: #22c55e;
   }
   .guide-section h3 {
-    font-size: 0.9em;
-    color: #ccc;
-    margin: 20px 0 10px;
+    font-size: 1rem;
+    color: #fafafa;
+    margin: 28px 0 12px;
   }
-  .guide-section p, .guide-section li {
-    font-size: 0.85em;
-    color: #999;
-    line-height: 1.8;
+  .guide-section p,
+  .guide-section li {
+    font-size: 0.98rem;
+    color: #a1a1aa;
+    line-height: 1.9;
   }
   .guide-section ul {
     list-style: none;
     padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .guide-section ul li {
+    position: relative;
+    padding-left: 18px;
   }
   .guide-section ul li::before {
-    content: '- ';
-    color: #3b7;
+    content: '';
+    position: absolute;
+    top: 0.82em;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #22c55e;
   }
   pre {
-    background: #222228;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 16px 20px;
-    font-size: 0.85em;
-    color: #aaa;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 18px;
+    padding: 22px 24px;
+    font-size: 0.92rem;
+    color: #e4e4e7;
     overflow-x: auto;
-    margin: 12px 0;
-    line-height: 1.7;
+    margin: 16px 0;
+    line-height: 1.8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   }
   code {
-    color: #aaa;
-    font-family: 'Courier New', monospace;
+    color: #e4e4e7;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   }
-  .cmd { color: #e0e0e0; }
-  .comment { color: #666; }
+  .cmd { color: #fafafa; }
+  .comment { color: #71717a; }
   .api-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8em;
-    margin: 12px 0;
+    font-size: 0.9rem;
+    margin: 16px 0;
   }
   .api-table th {
     text-align: left;
-    color: #888;
-    font-weight: normal;
+    color: #a1a1aa;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    padding: 8px 12px;
-    border-bottom: 1px solid #333;
+    padding: 12px 14px;
+    border-bottom: 1px solid #1e1e2e;
   }
   .api-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #2a2a2e;
-    color: #aaa;
+    padding: 12px 14px;
+    border-bottom: 1px solid #1e1e2e;
+    color: #a1a1aa;
     vertical-align: top;
   }
-  .api-table td:first-child { color: #3b7; white-space: nowrap; }
-  .api-table td:nth-child(2) { color: #ccc; }
+  .api-table td:first-child { color: #22c55e; white-space: nowrap; }
+  .api-table td:nth-child(2) { color: #fafafa; }
   .privacy-level {
-    background: #222228;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin: 8px 0;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #1e1e2e;
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin: 12px 0;
   }
-  .privacy-level strong { color: #ccc; }
+  .privacy-level strong { color: #fafafa; }
   .guide-footer {
     text-align: center;
-    padding: 24px;
-    color: #666;
-    font-size: 0.7em;
-    border-top: 1px solid #333338;
+    padding: 0 24px 56px;
+    color: #a1a1aa;
+    font-size: 0.82rem;
   }
-  .guide-footer a { color: #777; text-decoration: none; }
+  .guide-footer a { color: #fafafa; }
   @media (max-width: 768px) {
-    .guide-content { padding: 0 16px 48px; }
-    pre { font-size: 0.75em; padding: 12px; }
-    .api-table { font-size: 0.7em; }
+    .guide-header {
+      padding: 84px 16px 28px;
+    }
+    .guide-nav {
+      padding: 12px 16px;
+      gap: 10px;
+    }
+    .guide-content { padding: 8px 16px 64px; }
+    .guide-section { padding: 56px 20px; }
+    pre { font-size: 0.8rem; padding: 16px; }
+    .api-table { font-size: 0.74rem; display: block; overflow-x: auto; }
+    .back-to-top {
+      width: 44px;
+      height: 44px;
+      right: 16px;
+      bottom: 16px;
+    }
   }
 </style>
 </head>
@@ -1773,7 +2294,7 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
 <div class="guide-header">
   <h1>nur <span>guide</span></h1>
-  <p>quick reference &mdash; see <a href="https://github.com/manizzle/nur" style="color:#3b7;">README</a> for full docs</p>
+  <p>quick reference &mdash; see <a href="https://github.com/manizzle/nur" style="color:#22c55e;">README</a> for full docs</p>
 </div>
 
 <div class="guide-nav">
@@ -1864,7 +2385,7 @@ Decision:    chose this vendor?, main decision factor
       <tr><td>GET</td><td>/health</td><td>Liveness check</td></tr>
       <tr><td>GET</td><td>/stats</td><td>Contribution counts (anonymized)</td></tr>
     </table>
-    <p>See the <a href="https://github.com/manizzle/nur" style="color:#3b7;">README</a> for curl examples.</p>
+    <p>See the <a href="https://github.com/manizzle/nur" style="color:#22c55e;">README</a> for curl examples.</p>
   </div>
 
   <!-- Trustless Architecture -->
@@ -1884,9 +2405,9 @@ Decision:    chose this vendor?, main decision factor
     <p>Orgs propose hashed category names. Server counts independent submissions. At threshold (3+), contributors vote to reveal. Server never sees plaintext until quorum.</p>
 
     <h3>Verification endpoints</h3>
-    <p>Use <code>/verify/receipt</code>, <code>/verify/aggregate/{vendor}</code>, and <code>/proof/stats</code> to verify any claim. See the <a href="https://github.com/manizzle/nur/blob/main/ARCHITECTURE.md" style="color:#3b7;">ARCHITECTURE.md</a> for the detailed three-party flow diagram.</p>
+    <p>Use <code>/verify/receipt</code>, <code>/verify/aggregate/{vendor}</code>, and <code>/proof/stats</code> to verify any claim. See the <a href="https://github.com/manizzle/nur/blob/main/ARCHITECTURE.md" style="color:#22c55e;">ARCHITECTURE.md</a> for the detailed three-party flow diagram.</p>
 
-    <p>See <a href="https://github.com/manizzle/nur/blob/main/COMPLIANCE.md" style="color:#3b7;">COMPLIANCE.md</a> for the full legal analysis covering CIRCIA, NERC CIP, SEC 8-K, and CISA safe harbor.</p>
+    <p>See <a href="https://github.com/manizzle/nur/blob/main/COMPLIANCE.md" style="color:#22c55e;">COMPLIANCE.md</a> for the full legal analysis covering CIRCIA, NERC CIP, SEC 8-K, and CISA safe harbor.</p>
   </div>
 
   <!-- Self-Hosting -->
