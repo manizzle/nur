@@ -20,8 +20,7 @@ import hashlib
 import re
 
 from .models import (
-    AttackMap, EvalRecord, IOCBundle, IOCEntry, Contribution,
-    Industry, OrgSize, Role,
+    AttackMap, EvalRecord, IOCBundle, Contribution,
 )
 
 

@@ -1,7 +1,6 @@
 """Tests for zero-knowledge proof module."""
 from __future__ import annotations
 
-import json
 import pytest
 
 from nur.zkp.proofs import (
@@ -20,7 +19,6 @@ from nur.zkp.proofs import (
     verify_consistency_proof,
     create_nonzero_proof,
     verify_nonzero_proof,
-    _encode_value,
     _in_subgroup,
 )
 from nur.zkp.contrib_proofs import (
@@ -29,7 +27,7 @@ from nur.zkp.contrib_proofs import (
     IOCBundleProof,
     ContributionProofBundle,
 )
-from nur.zkp.verify import ZKPVerifier, ZKPVerificationResult
+from nur.zkp.verify import ZKPVerifier
 from nur.models import (
     EvalRecord,
     AttackMap,

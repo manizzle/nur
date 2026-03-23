@@ -95,7 +95,7 @@ def init():
     click.echo(f"  Server: {config['api_url']}")
     click.echo(f"  API key: {'***' + config['api_key'][-4:] if config.get('api_key') else 'none'}")
     click.echo(f"  Public key: {pub_hex[:16]}...")
-    click.echo(f"\n  You're ready. Try: nur report <file>")
+    click.echo("\n  You're ready. Try: nur report <file>")
     click.echo()
 
 
@@ -257,7 +257,7 @@ def report(file, api_url, api_key, json_output):
         if json_output:
             click.echo(json.dumps(result, indent=2))
         else:
-            click.echo(f"\n  Analysis Report")
+            click.echo("\n  Analysis Report")
             click.echo(f"  {'=' * 50}")
             click.echo(f"  Status: {result.get('status', 'unknown')}")
             cid = result.get("contribution_id", "?")
@@ -483,7 +483,7 @@ def _interactive_eval(vendor: str) -> dict:
     if decision_factor:
         data["decision_factor"] = decision_factor
 
-    click.echo(f"\n  Preview:")
+    click.echo("\n  Preview:")
     click.echo(f"    Vendor:    {vendor}")
     click.echo(f"    Category:  {category}")
     click.echo(f"    Score:     {score}/10")
@@ -542,7 +542,7 @@ def budget():
     if b.warning:
         click.echo(f"  {b.warning}")
     if b.sessions:
-        click.echo(f"\n  Recent sessions:")
+        click.echo("\n  Recent sessions:")
         for s in b.sessions[-5:]:
             click.echo(f"    epsilon={s['epsilon']:.2f}  {s.get('description', '')}")
 
@@ -581,7 +581,7 @@ def attest(file, epsilon, json_out, verify_only):
             click.echo(ac.to_json())
         else:
             chain = ac.attestation
-            click.echo(f"\n  ADTC Attestation Chain")
+            click.echo("\n  ADTC Attestation Chain")
             click.echo(f"  {'=' * 50}")
             click.echo(f"  Chain ID:  {chain.chain_id[:16]}...")
             click.echo(f"  Org Key:   {chain.org_key_fingerprint[:16]}...")
@@ -615,7 +615,7 @@ def attest(file, epsilon, json_out, verify_only):
             status = "VALID" if vr.valid else "INVALID"
             click.echo(f"  Self-verification: {status}")
             if vr.vap_clean:
-                click.echo(f"  VAP: No PII patterns detected in output")
+                click.echo("  VAP: No PII patterns detected in output")
             click.echo()
 
 
@@ -756,9 +756,6 @@ def up(port, host, db, skip_feeds, vertical):
     After this, open another terminal and run:
       nur report incident_iocs.json
     """
-    import subprocess
-    import sys
-    import signal
     import time
 
     try:
@@ -782,9 +779,9 @@ def up(port, host, db, skip_feeds, vertical):
     if vertical:
         from .verticals import get_vertical
         v = get_vertical(vertical)
-        click.echo(f"  ┌─────────────────────────────────────────┐")
+        click.echo("  ┌─────────────────────────────────────────┐")
         click.echo(f"  │  nur up — {v.display_name[:27]:27s}│")
-        click.echo(f"  └─────────────────────────────────────────┘")
+        click.echo("  └─────────────────────────────────────────┘")
         click.echo(f"  Threat actors: {', '.join(v.threat_actors[:4])}")
         click.echo(f"  Compliance: {', '.join(v.compliance[:3])}")
     else:
@@ -871,9 +868,9 @@ def up(port, host, db, skip_feeds, vertical):
         click.echo(f"  Total: {total_iocs} IOCs from live feeds + {seed_count if seed_files else 0} demo contributions")
         click.echo()
         click.echo("  ──────────────────────────────────────────")
-        click.echo(f"  Ready. In another terminal, run:")
+        click.echo("  Ready. In another terminal, run:")
         click.echo()
-        click.echo(f"    nur report <your_incident_file.json>")
+        click.echo("    nur report <your_incident_file.json>")
         click.echo()
         click.echo("  ──────────────────────────────────────────")
         click.echo()
@@ -887,7 +884,7 @@ def up(port, host, db, skip_feeds, vertical):
             thread.join(timeout=3)
     else:
         click.echo(f"  Server starting on {host}:{port}")
-        click.echo(f"  Config saved — run: nur report <file>")
+        click.echo("  Config saved — run: nur report <file>")
         click.echo()
         uvicorn.run(app, host=host, port=port)
 
@@ -1238,7 +1235,7 @@ def threat_model_cmd(stack, vertical, org, json_output, hcl_output, output):
 
     # Covered techniques
     if model["coverage"]:
-        click.echo(f"\n  Covered Techniques:")
+        click.echo("\n  Covered Techniques:")
         for tech_id, info in model["coverage"].items():
             tool_names = ", ".join(t["display_name"] for t in info["tools"])
             click.echo(f"    [{tech_id}] {info['name']}")
@@ -1254,7 +1251,7 @@ def threat_model_cmd(stack, vertical, org, json_output, hcl_output, output):
                 click.echo(f"      Suggested: {', '.join(gap['suggested_categories'][:3])}")
 
     # Compliance
-    click.echo(f"\n  Compliance:")
+    click.echo("\n  Compliance:")
     for fw, info in model["compliance"].items():
         status = "COVERED" if info["covered"] else "GAP"
         tool_str = f" ({', '.join(info['tools'])})" if info["tools"] else ""
@@ -1265,7 +1262,7 @@ def threat_model_cmd(stack, vertical, org, json_output, hcl_output, output):
 
     # Recommendations
     if model["recommendations"]:
-        click.echo(f"\n  Recommendations:")
+        click.echo("\n  Recommendations:")
         for rec in model["recommendations"][:8]:
             priority = rec["priority"].upper()
             click.echo(f"    [{priority}] {rec['action']}")
@@ -1400,7 +1397,7 @@ def prove(file, verify_only, json_out):
         if json_out:
             click.echo(json_mod.dumps(bundle.to_dict(), indent=2))
         else:
-            click.echo(f"\n  ZK Proof Bundle")
+            click.echo("\n  ZK Proof Bundle")
             click.echo(f"  {'=' * 40}")
             click.echo(f"  Type:   {bundle.contribution_type}")
             click.echo(f"  Proofs: {len(bundle.proofs)}")
@@ -1465,7 +1462,7 @@ def search_vendor(name, api_url, api_key, json_output):
         click.echo(f"  Known Issues:   {data['known_issues'][:80]}")
     metrics = data.get('metrics', {})
     if any(v is not None for v in metrics.values()):
-        click.echo(f"\n  Metrics:")
+        click.echo("\n  Metrics:")
         if metrics.get('detection_rate') is not None:
             click.echo(f"    Detection Rate: {metrics['detection_rate']}")
         if metrics.get('fp_rate') is not None:
@@ -1668,7 +1665,7 @@ def threat_map(threat_description, tools, api_url, api_key, json_output):
 
     kill_chain = data.get("kill_chain", [])
     if kill_chain:
-        click.echo(f"\n  Kill Chain:")
+        click.echo("\n  Kill Chain:")
         for step in kill_chain:
             status = "COVERED" if not step.get("gap") else "GAP"
             coverage = step.get("your_coverage") or ""
@@ -1681,7 +1678,7 @@ def threat_map(threat_description, tools, api_url, api_key, json_output):
 
     recs = data.get("gap_recommendations", [])
     if recs:
-        click.echo(f"\n  Recommendations:")
+        click.echo("\n  Recommendations:")
         for r in recs:
             click.echo(f"    - {r}")
     click.echo()
@@ -1727,7 +1724,7 @@ def status(api_url, api_key):
                 req.add_header("X-API-Key", api_key)
             with _ur.urlopen(req, timeout=5) as resp:
                 stats = json.loads(resp.read().decode())
-            click.echo(f"\n  Contributions:")
+            click.echo("\n  Contributions:")
             for k, v in stats.items():
                 click.echo(f"    {k:30s} {v}")
         except Exception:
@@ -1740,7 +1737,7 @@ def status(api_url, api_key):
     if feed_status_path.exists():
         try:
             feed_status = json.loads(feed_status_path.read_text())
-            click.echo(f"\n  Feed Freshness:")
+            click.echo("\n  Feed Freshness:")
             for name, info in sorted(feed_status.items()):
                 ts = info.get("last_scraped", "?")
                 count = info.get("ioc_count", 0)
@@ -1811,7 +1808,7 @@ def db_stats(api_url, api_key):
         click.echo(f"  Error fetching stats: {e}")
         raise SystemExit(1)
 
-    click.echo(f"\n  Overview:")
+    click.echo("\n  Overview:")
     total = stats.get("total_contributions", stats.get("total", 0))
     click.echo(f"    Total contributions:  {total}")
 
@@ -1904,10 +1901,10 @@ def rotate_key():
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     _CONFIG_PATH.write_text(json.dumps(config, indent=2))
 
-    click.echo(f"\n  New API key generated:")
+    click.echo("\n  New API key generated:")
     click.echo(f"  {new_key}")
     click.echo(f"\n  Saved to {_CONFIG_PATH}")
-    click.echo(f"  Set this on your server to authenticate requests.")
+    click.echo("  Set this on your server to authenticate requests.")
     click.echo()
 
 
@@ -1992,13 +1989,13 @@ def import_navigator(layer_file, vertical, json_output, output):
 
     gaps = model.get("gaps", [])
     if gaps:
-        click.echo(f"\n  Top gaps:")
+        click.echo("\n  Top gaps:")
         for gap in gaps[:5]:
             click.echo(f"    [{gap['id']}] {gap['name']}")
 
     recs = model.get("recommendations", [])
     if recs:
-        click.echo(f"\n  Recommendations:")
+        click.echo("\n  Recommendations:")
         for rec in recs[:5]:
             click.echo(f"    [{rec['priority'].upper()}] {rec['action']}")
     click.echo()
@@ -2145,7 +2142,7 @@ def export_navigator(stack, vertical, org, output):
     if output:
         Path(output).write_text(layer_json)
         click.echo(f"  Navigator layer saved to {output}")
-        click.echo(f"  Open in: https://mitre-attack.github.io/attack-navigator/")
+        click.echo("  Open in: https://mitre-attack.github.io/attack-navigator/")
     else:
         click.echo(layer_json)
 
@@ -2274,7 +2271,7 @@ def rfp(candidates, category, vertical, json_output, output):
 
     rec = result.get("recommendation", "")
     if rec:
-        click.echo(f"\n  Recommendation:")
+        click.echo("\n  Recommendation:")
         click.echo(f"  {rec}")
 
     # Show detail for each candidate
@@ -2342,7 +2339,7 @@ def integrate_splunk(api_url, api_key, output):
     for f in sorted(files.keys()):
         click.echo(f"    {f}")
     click.echo(f"\n  Install: cp -r {output_dir} $SPLUNK_HOME/etc/apps/nur_integration/")
-    click.echo(f"  Then restart Splunk.")
+    click.echo("  Then restart Splunk.")
     click.echo()
 
 
@@ -2367,7 +2364,7 @@ def integrate_sentinel(api_url, api_key, output):
     Path(output).write_text(arm_json)
 
     click.echo(f"\n  Sentinel playbook generated: {output}")
-    click.echo(f"\n  Deploy with:")
+    click.echo("\n  Deploy with:")
     click.echo(f"    az deployment group create -g <resource-group> --template-file {output}")
     click.echo()
 
@@ -2391,11 +2388,11 @@ def integrate_crowdstrike(client_id, client_secret, api_url, api_key, since_hour
         raise SystemExit(1)
 
     if not pull:
-        click.echo(f"\n  CrowdStrike integration ready.")
+        click.echo("\n  CrowdStrike integration ready.")
         click.echo(f"  Client ID: {client_id[:8]}...")
         click.echo(f"  API URL: {api_url}")
         click.echo(f"  Since: last {since_hours} hours")
-        click.echo(f"\n  Add --pull to actually fetch and submit detections.")
+        click.echo("\n  Add --pull to actually fetch and submit detections.")
         click.echo()
         return
 

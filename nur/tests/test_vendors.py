@@ -1,7 +1,6 @@
 """Tests for nur.server.vendors — vendor registry, scoring engine, data loaders."""
 from __future__ import annotations
 
-import pytest
 
 from nur.server.vendors import (
     VENDOR_REGISTRY,

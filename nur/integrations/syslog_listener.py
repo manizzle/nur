@@ -289,7 +289,7 @@ def start_syslog_listener(
     listener.start()
 
     try:
-        print(f"  [syslog] Press Ctrl+C to stop")
+        print("  [syslog] Press Ctrl+C to stop")
         while not listener._stop_event.is_set():
             time.sleep(1)
     except KeyboardInterrupt:

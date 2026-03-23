@@ -3,7 +3,6 @@ Tests for nur data models — round-trip serialization, validation, edge cases.
 """
 from __future__ import annotations
 
-import json
 import pytest
 
 from nur.models import (

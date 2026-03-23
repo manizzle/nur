@@ -195,11 +195,9 @@ WHAT MAKES THIS PATENTABLE (novel + non-obvious)
 
 from __future__ import annotations
 
-import hashlib
 import math
 import random
 from dataclasses import dataclass, field
-from typing import Any
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -248,7 +246,6 @@ def compute_qca(profile: BehavioralProfile) -> float:
 
 def compute_behavioral_features(profile: BehavioralProfile) -> list[float]:
     """Extract the 6 behavioral features from a participant profile."""
-    import time
 
     # f1: query diversity (0-1, normalized by max possible query types)
     max_query_types = 8  # report, simulate, market, search, threat-model, patterns, threat-map, rfp

@@ -19,6 +19,7 @@ from sqlalchemy import select, func, text
 
 from .models import (
     Base, Contribution, IOCHash, AttackTechnique, AggregatedScore,
+    VendorProfile,
 )
 
 

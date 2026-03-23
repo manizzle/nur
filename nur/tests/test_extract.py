@@ -6,10 +6,9 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import pytest
 
 from nur.extract import load_file, load_dict
-from nur.models import EvalRecord, AttackMap, IOCBundle
+from nur.models import EvalRecord, AttackMap
 
 
 class TestLoadDict:

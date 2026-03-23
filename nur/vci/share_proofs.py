@@ -15,12 +15,11 @@ Key math:
 from __future__ import annotations
 
 import secrets
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..zkp.proofs import (
     ProofParams,
     Commitment,
-    _mod_inverse,
     _random_scalar,
     commit,
 )

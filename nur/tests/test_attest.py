@@ -14,17 +14,16 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import pytest
 
 from nur.attest.chain import (
-    CDI, ChainBuilder, AttestationChain, hash_content, evidence_bytes,
+    CDI, ChainBuilder, AttestationChain, hash_content,
 )
 from nur.attest.stages import (
     attest_extraction, attest_anonymization, attest_dp, attest_submission,
     _scan_text_for_patterns,
 )
 from nur.attest.verify import (
-    verify_chain, verify_vap, VerificationResult,
+    verify_chain, verify_vap,
 )
 from nur.attest.commitments import (
     commit, verify_commitment,
@@ -33,8 +32,7 @@ from nur.attest.commitments import (
 )
 from nur.attest.pipeline import attest_pipeline, AttestedContribution
 from nur.models import (
-    EvalRecord, AttackMap, IOCBundle, IOCEntry, ObservedTechnique,
-    ContribContext,
+    EvalRecord, IOCBundle, IOCEntry,
 )
 from nur.anonymize import anonymize
 

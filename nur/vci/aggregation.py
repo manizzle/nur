@@ -21,9 +21,9 @@ from ..behavioral_dp import (
     asymmetric_outlier_weight,
     compute_credibility_weight,
 )
-from ..secagg import SecAggSession, aggregate
+from ..secagg import aggregate
 
-from .bounds import PoisoningBound, compute_poisoning_bound
+from .bounds import compute_poisoning_bound
 
 
 @dataclass

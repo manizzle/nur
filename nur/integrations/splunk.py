@@ -20,7 +20,7 @@ def generate_splunk_app(api_url: str, api_key: str) -> dict[str, str]:
     """
     api_url = api_url.rstrip("/")
 
-    app_conf = textwrap.dedent(f"""\
+    app_conf = textwrap.dedent("""\
         [install]
         is_configured = false
         build = 1

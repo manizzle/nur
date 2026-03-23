@@ -17,7 +17,6 @@ Track B — Business Model:
 from __future__ import annotations
 
 import json
-import secrets
 import pytest
 
 
@@ -1887,3 +1886,64 @@ class TestExpandedEvalMetrics:
         # Receipt contains hashes, not values
         assert "50000" not in str(d["commitment_hash"])
         assert "12.50" not in str(d["commitment_hash"])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Track C: Vendor Profile Pages
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestVendorProfiles:
+    """Vendor profile claim and display."""
+
+    @pytest.fixture
+    def app(self):
+        import nur.server.app as app_mod
+        return app_mod.create_app("sqlite+aiosqlite://")
+
+    @pytest.mark.asyncio
+    async def test_vendor_profile_page_unclaimed(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/vendor/crowdstrike")
+            assert resp.status_code == 200
+            assert "CrowdStrike" in resp.text or "Crowdstrike" in resp.text
+            assert "Claim" in resp.text  # should show claim banner
+
+    @pytest.mark.asyncio
+    async def test_vendor_claim_page(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/vendor/crowdstrike/claim")
+            assert resp.status_code == 200
+            assert "email" in resp.text
+
+    @pytest.mark.asyncio
+    async def test_vendor_claim_flow(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", follow_redirects=True) as c:
+            resp = await c.post("/vendor/crowdstrike/claim", data={
+                "email": "demo@crowdstrike.com",
+                "demo_url": "https://youtube.com/watch?v=abc123",
+                "description": "Next-gen endpoint protection",
+                "demo_request_url": "https://crowdstrike.com/demo",
+            })
+            assert resp.status_code == 200
+            # Should redirect to profile page
+            assert "CrowdStrike" in resp.text or "Crowdstrike" in resp.text
+
+    @pytest.mark.asyncio
+    async def test_vendor_profile_with_scores(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            # Submit some evals first
+            await c.post("/contribute/submit", json={
+                "data": {"vendor": "CrowdStrike", "category": "edr", "overall_score": 9.0, "support_quality": 8.0}
+            })
+            await c.post("/contribute/submit", json={
+                "data": {"vendor": "CrowdStrike", "category": "edr", "overall_score": 8.5, "support_quality": 7.0}
+            })
+
+            resp = await c.get("/vendor/crowdstrike")
+            assert resp.status_code == 200
+            # Should show scores
+            assert "Practitioner Scores" in resp.text

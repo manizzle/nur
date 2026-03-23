@@ -31,7 +31,6 @@ import secrets as _secrets_mod
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 from .db import Database
 from .proofs import ProofEngine
@@ -246,6 +245,9 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
     from .routes.verify import router as verify_router
     app.include_router(verify_router)
+
+    from .routes.vendors import router as vendors_router
+    app.include_router(vendors_router)
 
     # Conditionally include FL router
     try:

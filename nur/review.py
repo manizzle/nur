@@ -26,7 +26,7 @@ def render(contrib: Contribution) -> str:
 
     if isinstance(contrib, EvalRecord):
         lines += [
-            f"  Type       : Tool Evaluation",
+            "  Type       : Tool Evaluation",
             f"  Vendor     : {contrib.vendor}",
             f"  Category   : {contrib.category}",
             f"  Score      : {_fmt_val(contrib.overall_score)} / 10",
@@ -45,7 +45,7 @@ def render(contrib: Contribution) -> str:
         covered = sum(1 for t in contrib.techniques if t.detected_by)
         missed  = sum(1 for t in contrib.techniques if t.missed_by)
         lines += [
-            f"  Type       : Attack Map",
+            "  Type       : Attack Map",
             f"  Threat     : {_fmt_val(contrib.threat_name)}",
             f"  Techniques : {len(contrib.techniques)} total — {covered} detected, {missed} missed",
             f"  Tools      : {_fmt_val(contrib.tools_in_scope)}",
@@ -62,12 +62,12 @@ def render(contrib: Contribution) -> str:
         for ioc in contrib.iocs:
             type_counts[ioc.ioc_type] = type_counts.get(ioc.ioc_type, 0) + 1
         lines += [
-            f"  Type       : IOC Bundle",
+            "  Type       : IOC Bundle",
             f"  IOC Count  : {len(contrib.iocs)} indicators",
             f"  IOC Types  : {', '.join(f'{v}x {k}' for k, v in sorted(type_counts.items()))}",
             f"  Tools      : {_fmt_val(contrib.tools_in_scope)}",
             f"  Source     : {contrib.source}",
-            f"  NOTE       : Raw values hashed locally — only SHA-256 fingerprints sent",
+            "  NOTE       : Raw values hashed locally — only SHA-256 fingerprints sent",
         ]
 
     lines += [

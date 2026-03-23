@@ -8,7 +8,6 @@ All mechanisms are stdlib-only (~50 lines of math). No external dependencies.
 """
 from __future__ import annotations
 
-import json
 import math
 import random
 import datetime

@@ -15,7 +15,7 @@ import json
 from collections import Counter, defaultdict
 from typing import Any
 
-from .verticals import get_vertical, VERTICALS
+from .verticals import get_vertical
 from .server.vendors import VENDOR_REGISTRY, load_mitre_map
 
 

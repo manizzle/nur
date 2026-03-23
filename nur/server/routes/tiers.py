@@ -16,7 +16,6 @@ from __future__ import annotations
 import os
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 
 
 router = APIRouter(tags=["tiers"])

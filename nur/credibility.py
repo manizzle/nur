@@ -30,8 +30,8 @@ Aggregates use weighted averages based on credibility.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass

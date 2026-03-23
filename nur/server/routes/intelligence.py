@@ -6,15 +6,13 @@ with nur's existing database (contributions, attack_techniques, aggregated_score
 """
 from __future__ import annotations
 
-import json
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from ..vendors import (
     VENDOR_REGISTRY, get_vendor, list_vendors,
-    weighted_score, confidence_level, SOURCE_WEIGHTS, DEFAULT_WEIGHT,
-    load_capabilities, load_integrations, load_mitre_map,
+    confidence_level, load_mitre_map,
 )
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])

@@ -9,19 +9,15 @@ Tests all 4 phases:
   5. End-to-end pipeline
 """
 import hashlib
-import math
 import time
 
 import pytest
 
 from nur.zkp.proofs import (
     ProofParams,
-    Commitment,
     commit,
-    create_range_proof,
-    verify_range_proof,
 )
-from nur.zkp.contrib_proofs import ContributionProofBundle, EvalRecordProof
+from nur.zkp.contrib_proofs import EvalRecordProof
 from nur.attest.chain import ChainBuilder, hash_content
 from nur.behavioral_dp import BehavioralProfile, compute_credibility_weight
 
@@ -286,7 +282,6 @@ class TestPlatformAttestation:
     def test_attestation_with_tampered_n(self):
         """Tampering with leaf count N produces different range proof — detection."""
         from nur.vci.platform import generate_platform_attestation, PlatformAttestation
-        from nur.zkp.proofs import RangeProof
 
         envelope_hashes = [
             hashlib.sha256(f"e_{i}".encode()).hexdigest()

@@ -1,7 +1,6 @@
 """Tests for nur.feeds — threat intelligence feed scraping."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 

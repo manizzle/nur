@@ -15,8 +15,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import os
-import random
 from pathlib import Path
 
 # ── Realistic vendor evaluations ─────────────────────────────────────────────

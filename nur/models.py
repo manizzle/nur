@@ -11,7 +11,6 @@ All models are designed for anonymization — no PII fields, only buckets.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
 from pydantic import BaseModel, Field
 
 

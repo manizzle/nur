@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..models import Contribution, EvalRecord
+from ..models import Contribution
 from ..anonymize import anonymize
 from ..extract import load_file
 from ..keystore import get_or_create_key
@@ -144,7 +144,7 @@ def attest_and_submit(
     The attestation chain is sent alongside the payload so the server
     can independently verify the chain.
     """
-    from ..client import Client, _serialize, _route_for, _generate_receipt
+    from ..client import Client, _generate_receipt
 
     attested = attest_pipeline(path, epsilon=epsilon, context=context)
     client = Client(api_url=api_url, api_key=api_key)

@@ -705,7 +705,6 @@ class ProofEngine:
         profile IDs in the aggregate buckets. For now, returns the standard
         aggregate with a bdp_weighted flag.
         """
-        from ..behavioral_dp import compute_credibility_weight, asymmetric_outlier_weight
 
         agg = self.get_aggregate(vendor, category)
         if not agg:

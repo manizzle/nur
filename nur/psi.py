@@ -9,7 +9,6 @@ Requires: `pip install nur[crypto]` (cryptography library)
 from __future__ import annotations
 
 import hashlib
-import secrets
 from dataclasses import dataclass, field
 
 
@@ -50,7 +49,7 @@ class PSIClient:
     def _hash_to_point(value: str) -> bytes:
         """Hash an IOC value to a curve point (simplified: hash-and-encode)."""
         ec = _ensure_crypto()
-        from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1, EllipticCurvePublicNumbers
+        from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1
         from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
         # Hash the value to get a seed, then derive a point deterministically
@@ -69,8 +68,7 @@ class PSIClient:
         Returns blinded points (safe to send to peer).
         """
         ec = _ensure_crypto()
-        from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1, EllipticCurvePublicNumbers
-        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+        from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1
 
         results = []
         for v in ioc_values:

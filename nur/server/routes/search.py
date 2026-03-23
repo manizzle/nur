@@ -7,14 +7,12 @@ with nur's existing database and vendor registry.
 """
 from __future__ import annotations
 
-import json
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from ..vendors import (
-    VENDOR_REGISTRY, get_vendor, list_vendors,
-    weighted_score, confidence_level, SOURCE_WEIGHTS,
-    load_capabilities, load_integrations,
+    get_vendor, list_vendors,
+    confidence_level, load_integrations,
 )
 
 router = APIRouter(prefix="/search", tags=["search"])

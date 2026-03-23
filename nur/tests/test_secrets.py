@@ -5,7 +5,6 @@ import json
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from nur.secrets import load_secrets
 
@@ -25,7 +24,6 @@ class TestLoadSecrets:
         monkeypatch.setenv("NUR_SECRETS_ARN", "arn:aws:secretsmanager:us-west-2:123:secret:test")
         with patch.dict("sys.modules", {"boto3": None}):
             # Force ImportError on import boto3
-            import importlib
             import builtins
             original_import = builtins.__import__
 

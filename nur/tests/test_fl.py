@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from nur.fl.models import MalwareClassifier, AnomalyDetector, IOCScorer
 from nur.fl.aggregator import fedavg, trimmed_mean, krum, geometric_median, detect_poisoning

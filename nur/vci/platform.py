@@ -15,12 +15,11 @@ import hashlib
 import hmac
 import json
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..zkp.proofs import (
     ProofParams,
     Commitment,
-    commit,
     create_range_proof,
     verify_range_proof,
 )

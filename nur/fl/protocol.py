@@ -9,7 +9,6 @@ from __future__ import annotations
 import base64
 import io
 from enum import Enum
-from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, Field
