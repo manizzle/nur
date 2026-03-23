@@ -3141,6 +3141,242 @@ async function submitVoice() {
 </body>
 </html>"""
 
+    # ── Quick eval form (zero-typing, RSA hallway speed) ─────────────
+
+    @app.get("/contribute/quick", response_class=HTMLResponse)
+    async def quick_contribute_form():
+        _quick_html = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur &mdash; quick eval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e4e4e7; font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .container { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+  h2 { font-size: 1.4rem; color: #fafafa; margin-bottom: 16px; text-align: center; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #1e1e2e; transition: background 0.2s; }
+  .dot.active { background: #22c55e; }
+  .dot.done { background: #16a34a; }
+  .tool-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .tool-btn { padding: 16px; background: #111118; border: 2px solid #1e1e2e; border-radius: 10px; color: #e4e4e7; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; font-family: 'Inter', sans-serif; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+  .tool-btn.selected { border-color: #22c55e; background: #0a1f0a; color: #22c55e; }
+  .tool-btn:active { transform: scale(0.97); }
+  #other-vendor { width: 100%; padding: 14px 16px; background: #111118; border: 1px solid #1e1e2e; border-radius: 8px; color: #e4e4e7; font-size: 16px; font-family: 'Inter', sans-serif; margin-top: 12px; -webkit-appearance: none; }
+  #other-vendor:focus { outline: none; border-color: #22c55e; }
+  .big-score { font-size: 4em; font-weight: 800; color: #fafafa; text-align: center; margin: 16px 0; }
+  input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #1e1e2e; border-radius: 4px; outline: none; border: none; padding: 0; margin: 16px 0; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 36px; height: 36px; background: #22c55e; border-radius: 50%; cursor: pointer; }
+  input[type="range"]::-moz-range-thumb { width: 36px; height: 36px; background: #22c55e; border-radius: 50%; cursor: pointer; border: none; }
+  .big-buttons { display: flex; gap: 12px; }
+  .yes-btn { flex: 1; padding: 24px; font-size: 20px; font-weight: 700; border-radius: 12px; background: #22c55e; color: #0a0a0f; border: none; cursor: pointer; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .yes-btn:active { background: #16a34a; }
+  .no-btn { flex: 1; padding: 24px; font-size: 20px; font-weight: 700; border-radius: 12px; background: #1e1e2e; color: #e4e4e7; border: none; cursor: pointer; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .no-btn:active { background: #2a2a3e; }
+  .competitor-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip { padding: 10px 16px; background: #111118; border: 2px solid #1e1e2e; border-radius: 20px; color: #e4e4e7; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+  .chip.selected { border-color: #22c55e; background: #0a1f0a; color: #22c55e; }
+  .next-btn { width: 100%; padding: 16px; background: #22c55e; color: #0a0a0f; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 16px; -webkit-tap-highlight-color: transparent; }
+  .next-btn:active { background: #16a34a; }
+  .skip-btn { width: 100%; padding: 12px; background: transparent; color: #71717a; border: none; font-size: 14px; cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 8px; }
+  #quick-email { width: 100%; padding: 14px 16px; background: #111118; border: 1px solid #1e1e2e; border-radius: 8px; color: #e4e4e7; font-size: 16px; font-family: 'Inter', sans-serif; margin-bottom: 16px; -webkit-appearance: none; }
+  #quick-email:focus { outline: none; border-color: #22c55e; }
+  .branding { text-align: center; margin-bottom: 16px; font-size: 1.2rem; color: #fafafa; font-weight: 700; }
+  .branding span { color: #22c55e; }
+  .subtitle { text-align: center; color: #71717a; font-size: 0.8rem; margin-bottom: 20px; }
+  .error-msg { color: #ef4444; font-size: 13px; margin-top: 8px; text-align: center; display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="branding">nur <span>quick eval</span></div>
+  <p class="subtitle">5 taps + email. 15 seconds.</p>
+  <div class="progress" id="progress">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+  <div id="step1" class="step active">
+    <h2>What do you use?</h2>
+    <div class="tool-grid" id="tool-grid"></div>
+    <input type="text" id="other-vendor" placeholder="Other tool...">
+  </div>
+
+  <div id="step2" class="step">
+    <h2>Score it</h2>
+    <div class="big-score" id="score-display">5</div>
+    <input type="range" min="1" max="10" value="5" id="score-slider">
+    <button class="next-btn" onclick="nextStep(3)">Next &#8594;</button>
+  </div>
+
+  <div id="step3" class="step">
+    <h2>Would you buy it again?</h2>
+    <div class="big-buttons">
+      <button class="yes-btn" onclick="setBuyAgain(true)">Yes</button>
+      <button class="no-btn" onclick="setBuyAgain(false)">No</button>
+    </div>
+  </div>
+
+  <div id="step4" class="step">
+    <h2>Who&#8217;d you compare it to?</h2>
+    <div class="competitor-chips" id="competitor-chips">
+      <p style="color:#71717a;font-size:14px;">Loading competitors...</p>
+    </div>
+    <button class="next-btn" onclick="nextStep(5)">Next &#8594;</button>
+    <button class="skip-btn" onclick="nextStep(5)">Skip</button>
+  </div>
+
+  <div id="step5" class="step">
+    <h2>Almost done</h2>
+    <input type="email" id="quick-email" placeholder="Work email" required>
+    <div class="error-msg" id="email-error"></div>
+    <button class="next-btn" onclick="submitQuick()">Submit &#8594;</button>
+  </div>
+</div>
+
+<script>
+var VENDORS = ["CrowdStrike","SentinelOne","Microsoft Defender","Palo Alto","Splunk","Wiz","Okta","Zscaler","Fortinet","Check Point","Proofpoint","Elastic","Tenable","Qualys","Rapid7","Darktrace","CyberArk","Cloudflare","Netskope","Snyk"];
+var selectedVendor = "";
+var score = 5;
+var buyAgain = null;
+var competitors = [];
+var currentStep = 1;
+
+var grid = document.getElementById("tool-grid");
+VENDORS.forEach(function(v) {
+  var btn = document.createElement("button");
+  btn.className = "tool-btn";
+  btn.textContent = v;
+  btn.onclick = function() { selectVendor(v, btn); };
+  grid.appendChild(btn);
+});
+
+function selectVendor(v, btn) {
+  document.querySelectorAll(".tool-btn").forEach(function(b) { b.classList.remove("selected"); });
+  btn.classList.add("selected");
+  selectedVendor = v;
+  document.getElementById("other-vendor").value = "";
+  fetchCompetitors(v);
+  setTimeout(function() { nextStep(2); }, 200);
+}
+
+document.getElementById("other-vendor").addEventListener("change", function() {
+  if (this.value.trim()) {
+    document.querySelectorAll(".tool-btn").forEach(function(b) { b.classList.remove("selected"); });
+    selectedVendor = this.value.trim();
+    fetchCompetitors(selectedVendor);
+    setTimeout(function() { nextStep(2); }, 200);
+  }
+});
+
+document.getElementById("score-slider").addEventListener("input", function() {
+  score = parseInt(this.value);
+  document.getElementById("score-display").textContent = score;
+});
+
+function nextStep(n) {
+  document.getElementById("step" + currentStep).classList.remove("active");
+  document.getElementById("step" + n).classList.add("active");
+  var dots = document.querySelectorAll(".dot");
+  for (var i = 0; i < dots.length; i++) {
+    dots[i].classList.remove("active", "done");
+    if (i < n - 1) dots[i].classList.add("done");
+    if (i === n - 1) dots[i].classList.add("active");
+  }
+  currentStep = n;
+}
+
+function setBuyAgain(val) {
+  buyAgain = val;
+  nextStep(4);
+}
+
+function fetchCompetitors(vendor) {
+  fetch("/api/v1/vendor-meta?vendor=" + encodeURIComponent(vendor))
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+      var chips = document.getElementById("competitor-chips");
+      chips.innerHTML = "";
+      var comps = data.competitors || [];
+      if (comps.length === 0) {
+        chips.innerHTML = '<p style="color:#71717a;font-size:14px;">No competitors found</p>';
+        return;
+      }
+      comps.forEach(function(c) {
+        var chip = document.createElement("button");
+        chip.className = "chip";
+        chip.textContent = c;
+        chip.onclick = function() {
+          chip.classList.toggle("selected");
+          if (chip.classList.contains("selected")) {
+            competitors.push(c);
+          } else {
+            competitors = competitors.filter(function(x) { return x !== c; });
+          }
+        };
+        chips.appendChild(chip);
+      });
+    })
+    .catch(function() {
+      document.getElementById("competitor-chips").innerHTML = '<p style="color:#71717a;font-size:14px;">Could not load competitors</p>';
+    });
+}
+
+function submitQuick() {
+  var email = document.getElementById("quick-email").value.trim();
+  var errorEl = document.getElementById("email-error");
+  errorEl.style.display = "none";
+  if (!email || email.indexOf("@") === -1) {
+    errorEl.textContent = "Work email required";
+    errorEl.style.display = "block";
+    return;
+  }
+  var vendor = selectedVendor;
+  if (!vendor) {
+    errorEl.textContent = "Please go back and select a vendor";
+    errorEl.style.display = "block";
+    return;
+  }
+  var formData = new FormData();
+  formData.append("vendor", vendor);
+  formData.append("overall_score", score);
+  formData.append("would_buy", buyAgain === true ? "yes" : buyAgain === false ? "no" : "");
+  formData.append("email", email);
+  competitors.forEach(function(c) { formData.append("also_evaluated", c); });
+  fetch("/contribute", { method: "POST", body: formData, redirect: "follow" })
+    .then(function(resp) {
+      if (resp.redirected) {
+        window.location.href = resp.url;
+      } else if (resp.ok) {
+        window.location.href = "/contribute/thanks?vendor=" + encodeURIComponent(vendor) + "&score=" + score;
+      } else {
+        return resp.text().then(function(text) {
+          errorEl.textContent = text || "Submit failed";
+          errorEl.style.display = "block";
+        });
+      }
+    })
+    .catch(function() {
+      errorEl.textContent = "Network error — try again";
+      errorEl.style.display = "block";
+    });
+}
+</script>
+</body>
+</html>'''
+        return _quick_html
+
     return app
 
 
