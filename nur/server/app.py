@@ -27,6 +27,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import json
 import secrets as _secrets_mod
 
 from fastapi import FastAPI, HTTPException, Request
@@ -61,10 +62,11 @@ from ..behavioral_dp import BehavioralProfile
 _profiles: dict[str, BehavioralProfile] = {}
 
 
-def get_or_create_profile(api_key: str | None) -> BehavioralProfile:
+def get_or_create_profile(api_key: str | None, invited: bool = False) -> BehavioralProfile:
     """Get or create a behavioral profile for a participant.
 
     Key is SHA-256 of the API key — server never stores raw keys in profiles.
+    Invited users get a small BDP credibility boost (techniques_corroborated=1).
     """
     if not api_key:
         return BehavioralProfile(participant_id="anonymous")
@@ -73,6 +75,7 @@ def get_or_create_profile(api_key: str | None) -> BehavioralProfile:
         _profiles[pid] = BehavioralProfile(
             participant_id=pid,
             first_seen_ts=time.time(),
+            techniques_corroborated=1 if invited else 0,
         )
     _profiles[pid].last_seen_ts = time.time()
     return _profiles[pid]
@@ -645,15 +648,16 @@ nur report incident.json</pre>
 
         email = (body.get("email") or "").strip().lower()
         org = (body.get("org") or "").strip()
+        invite_code = (body.get("invite_code") or "").strip()
         if not email or "@" not in email:
             raise HTTPException(status_code=400, detail="Valid email required")
 
-        # Block free/personal email providers
+        # Block free/personal email providers (unless they have an invite code)
         domain = email.split("@")[1]
-        if domain in _FREE_EMAIL_DOMAINS:
+        if domain in _FREE_EMAIL_DOMAINS and not invite_code:
             raise HTTPException(
                 status_code=400,
-                detail=f"Work email required. {domain} is not accepted. Use your organization's email.",
+                detail=f"Work email required. {domain} is not accepted. Use your organization's email or an invite code.",
             )
 
         db = get_db()
@@ -670,11 +674,20 @@ nur report incident.json</pre>
                     "message": "If this email is registered, you'll receive a verification link.",
                 }
 
+            # Validate invite code if provided
+            if invite_code:
+                existing_inviter = await s.execute(
+                    select(APIKeyRecord).where(APIKeyRecord.invite_codes.contains(invite_code))
+                )
+                inviter_record = existing_inviter.scalar_one_or_none()
+                if not inviter_record:
+                    raise HTTPException(status_code=400, detail="Invalid invite code.")
+
             # Create pending verification with magic link token
             from .models import PendingVerification
             token = _secrets.token_urlsafe(32)
             public_key = (body.get("public_key") or "")[:64] or None
-            s.add(PendingVerification(email=email, org_name=org or None, token=token, public_key=public_key))
+            s.add(PendingVerification(email=email, org_name=org or None, token=token, public_key=public_key, invite_code=invite_code or None))
 
         # Build the magic link
         host = os.environ.get("NUR_DOMAIN", "nur.saramena.us")
@@ -732,11 +745,34 @@ nur report incident.json</pre>
                 # Verify and create API key
                 pending.verified = True
                 api_key = "nur_" + _secrets.token_urlsafe(32)
-                s.add(APIKeyRecord(
+                codes = [f"nur-inv-{_secrets.token_urlsafe(8)}" for _ in range(5)]
+                new_record = APIKeyRecord(
                     email=pending.email, api_key=api_key,
                     org_name=pending.org_name, tier="community",
                     public_key=pending.public_key,
-                ))
+                    invite_codes=json.dumps(codes),
+                    invited_by=pending.invite_code,
+                )
+                s.add(new_record)
+
+                # Track invite chain — credit the inviter
+                if pending.invite_code:
+                    inv_result = await s.execute(
+                        select(APIKeyRecord).where(
+                            APIKeyRecord.invite_codes.contains(pending.invite_code)
+                        )
+                    )
+                    inviter = inv_result.scalar_one_or_none()
+                    if inviter:
+                        # Remove used code from inviter's list
+                        inviter_codes = json.loads(inviter.invite_codes) if inviter.invite_codes else []
+                        if pending.invite_code in inviter_codes:
+                            inviter_codes.remove(pending.invite_code)
+                            inviter.invite_codes = json.dumps(inviter_codes)
+                        inviter.invite_count = (inviter.invite_count or 0) + 1
+
+                    # BDP credibility boost for invited users
+                    get_or_create_profile(api_key, invited=True)
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>nur — verified</title>
@@ -760,6 +796,29 @@ nur report incident.json</pre>
   </div>
   <br><a href="/">&larr; back to nur</a>
 </div></body></html>"""
+
+    # ── Invites ────────────────────────────────────────────────────
+
+    @app.get("/invites")
+    async def get_invites(request: Request):
+        """Get your invite codes."""
+        api_key = request.headers.get("X-API-Key")
+        if not api_key:
+            raise HTTPException(status_code=401, detail="API key required")
+        db = get_db()
+        from sqlalchemy import select
+        from .models import APIKeyRecord
+        async with db.session() as s:
+            result = await s.execute(select(APIKeyRecord).where(APIKeyRecord.api_key == api_key))
+            record = result.scalar_one_or_none()
+        if not record:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        codes = json.loads(record.invite_codes) if record.invite_codes else []
+        return {
+            "invite_codes": codes,
+            "invite_count": record.invite_count or 0,
+            "remaining": len(codes),
+        }
 
     # ── Dashboard ──────────────────────────────────────────────────
 
@@ -1825,6 +1884,17 @@ nur report incident.json</pre>
                 r = engine.commit_ioc_bundle(*translated["ioc_params"])
                 receipts.append(r.to_dict())
 
+            # Notify via Slack if configured
+            slack_url = os.environ.get("NUR_SLACK_WEBHOOK")
+            if slack_url and items_stored > 0:
+                from .notifications import send_slack_notification, build_remediation_notification
+                notif = build_remediation_notification(
+                    format_detected="crowdstrike",
+                    items_stored=items_stored,
+                    engine_stats=engine.get_platform_stats(),
+                )
+                asyncio.create_task(send_slack_notification(slack_url, notif["title"], notif["fields"]))
+
             return {
                 "status": "accepted",
                 "format_detected": "crowdstrike",
@@ -1903,6 +1973,17 @@ nur report incident.json</pre>
             if translated["ioc_params"]:
                 r = engine.commit_ioc_bundle(*translated["ioc_params"])
                 receipts.append(r.to_dict())
+
+            # Notify via Slack if configured
+            slack_url = os.environ.get("NUR_SLACK_WEBHOOK")
+            if slack_url and items_stored > 0:
+                from .notifications import send_slack_notification, build_remediation_notification
+                notif = build_remediation_notification(
+                    format_detected="sentinel",
+                    items_stored=items_stored,
+                    engine_stats=engine.get_platform_stats(),
+                )
+                asyncio.create_task(send_slack_notification(slack_url, notif["title"], notif["fields"]))
 
             return {
                 "status": "accepted",
@@ -2000,6 +2081,21 @@ nur report incident.json</pre>
             status_code=400,
             detail="Unrecognized webhook format. Expected one of: detection, properties, cef, indicators, iocs",
         )
+
+    # ── Settings routes ────────────────────────────────────────────
+
+    @app.post("/settings/slack")
+    async def configure_slack(body: dict[str, Any], request: Request):
+        """Configure Slack webhook URL for notifications."""
+        api_key = request.headers.get("X-API-Key")
+        if not api_key:
+            raise HTTPException(status_code=401, detail="API key required")
+        webhook_url = body.get("webhook_url", "").strip()
+        if not webhook_url or not webhook_url.startswith("https://hooks.slack.com/"):
+            raise HTTPException(status_code=400, detail="Valid Slack webhook URL required (https://hooks.slack.com/...)")
+        # For now, store in environment (in production, this would be per-org in DB)
+        os.environ["NUR_SLACK_WEBHOOK"] = webhook_url
+        return {"status": "configured", "message": "Slack notifications enabled"}
 
     # ── Analyze route ──────────────────────────────────────────────
 

@@ -1947,3 +1947,64 @@ class TestVendorProfiles:
             assert resp.status_code == 200
             # Should show scores
             assert "Practitioner Scores" in resp.text
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Slack Notifications
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestSlackNotifications:
+    """Slack notification building."""
+
+    def test_build_remediation_notification(self):
+        from nur.server.notifications import build_remediation_notification
+        notif = build_remediation_notification(
+            format_detected="crowdstrike",
+            items_stored=2,
+            analysis={
+                "intelligence": {
+                    "shared_ioc_count": 32,
+                    "ioc_type_distribution": {"ip": 15, "domain": 12},
+                    "actions": [
+                        {"priority": "critical", "action": "Block C2 at firewall"},
+                    ],
+                }
+            },
+        )
+        assert notif["title"] == "nur: Crowdstrike Detection Ingested"
+        assert len(notif["fields"]) >= 3
+        # Should have campaign match field
+        assert any("32 IOCs" in f["value"] for f in notif["fields"])
+
+    def test_build_notification_no_matches(self):
+        from nur.server.notifications import build_remediation_notification
+        notif = build_remediation_notification(
+            format_detected="sentinel",
+            items_stored=1,
+        )
+        assert notif["title"] == "nur: Sentinel Detection Ingested"
+        assert len(notif["fields"]) >= 2
+
+    def test_build_notification_with_gaps(self):
+        from nur.server.notifications import build_remediation_notification
+        notif = build_remediation_notification(
+            format_detected="crowdstrike",
+            items_stored=1,
+            analysis={
+                "intelligence": {
+                    "detection_gaps": [
+                        {"technique_id": "T1490", "frequency": 47, "caught_by_count": 5},
+                    ],
+                    "coverage_score": 0.71,
+                    "remediation_hints": {
+                        "most_effective_categories": [
+                            {"category": "containment", "success_rate": 0.87},
+                        ],
+                    },
+                    "actions": [],
+                }
+            },
+        )
+        assert any("T1490" in f["value"] for f in notif["fields"])
+        assert any("71%" in f["value"] for f in notif["fields"])
+        assert any("containment" in f["value"].lower() for f in notif["fields"])

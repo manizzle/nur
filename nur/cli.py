@@ -104,8 +104,9 @@ def init():
 @main.command()
 @click.argument("email")
 @click.option("--org", default=None, help="Organization name")
+@click.option("--invite", default=None, help="Invite code from an existing user")
 @click.option("--api-url", default=None, help="Server URL (default: from nur init)")
-def register(email, org, api_url):
+def register(email, org, invite, api_url):
     """Register for an API key with your work email. Generates a keypair and sends a verification link."""
     import httpx
     from .keystore import get_public_key_hex
@@ -125,6 +126,7 @@ def register(email, org, api_url):
             "email": email,
             "org": org or "",
             "public_key": pub_hex,
+            "invite_code": invite or "",
         })
 
     if resp.status_code != 200:
@@ -2875,3 +2877,30 @@ def privacy_levels_cmd(as_json):
         click.echo(f"    Min-k:          {config['min_k']}")
         click.echo(f"    Strip timing:   {config['strip_timing']}")
         click.echo()
+
+
+# ── Slack Integration ────────────────────────────────────────────────────
+
+@main.command("integrate-slack")
+@click.argument("webhook_url")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+def integrate_slack(webhook_url, api_url, api_key):
+    """Connect Slack — get remediation alerts when webhooks fire."""
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url or not api_key:
+        click.echo("  Run: nur init")
+        return
+    import httpx
+    with httpx.Client(timeout=10) as http:
+        resp = http.post(
+            f"{api_url.rstrip('/')}/settings/slack",
+            json={"webhook_url": webhook_url},
+            headers={"X-API-Key": api_key},
+        )
+    if resp.status_code == 200:
+        click.echo("  Slack notifications enabled!")
+        click.echo("  When webhooks fire, you'll get remediation alerts in your channel.")
+    else:
+        click.echo(f"  Error: {resp.text[:200]}")
