@@ -20,7 +20,7 @@ dependencies = [
 pdf       = ["pypdf>=4.0"]
 stix      = ["stix2>=3.0"]
 misp      = ["pymisp>=2.4"]
-server    = ["fastapi>=0.115", "uvicorn>=0.30", "sqlalchemy>=2.0", "aiosqlite>=0.20"]
+server    = ["fastapi>=0.115", "uvicorn>=0.30", "sqlalchemy>=2.0", "aiosqlite>=0.20", "python-multipart>=0.0.9", "httpx>=0.27"]
 server-pg = ["asyncpg>=0.29", "psycopg2-binary>=2.9"]
 crypto    = ["cryptography>=42.0"]
 fl        = ["flwr>=1.5", "torch>=2.0"]
