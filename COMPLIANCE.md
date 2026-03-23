@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-nur is a privacy-preserving threat intelligence aggregation platform. Organizations contribute security data (tool evaluations, attack technique observations, IOC hashes) and receive back aggregate intelligence from the collective.
+nur is a social network for security intelligence — a trustless aggregation protocol where organizations contribute security data (tool evaluations, attack technique observations, IOC hashes) and receive back aggregate intelligence from the collective. The protocol IS the product: query data (threat models, IOCs, stacks) flows in, response data (tool intel, remediation, pricing) flows back. Math, not promises.
 
 **The key legal fact:** What leaves your organization when you use nur is *not* an incident report, *not* a breach notification, and *not* a material cybersecurity disclosure. It is structured threat intelligence — numeric scores, categorical labels, and cryptographic hashes — which is explicitly protected under federal information sharing safe harbor laws.
 

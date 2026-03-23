@@ -1,6 +1,6 @@
 <h1 align="center">nur</h1>
 
-<p align="center"><strong>Collective security intelligence for industries.</strong></p>
+<p align="center"><strong>A social network for security intelligence. Product = protocol + users.</strong></p>
 
 <p align="center">
   <img src="demo/nur-demo.gif?v=5" alt="nur demo" width="750" />
@@ -15,14 +15,16 @@
 
 ---
 
-Attackers share everything. Defenders share nothing. nur fixes that.
+The Blind for security — give one eval, get forty back.
 
-**Why contribute?** You give one eval, you get forty back. That's a 40x return on data.
+Attackers share everything. Defenders share nothing. nur fixes that. A social network for security intelligence where the integration shares and the human gets remediation back.
 
 - **Wartime** — under attack? Upload IOCs, get remediation steps that your peers actually used. Not a vendor's whitepaper — what real practitioners did when they got hit by the same threat actor.
-- **Peacetime** — evaluating tools? Get real practitioner benchmarks: pricing, support quality, detection rates, and what people actually chose and why. A Blind or Bloomberg Terminal for security, not Gartner.
+- **Peacetime** — evaluating tools? Get real practitioner benchmarks: pricing, support quality, detection rates, and what people actually chose and why.
 
-The server commits to every value, proves every aggregate, and discards individual data. Your data can't be mined — math, not promises. [Legal analysis →](COMPLIANCE.md)
+**Why trust it?** Math, not promises. The trustless aggregation protocol commits to every value, proves every aggregate, and discards individual data. The protocol IS the product. [Legal analysis →](COMPLIANCE.md)
+
+**Data model:** Query data (threat models, IOCs, stacks) flows in. Response data (tool intel, remediation, pricing) flows back. 10 users = interesting. 100 = useful. 1,000 = indispensable.
 
 > [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [docs](https://nur.saramena.us/guide) · [register](https://nur.saramena.us/register)
 

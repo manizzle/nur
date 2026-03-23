@@ -1264,7 +1264,7 @@ nur report incident.json</pre>
 
 <!-- ── Footer ─────────────────────────────────────────────── -->
 <div class="dash-footer">
-  <a href="/">nur</a> &bull; collective security intelligence &bull;
+  <a href="/">nur</a> &bull; a social network for security intelligence &bull; product = protocol + users &bull;
   <a href="https://github.com/manizzle/nur">open source</a>
 </div>
 
@@ -2392,7 +2392,7 @@ nur report incident.json</pre>
 
 <div class="guide-header">
   <h1>nur <span>guide</span></h1>
-  <p>quick reference &mdash; see <a href="https://github.com/manizzle/nur" style="color:#22c55e;">README</a> for full docs</p>
+  <p>a social network for security intelligence &mdash; give one eval, get forty back</p>
 </div>
 
 <div class="guide-nav">
@@ -2415,7 +2415,9 @@ nur report incident.json</pre>
 <span class="cmd">nur init</span>
 <span class="cmd">nur register you@yourorg.com</span>    <span class="comment"># work email required</span>
 <span class="cmd">nur report incident.json</span>        <span class="comment"># give data, get intelligence</span></pre>
-    <p>Data is anonymized locally before it leaves your machine. You get back collective intelligence from everyone who contributed.</p>
+    <p>Data is anonymized locally before it leaves your machine. You get back collective intelligence from everyone who contributed. The integration shares. The human gets remediation back.</p>
+    <h3>Data model</h3>
+    <p><strong>Query data</strong> (threat models, IOCs, stacks) flows in. <strong>Response data</strong> (tool intel, remediation, pricing) flows back. The protocol IS the product. Math, not promises.</p>
   </div>
 
   <!-- Wartime -->
@@ -2485,6 +2487,9 @@ Integrity:   dice chain (client hash == server contribution_hash)
       <tr><td>GET</td><td>/vendor/{id}</td><td>Vendor profile page (scores, gaps, claim)</td></tr>
       <tr><td>GET</td><td>/vendor/{id}/claim</td><td>Vendor claims their profile (email verification)</td></tr>
       <tr><td>GET</td><td>/proof/bdp-stats</td><td>BDP credibility &amp; poisoning defense stats</td></tr>
+      <tr><td>POST</td><td>/invites/generate</td><td>Generate invite codes for peers</td></tr>
+      <tr><td>POST</td><td>/invites/redeem</td><td>Redeem an invite code</td></tr>
+      <tr><td>POST</td><td>/settings/slack</td><td>Configure Slack webhook for remediation alerts</td></tr>
       <tr><td>GET</td><td>/health</td><td>Liveness check</td></tr>
       <tr><td>GET</td><td>/stats</td><td>Contribution counts (anonymized)</td></tr>
     </table>
@@ -2551,7 +2556,7 @@ NUR_SMTP_PASS=your_smtp_password</pre>
 </div>
 
 <div class="guide-footer">
-  <a href="/">nur</a> &bull; collective security intelligence &bull;
+  <a href="/">nur</a> &bull; a social network for security intelligence &bull; product = protocol + users &bull;
   <a href="https://github.com/manizzle/nur">open source</a>
 </div>
 

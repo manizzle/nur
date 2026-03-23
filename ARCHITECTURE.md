@@ -1,5 +1,7 @@
 # Architecture — Detailed Three-Party Flow
 
+> **The Blind for security — give one eval, get forty back.** nur is a social network for security intelligence. Product = protocol + users. The trustless aggregation protocol below IS the core IP. Query data (threat models, IOCs, stacks) flows in. Response data (tool intel, remediation, pricing) flows back. The integration shares. The human gets remediation back. Math, not promises.
+
 ## Sequence Diagram
 
 ```mermaid
@@ -64,6 +66,10 @@ The client computes SHA-256 of the canonical JSON payload *before* submission. T
 | Eval dimension aggregates (price, support, performance, decision) | Raw dollar amounts, individual SLA times |
 | BDP credibility scores (behavioral) | Per-org credibility profiles |
 | Dice chain hashes (contribution_hash) | Pre-submission payload content |
+
+## Network Effect
+
+10 users = interesting. 100 = useful. 1,000 = indispensable. The protocol enables trust. The users create value. At scale, switching cost is infinite — you'd lose the collective intelligence of every security team in your vertical.
 
 ## Regulatory Compliance
 
