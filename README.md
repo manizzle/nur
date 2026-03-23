@@ -39,6 +39,9 @@ nur register you@yourorg.com
 nur report incident.json
 ```
 
+Or contribute via web — no CLI needed:
+**[nur.saramena.us/contribute](https://nur.saramena.us/contribute)** — rate your security tool in 60 seconds
+
 ---
 
 ## Architecture

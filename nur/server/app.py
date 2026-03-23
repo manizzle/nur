@@ -2492,6 +2492,7 @@ Integrity:   dice chain (client hash == server contribution_hash)
       <tr><td>POST</td><td>/settings/slack</td><td>Configure Slack webhook for remediation alerts</td></tr>
       <tr><td>GET</td><td>/health</td><td>Liveness check</td></tr>
       <tr><td>GET</td><td>/stats</td><td>Contribution counts (anonymized)</td></tr>
+      <tr><td>GET</td><td>/contribute</td><td>Web eval form (mobile-friendly, no auth)</td></tr>
     </table>
     <p>See the <a href="https://github.com/manizzle/nur" style="color:#22c55e;">README</a> for curl examples.</p>
   </div>
@@ -2662,6 +2663,245 @@ window.addEventListener('scroll', function() {
                 "total_contributions": engine.total_contributions,
             },
         }
+
+    # ── Web contribute form (mobile-first, no auth) ──────────────────
+
+    @app.get("/contribute", response_class=HTMLResponse)
+    async def contribute_form():
+        return """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur — rate your security tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e4e4e7; font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .container { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 1.5rem; color: #fafafa; margin-bottom: 4px; }
+  h1 span { color: #22c55e; }
+  .subtitle { color: #71717a; font-size: 0.85rem; margin-bottom: 24px; }
+  input, select { width: 100%; padding: 14px 16px; background: #111118; border: 1px solid #1e1e2e; border-radius: 8px; color: #e4e4e7; font-size: 16px; font-family: 'Inter', sans-serif; margin-bottom: 8px; -webkit-appearance: none; }
+  input:focus, select:focus { outline: none; border-color: #22c55e; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2371717a' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+  select option { background: #111118; color: #e4e4e7; }
+  button[type="submit"] { width: 100%; padding: 16px; background: #22c55e; color: #0a0a0f; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 16px; }
+  button[type="submit"]:active { background: #16a34a; }
+  label { display: block; font-size: 14px; color: #888; margin-bottom: 6px; margin-top: 16px; }
+  .required { color: #22c55e; }
+  input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #1e1e2e; border-radius: 4px; outline: none; border: none; padding: 0; margin: 0; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: #22c55e; border-radius: 50%; cursor: pointer; }
+  input[type="range"]::-moz-range-thumb { width: 32px; height: 32px; background: #22c55e; border-radius: 50%; cursor: pointer; border: none; }
+  .score-display { font-size: 2em; color: #fafafa; text-align: center; font-weight: 700; margin: 8px 0; }
+  .toggle-group { display: flex; gap: 12px; margin-bottom: 8px; }
+  .toggle-btn { flex: 1; padding: 14px; border: 2px solid #1e1e2e; border-radius: 8px; background: #111118; color: #e4e4e7; font-size: 16px; text-align: center; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+  .toggle-btn.selected { border-color: #22c55e; background: #0a1f0a; color: #22c55e; }
+  .optional { font-size: 12px; color: #555; }
+  .note { font-size: 12px; color: #71717a; margin-top: 4px; }
+  .privacy-note { margin-top: 24px; padding: 16px; background: rgba(34, 197, 94, 0.05); border: 1px solid #1e1e2e; border-radius: 8px; font-size: 13px; color: #71717a; line-height: 1.6; }
+  .privacy-note strong { color: #a1a1aa; }
+  .back-link { display: block; text-align: center; margin-top: 16px; color: #71717a; font-size: 13px; text-decoration: none; }
+  .back-link:hover { color: #22c55e; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>nur <span>eval</span></h1>
+  <p class="subtitle">Rate your security tool in 60 seconds. Anonymous + cryptographic receipt.</p>
+
+  <form method="post" action="/contribute" id="evalForm">
+    <label>What tool are you evaluating? <span class="required">*</span></label>
+    <input type="text" name="vendor" list="vendor-list" required placeholder="e.g. CrowdStrike, Wiz, Okta...">
+    <datalist id="vendor-list">
+      <option value="CrowdStrike"><option value="SentinelOne"><option value="Microsoft Defender">
+      <option value="Cortex XDR"><option value="Splunk"><option value="Elastic">
+      <option value="Wiz"><option value="Prisma Cloud"><option value="Okta">
+      <option value="Proofpoint"><option value="Zscaler"><option value="Darktrace">
+      <option value="Vectra"><option value="Rapid7"><option value="Tenable">
+      <option value="Qualys"><option value="Carbon Black"><option value="Sophos">
+    </datalist>
+
+    <label>Category</label>
+    <select name="category">
+      <option value="">Select category...</option>
+      <option value="edr">EDR</option>
+      <option value="siem">SIEM</option>
+      <option value="cloud_security">Cloud Security</option>
+      <option value="identity">Identity</option>
+      <option value="email_security">Email Security</option>
+      <option value="network_security">Network Security</option>
+      <option value="vulnerability_management">Vulnerability Management</option>
+      <option value="waf">WAF</option>
+      <option value="ndr">NDR</option>
+      <option value="soar">SOAR</option>
+      <option value="other">Other</option>
+    </select>
+
+    <label>Overall score <span class="required">*</span></label>
+    <div class="score-display" id="overall-val">5</div>
+    <input type="range" name="overall_score" min="1" max="10" value="5" oninput="document.getElementById('overall-val').textContent=this.value">
+
+    <label>Would you buy it again?</label>
+    <div class="toggle-group">
+      <div class="toggle-btn" onclick="setBuy('yes',this)">Yes</div>
+      <div class="toggle-btn" onclick="setBuy('no',this)">No</div>
+    </div>
+    <input type="hidden" name="would_buy" id="would_buy" value="">
+
+    <label>Annual cost <span class="optional">(optional)</span></label>
+    <input type="text" name="annual_cost" placeholder="$50,000" inputmode="numeric">
+
+    <label>Support quality <span class="optional">(optional)</span></label>
+    <div class="score-display" id="support-val" style="font-size:1.4em;color:#71717a;">-</div>
+    <input type="range" name="support_quality" min="1" max="10" value="0" oninput="if(this.value>0){document.getElementById('support-val').textContent=this.value;document.getElementById('support-val').style.color='#fafafa';}">
+
+    <label>What drove your decision? <span class="optional">(optional)</span></label>
+    <select name="decision_factor">
+      <option value="">Select...</option>
+      <option value="detection_quality">Detection quality</option>
+      <option value="price">Price</option>
+      <option value="support">Support</option>
+      <option value="integration">Integration</option>
+      <option value="compliance">Compliance</option>
+      <option value="executive_mandate">Executive mandate</option>
+      <option value="peer_recommendation">Peer recommendation</option>
+      <option value="analyst_report">Analyst report</option>
+    </select>
+
+    <label>Work email <span class="required">*</span></label>
+    <input type="email" name="email" required placeholder="you@company.com">
+    <div class="note">Required for verification. Gmail/Yahoo not accepted.</div>
+
+    <button type="submit">Submit eval</button>
+  </form>
+
+  <div class="privacy-note">
+    <strong>Your eval is anonymous.</strong> Individual scores are committed, aggregated, and discarded. You'll receive a cryptographic receipt via email.
+  </div>
+  <a href="/" class="back-link">nur.saramena.us</a>
+</div>
+<script>
+function setBuy(val, el) {
+  document.getElementById('would_buy').value = val;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+</script>
+</body>
+</html>"""
+
+    @app.post("/contribute")
+    async def contribute_web_form(request: Request):
+        form = await request.form()
+        vendor = str(form.get("vendor", "")).strip()
+        category = str(form.get("category", "")).strip()
+        overall_score = form.get("overall_score")
+        would_buy = form.get("would_buy")
+        annual_cost = str(form.get("annual_cost", "")).strip()
+        support_quality = form.get("support_quality")
+        decision_factor = str(form.get("decision_factor", "")).strip()
+        email = str(form.get("email", "")).strip().lower()
+
+        # Validate
+        if not vendor or not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Vendor and work email required")
+
+        domain = email.split("@")[1]
+        if domain in _FREE_EMAIL_DOMAINS:
+            raise HTTPException(status_code=400, detail=f"Work email required. {domain} not accepted.")
+
+        # Build payload matching /contribute/submit shape
+        payload: dict[str, Any] = {"data": {"vendor": vendor, "category": category or "general"}}
+        if overall_score:
+            payload["data"]["overall_score"] = float(overall_score)
+        if would_buy:
+            payload["data"]["would_buy"] = would_buy == "yes"
+        if annual_cost:
+            try:
+                payload["data"]["annual_cost"] = float(annual_cost.replace("$", "").replace(",", ""))
+            except (ValueError, TypeError):
+                pass
+        if support_quality and str(support_quality) != "0":
+            payload["data"]["support_quality"] = float(support_quality)
+        if decision_factor:
+            payload["data"]["decision_factor"] = decision_factor
+
+        # Store through trustless pipeline
+        db = get_db()
+        cid = await db.store_eval_record(payload)
+
+        # Proof layer
+        from .proofs import translate_eval
+        engine = get_proof_engine()
+        v, cat, values = translate_eval(payload)
+        receipt = engine.commit_contribution(v, cat, values)
+
+        # BDP tracking
+        profile = get_or_create_profile(None)
+        profile.contribution_types.add("eval")
+        if vendor:
+            profile.contributed_vendors.add(vendor.lower())
+        profile.total_contributions += 1
+
+        # Redirect to thank-you page
+        from fastapi.responses import RedirectResponse
+        import urllib.parse
+        receipt_id = receipt.receipt_id
+        return RedirectResponse(
+            url=f"/contribute/thanks?receipt={receipt_id}&vendor={urllib.parse.quote(vendor)}",
+            status_code=303,
+        )
+
+    @app.get("/contribute/thanks", response_class=HTMLResponse)
+    async def contribute_thanks(receipt: str = "", vendor: str = ""):
+        import urllib.parse
+        vendor_display = urllib.parse.unquote(vendor) if vendor else "this tool"
+        engine = get_proof_engine()
+        contributor_count = engine.total_contributions
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nur — thanks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {{ color-scheme: dark; }}
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ background: #0a0a0f; color: #e4e4e7; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }}
+  .container {{ max-width: 480px; margin: 0 auto; padding: 24px 16px; text-align: center; }}
+  .check {{ font-size: 3rem; margin-bottom: 16px; }}
+  h1 {{ font-size: 1.5rem; color: #fafafa; margin-bottom: 8px; }}
+  h1 span {{ color: #22c55e; }}
+  .receipt {{ background: #111118; border: 1px solid #1e1e2e; border-radius: 8px; padding: 16px; margin: 20px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: #71717a; word-break: break-all; }}
+  .receipt strong {{ color: #a1a1aa; }}
+  .stat {{ color: #22c55e; font-size: 1.1rem; font-weight: 600; margin: 16px 0; }}
+  .actions {{ margin-top: 24px; }}
+  .actions a {{ display: block; padding: 14px; border: 1px solid #1e1e2e; border-radius: 8px; color: #e4e4e7; text-decoration: none; margin-bottom: 10px; font-size: 15px; }}
+  .actions a:hover {{ border-color: #22c55e; }}
+  .actions a.primary {{ background: #22c55e; color: #0a0a0f; border-color: #22c55e; font-weight: 600; }}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="check">&#10003;</div>
+  <h1>Thanks! Your eval has been <span>committed</span>.</h1>
+  <div class="receipt"><strong>Receipt:</strong> {receipt}</div>
+  <p class="stat">{contributor_count} practitioners have contributed evaluations</p>
+  <p style="color:#71717a;font-size:13px;margin-top:8px;">Your receipt is a Merkle inclusion proof. Individual scores are aggregated and discarded.</p>
+  <div class="actions">
+    <a href="/contribute" class="primary">Share with a colleague</a>
+    <a href="/">Back to nur.saramena.us</a>
+  </div>
+</div>
+</body>
+</html>"""
 
     return app
 

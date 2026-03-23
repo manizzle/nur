@@ -3087,7 +3087,7 @@ def remediation(threat, techniques, api_url, api_key, json_output):
         click.echo(json.dumps(data, indent=2))
         return
 
-    click.echo(f"\n  Remediation Intelligence")
+    click.echo("\n  Remediation Intelligence")
     click.echo(f"  {'=' * 50}")
     if data.get("threat"):
         click.echo(f"  Threat: {data['threat']}")
@@ -3095,18 +3095,18 @@ def remediation(threat, techniques, api_url, api_key, json_output):
     rem = data.get("remediation", {})
     by_cat = rem.get("by_category", {})
     if by_cat:
-        click.echo(f"\n  By category:")
+        click.echo("\n  By category:")
         for cat, effs in by_cat.items():
             total = sum(effs.values())
             click.echo(f"    {cat}: {total} actions")
     sev = rem.get("severity_distribution", {})
     if sev:
-        click.echo(f"\n  Severity distribution:")
+        click.echo("\n  Severity distribution:")
         for level, count in sev.items():
             click.echo(f"    {level}: {count}")
     techs = data.get("techniques")
     if techs:
-        click.echo(f"\n  Techniques:")
+        click.echo("\n  Techniques:")
         for t in techs:
             click.echo(f"    {t['technique_id']}: {t['frequency']}x observed")
     proof = data.get("proof", {})
@@ -3151,7 +3151,7 @@ def coverage(tools, api_url, api_key, json_output):
         click.echo(json.dumps(data, indent=2))
         return
 
-    click.echo(f"\n  Coverage Analysis")
+    click.echo("\n  Coverage Analysis")
     click.echo(f"  {'=' * 50}")
     click.echo(f"  Tools: {', '.join(data.get('tools', []))}")
     click.echo(f"  Total techniques: {data.get('total_techniques', 0)}")
@@ -3160,7 +3160,7 @@ def coverage(tools, api_url, api_key, json_output):
     click.echo(f"  Coverage: {data.get('coverage_pct', 0)}%")
     gap_details = data.get("gap_details", [])
     if gap_details:
-        click.echo(f"\n  Top detection gaps:")
+        click.echo("\n  Top detection gaps:")
         for g in gap_details[:10]:
             catchers = ", ".join(g.get("caught_by", [])[:3])
             click.echo(f"    {g['technique_id']}: {g.get('frequency', 0)}x observed — caught by: {catchers or 'none'}")
@@ -3236,7 +3236,7 @@ def match(file, api_url, api_key, json_output):
         click.echo(json.dumps({"matches": all_matches, "total": len(all_matches)}, indent=2))
         return
 
-    click.echo(f"\n  IOC Match Results")
+    click.echo("\n  IOC Match Results")
     click.echo(f"  {'=' * 50}")
     click.echo(f"  Files processed: {len(all_matches)}")
     for i, m in enumerate(all_matches, 1):
