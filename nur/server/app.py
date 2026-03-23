@@ -40,6 +40,7 @@ from .routes.secagg import router as secagg_router
 from .routes.intelligence import router as intel_router
 from .routes.search import router as search_router
 from .routes.tiers import router as tiers_router
+from ..vendors import VENDORS
 
 
 # ── App setup ────────────────────────────────────────────────────────────────
@@ -2668,7 +2669,8 @@ window.addEventListener('scroll', function() {
 
     @app.get("/contribute", response_class=HTMLResponse)
     async def contribute_form():
-        return """<!DOCTYPE html>
+        _vendor_options = "\n      ".join(f'<option value="{v}">' for v in VENDORS)
+        _html = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -2734,12 +2736,7 @@ window.addEventListener('scroll', function() {
     <label>What tool are you evaluating? <span class="required">*</span></label>
     <input type="text" name="vendor" list="vendor-list" required placeholder="e.g. CrowdStrike, Wiz, Okta...">
     <datalist id="vendor-list">
-      <option value="CrowdStrike"><option value="SentinelOne"><option value="Microsoft Defender">
-      <option value="Cortex XDR"><option value="Splunk"><option value="Elastic">
-      <option value="Wiz"><option value="Prisma Cloud"><option value="Okta">
-      <option value="Proofpoint"><option value="Zscaler"><option value="Darktrace">
-      <option value="Vectra"><option value="Rapid7"><option value="Tenable">
-      <option value="Qualys"><option value="Carbon Black"><option value="Sophos">
+      %%VENDOR_OPTIONS%%
     </datalist>
 
     <label>Category</label>
@@ -2885,6 +2882,7 @@ async function submitVoice() {
 </script>
 </body>
 </html>"""
+        return _html.replace("%%VENDOR_OPTIONS%%", _vendor_options)
 
     @app.post("/contribute")
     async def contribute_web_form(request: Request):
