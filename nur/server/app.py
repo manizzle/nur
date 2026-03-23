@@ -2713,6 +2713,23 @@ window.addEventListener('scroll', function() {
   <h1>nur <span>eval</span></h1>
   <p class="subtitle">Rate your security tool in 60 seconds. Anonymous + cryptographic receipt.</p>
 
+  <!-- Voice recording option -->
+  <div id="voice-section" style="margin-bottom:24px;padding:20px;background:#111118;border:1px solid #1e1e2e;border-radius:12px;text-align:center;">
+    <p style="color:#a1a1aa;font-size:14px;margin-bottom:12px;">Don't want to type? Just tell us.</p>
+    <button type="button" id="voice-btn" onclick="toggleRecording()" style="width:100%;padding:16px;background:#1e1e2e;color:#e4e4e7;border:2px solid #333;border-radius:8px;font-size:16px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;">
+      Tap to record your eval
+    </button>
+    <p id="voice-status" style="color:#555;font-size:12px;margin-top:8px;display:none;"></p>
+    <p style="color:#555;font-size:11px;margin-top:8px;">Example: "I use CrowdStrike for EDR, pay about 50K a year, support is great, 9 out of 10, would buy again"</p>
+    <div id="voice-done" style="display:none;margin-top:12px;">
+      <p style="color:#22c55e;font-weight:600;margin-bottom:8px;">Recorded!</p>
+      <input type="email" id="voice-email" placeholder="Work email (required)" style="width:100%;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e4e4e7;font-size:16px;font-family:'Inter',sans-serif;margin-bottom:8px;">
+      <button type="button" id="voice-submit" onclick="submitVoice()" style="width:100%;padding:14px;background:#22c55e;color:#0a0a0f;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">Submit voice eval</button>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:#555;font-size:13px;margin-bottom:20px;">— or fill out the form below —</div>
+
   <form method="post" action="/contribute" id="evalForm">
     <label>What tool are you evaluating? <span class="required">*</span></label>
     <input type="text" name="vendor" list="vendor-list" required placeholder="e.g. CrowdStrike, Wiz, Okta...">
@@ -2795,6 +2812,76 @@ function setBuy(val, el) {
   document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
 }
+
+// Voice recording
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function toggleRecording() {
+  const btn = document.getElementById('voice-btn');
+  const status = document.getElementById('voice-status');
+  status.style.display = 'block';
+
+  if (!isRecording) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        document.getElementById('voice-done').style.display = 'block';
+        btn.textContent = 'Re-record';
+        btn.style.borderColor = '#22c55e';
+        status.textContent = 'Recording saved. Add your email and submit.';
+      };
+      mediaRecorder.start();
+      isRecording = true;
+      btn.textContent = 'Tap to stop recording';
+      btn.style.background = '#1a0a0a';
+      btn.style.borderColor = '#ef4444';
+      status.textContent = 'Recording...';
+    } catch (e) {
+      status.textContent = 'Microphone access denied. Use the form below instead.';
+    }
+  } else {
+    mediaRecorder.stop();
+    isRecording = false;
+  }
+}
+
+async function submitVoice() {
+  const email = document.getElementById('voice-email').value.trim();
+  if (!email || !email.includes('@')) {
+    alert('Work email required');
+    return;
+  }
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const formData = new FormData();
+  formData.append('audio', blob, 'eval.webm');
+  formData.append('email', email);
+
+  document.getElementById('voice-submit').textContent = 'Submitting...';
+  document.getElementById('voice-submit').disabled = true;
+
+  try {
+    const resp = await fetch('/contribute/voice', { method: 'POST', body: formData });
+    if (resp.ok) {
+      const data = await resp.json();
+      window.location.href = '/contribute/thanks?receipt=' + data.receipt_id + '&vendor=voice-eval';
+    } else {
+      const err = await resp.json();
+      alert(err.detail || 'Error submitting. Try the form below.');
+      document.getElementById('voice-submit').textContent = 'Submit voice eval';
+      document.getElementById('voice-submit').disabled = false;
+    }
+  } catch (e) {
+    alert('Network error. Try the form below.');
+    document.getElementById('voice-submit').textContent = 'Submit voice eval';
+    document.getElementById('voice-submit').disabled = false;
+  }
+}
 </script>
 </body>
 </html>"""
@@ -2860,6 +2947,46 @@ function setBuy(val, el) {
             url=f"/contribute/thanks?receipt={receipt_id}&vendor={urllib.parse.quote(vendor)}",
             status_code=303,
         )
+
+    @app.post("/contribute/voice")
+    async def contribute_voice(request: Request):
+        """Accept a voice recording for eval. Store audio for later processing."""
+        form = await request.form()
+        email = str(form.get("email", "")).strip().lower()
+        audio = form.get("audio")
+
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Work email required")
+
+        domain = email.split("@")[1]
+        if domain in _FREE_EMAIL_DOMAINS:
+            raise HTTPException(status_code=400, detail=f"Work email required. {domain} not accepted.")
+
+        # Store audio file
+        import uuid
+        audio_id = str(uuid.uuid4())[:8]
+        audio_dir = "/tmp/nur-voice-evals"
+        os.makedirs(audio_dir, exist_ok=True)
+        audio_path = f"{audio_dir}/{audio_id}.webm"
+
+        if audio:
+            content = await audio.read()
+            with open(audio_path, "wb") as f:
+                f.write(content)
+
+        # Create a placeholder contribution
+        db = get_db()
+        engine = get_proof_engine()
+        payload = {"data": {"vendor": "voice-pending", "category": "pending", "notes_audio": audio_id}}
+        cid = await db.store_eval_record(payload)
+        receipt = engine.commit_contribution("voice-pending", "pending", {"audio_id": audio_id})
+
+        # BDP tracking
+        profile = get_or_create_profile(None)
+        profile.contribution_types.add("voice_eval")
+        profile.total_contributions += 1
+
+        return {"status": "accepted", "receipt_id": receipt.receipt_id, "audio_id": audio_id}
 
     @app.get("/contribute/thanks", response_class=HTMLResponse)
     async def contribute_thanks(receipt: str = "", vendor: str = ""):
