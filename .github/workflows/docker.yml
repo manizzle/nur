@@ -1,7 +1,9 @@
 name: Build & Push Docker Image
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   release:
     types: [published]
@@ -13,6 +15,8 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Only build if CI passed (or if this is a release)
+    if: ${{ github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
