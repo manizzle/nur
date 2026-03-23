@@ -17,10 +17,12 @@
 
 Attackers share everything. Defenders share nothing. nur fixes that.
 
-- **Wartime** — under attack? Upload IOCs, get campaign matches and detection gaps.
-- **Peacetime** — evaluating tools? Get real practitioner benchmarks: price, support, detection, decision intel.
+**Why contribute?** You give one eval, you get forty back. That's a 40x return on data.
 
-The server commits to every value, proves every aggregate, and discards individual data. Cryptographic receipts, Merkle proofs, and aggregate-only responses. Your data can't be mined — math, not promises.
+- **Wartime** — under attack? Upload IOCs, get remediation steps that your peers actually used. Not a vendor's whitepaper — what real practitioners did when they got hit by the same threat actor.
+- **Peacetime** — evaluating tools? Get real practitioner benchmarks: pricing, support quality, detection rates, and what people actually chose and why. A Blind or Bloomberg Terminal for security, not Gartner.
+
+The server commits to every value, proves every aggregate, and discards individual data. Your data can't be mined — math, not promises. [Legal analysis →](COMPLIANCE.md)
 
 > [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [docs](https://nur.saramena.us/guide) · [register](https://nur.saramena.us/register)
 
