@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-605_passing-2ed573" />
+  <img src="https://img.shields.io/badge/tests-616_passing-2ed573" />
   <img src="https://img.shields.io/badge/sources-37_live-ff6b6b" />
   <img src="https://img.shields.io/badge/vendors-36_tracked-ffa502" />
   <img src="https://img.shields.io/badge/license-AGPL--3.0-1e90ff" />

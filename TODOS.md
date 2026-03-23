@@ -69,30 +69,6 @@
 
 ## P2 — Product Features
 
-### Invite-Only / Referral System
-**What:** Add invite codes so existing users can invite peers. Limits spam, builds community organically.
-**Why:** Solves two problems: (1) anti-spam without heavy auth friction, (2) builds community through trust chains — security people trust referrals from peers.
-**How it works:**
-- Each registered user gets 3-5 invite codes
-- New users need an invite code OR a work email to register
-- Invite chains are tracked (who invited whom) for community growth metrics
-- Invited users inherit a small credibility boost in BDP (their inviter vouched for them)
-**Effort:** M (human: ~1 week / CC: ~30 min)
-**Depends on:** Nothing
-**Priority:** P2
-
-### Web-Based Eval Form
-**What:** A /contribute page on the website where non-security people can submit vendor evals without installing the CLI.
-**Why:** Yushea has interested people who aren't going to install a CLI. Procurement teams, IT managers, MSP operators know pricing and support quality but won't use terminal tools.
-**How it works:**
-- User enters work email → magic link → logged in with API key in cookie
-- Fill out eval form (vendor, scores, pricing, support, decision)
-- Submit → hits POST /contribute/submit with API key
-- Get receipt back
-**Effort:** M (human: ~1 week / CC: ~30 min)
-**Depends on:** Nothing — existing email verification flow supports this
-**Priority:** P2
-
 ### Vendor Demo Marketplace
 **What:** Vendor profile pages at /vendor/{name} showing practitioner aggregate scores + vendor-submitted demo videos.
 **Why:** Creates a complete evaluation experience — truth layer (anonymous scores) + marketing layer (vendor demos). Revenue model: vendors pay for featured listings, lead gen metrics.
@@ -177,10 +153,11 @@
 
 ## Completed
 
-- [x] Trustless pipeline integration (575→595 tests)
+- [x] Trustless server architecture + business tiers (616 tests)
 - [x] Blind category discovery
 - [x] Public taxonomy (NIST/D3FEND/RE&CT)
 - [x] BDP behavioral profile tracking (all endpoints)
+- [x] Behavioral Differential Privacy (BDP) — anti-poisoning defense
 - [x] Expanded eval schema (price, support, performance, decision)
 - [x] COMPLIANCE.md — legal-ready regulatory analysis
 - [x] AGPL-3.0 + CLA dual licensing (in first commit)
@@ -192,3 +169,9 @@
 - [x] Vendor profile pages (/vendor/{id} + claim flow)
 - [x] YC application draft (docs/yc-application.md)
 - [x] CI lint fixes (ruff.toml + 129 auto-fixes)
+- [x] Invite-only referral system (invite codes, trust chains, BDP credibility boost)
+- [x] Slack remediation notifications (auto-alert on campaign matches)
+- [x] Web-based eval form (/contribute — rate your tool in 60 seconds)
+- [x] Voice recording collection (/contribute/voice — speak your eval)
+- [x] Dice chain verification (client hash matches server commitment end-to-end)
+- [x] Credibility engine — defend against data poisoning
