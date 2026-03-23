@@ -2599,6 +2599,70 @@ window.addEventListener('scroll', function() {
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/guide")
 
+    # ── v1 API endpoints (agent/CLI consumption) ─────────────────────
+
+    @app.get("/api/v1/remediation")
+    async def api_remediation(threat: str | None = None, techniques: str | None = None):
+        """What remediation worked for this threat -- aggregate only."""
+        engine = get_proof_engine()
+        stats = engine.get_remediation_stats()
+        technique_data = []
+        if techniques:
+            for tid in techniques.split(","):
+                tid = tid.strip()
+                freq = engine._technique_freq.get(tid, 0)
+                technique_data.append({"technique_id": tid, "frequency": freq})
+        return {
+            "threat": threat,
+            "total_attack_reports": stats["attack_map_count"],
+            "remediation": {
+                "by_category": stats.get("by_category", {}),
+                "severity_distribution": stats.get("severity_distribution", {}),
+                "typical_detect_time": stats.get("time_to_detect", {}),
+                "typical_contain_time": stats.get("time_to_contain", {}),
+            },
+            "techniques": technique_data if technique_data else None,
+            "proof": {
+                "merkle_root": engine.merkle_root,
+                "total_contributions": engine.total_contributions,
+            },
+        }
+
+    @app.get("/api/v1/coverage")
+    async def api_coverage(tools: str):
+        """Detection gap analysis for your tool stack."""
+        engine = get_proof_engine()
+        tool_list = [t.strip() for t in tools.split(",")]
+        coverage = engine.get_technique_coverage(tool_list)
+        return {
+            **coverage,
+            "proof": {
+                "merkle_root": engine.merkle_root,
+                "total_contributions": engine.total_contributions,
+            },
+        }
+
+    @app.get("/api/v1/benchmark")
+    async def api_benchmark(vertical: str, org_size: str | None = None):
+        """Org benchmarking -- how do peers in your vertical compare."""
+        db = get_db()
+        engine = get_proof_engine()
+        stats = await db.get_stats()
+        platform_stats = engine.get_platform_stats()
+        return {
+            "vertical": vertical,
+            "org_size": org_size,
+            "platform": {
+                "total_contributions": stats.get("total_contributions", 0),
+                "unique_vendors": platform_stats.get("unique_vendors", 0),
+                "unique_techniques": platform_stats.get("unique_techniques", 0),
+            },
+            "proof": {
+                "merkle_root": engine.merkle_root,
+                "total_contributions": engine.total_contributions,
+            },
+        }
+
     return app
 
 

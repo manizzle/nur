@@ -2153,3 +2153,112 @@ class TestInviteSystem:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.get("/invites")
             assert resp.status_code == 401
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# v1 API Endpoints — agent/CLI consumption
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def _make_v1_app():
+    """Create a fresh app with initialized DB and ProofEngine for v1 API tests."""
+    import nur.server.app as app_mod
+    from nur.server.db import Database
+    from nur.server.proofs import ProofEngine
+    the_app = app_mod.create_app("sqlite+aiosqlite://")
+    db = Database("sqlite+aiosqlite://")
+    await db.init()
+    app_mod._db = db
+    app_mod._proof_engine = ProofEngine()
+    return the_app
+
+
+class TestV1APIEndpoints:
+    """v1 API endpoints for agent/CLI consumption."""
+
+    @pytest.mark.asyncio
+    async def test_remediation_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/remediation")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "remediation" in data
+            assert "proof" in data
+            assert "merkle_root" in data["proof"]
+            assert "total_contributions" in data["proof"]
+
+    @pytest.mark.asyncio
+    async def test_remediation_with_threat(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/remediation?threat=lockbit")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["threat"] == "lockbit"
+
+    @pytest.mark.asyncio
+    async def test_remediation_with_techniques(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/remediation?techniques=T1059,T1566")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["techniques"] is not None
+            assert len(data["techniques"]) == 2
+            assert data["techniques"][0]["technique_id"] == "T1059"
+
+    @pytest.mark.asyncio
+    async def test_coverage_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/coverage?tools=crowdstrike,splunk")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "proof" in data
+            assert "tools" in data
+            assert "crowdstrike" in data["tools"]
+            assert "coverage_pct" in data
+
+    @pytest.mark.asyncio
+    async def test_coverage_missing_tools(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/coverage")
+            assert resp.status_code == 422  # missing required param
+
+    @pytest.mark.asyncio
+    async def test_benchmark_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/benchmark?vertical=energy")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["vertical"] == "energy"
+            assert "proof" in data
+            assert "platform" in data
+            assert "total_contributions" in data["platform"]
+
+    @pytest.mark.asyncio
+    async def test_benchmark_with_org_size(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/benchmark?vertical=healthcare&org_size=200-500")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["vertical"] == "healthcare"
+            assert data["org_size"] == "200-500"
+
+    @pytest.mark.asyncio
+    async def test_benchmark_missing_vertical(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_v1_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/benchmark")
+            assert resp.status_code == 422  # missing required param

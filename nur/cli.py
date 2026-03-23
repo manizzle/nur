@@ -2905,6 +2905,357 @@ def privacy_levels_cmd(as_json):
         click.echo()
 
 
+# ── Compare (side-by-side vendor comparison) ────────────────────────────
+
+@main.command()
+@click.argument("vendors", nargs=-1, required=True)
+@click.option("--vertical", default=None, help="Filter by vertical (healthcare, energy, financial)")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def compare(vendors, vertical, api_url, api_key, json_output):
+    """Compare security vendors side-by-side on price, detection, support."""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    import httpx
+
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    vendor_list = list(vendors)
+    if len(vendor_list) < 2:
+        click.echo("  Need at least 2 vendors to compare.")
+        raise SystemExit(1)
+
+    # Compare pairs — first two directly, additional ones merged
+    all_results = []
+    pairs = [(vendor_list[i], vendor_list[i + 1]) for i in range(0, len(vendor_list) - 1, 2)]
+    # If odd number, pair last with first
+    if len(vendor_list) > 2 and len(vendor_list) % 2 == 1:
+        pairs.append((vendor_list[-1], vendor_list[0]))
+
+    with httpx.Client(timeout=30) as http:
+        for a, b in pairs:
+            params = {"a": a, "b": b}
+            if vertical:
+                params["vertical"] = vertical
+            resp = http.get(
+                f"{api_url.rstrip('/')}/search/compare",
+                params=params,
+                headers=headers,
+            )
+            if resp.status_code != 200:
+                click.echo(f"  Error comparing {a} vs {b}: {resp.status_code} {resp.text[:200]}")
+                continue
+            all_results.append(resp.json())
+
+    if not all_results:
+        click.echo("  No comparison data returned.")
+        return
+
+    if json_output:
+        output = {
+            "comparisons": all_results,
+            "vendors": vendor_list,
+            "vertical": vertical,
+        }
+        click.echo(json.dumps(output, indent=2))
+        return
+
+    # Human-readable comparison table
+    for comp in all_results:
+        a = comp.get("vendor_a", {})
+        b = comp.get("vendor_b", {})
+        click.echo(f"\n  {'':30s} {'A':>12s}  {'B':>12s}")
+        click.echo(f"  {'Vendor':30s} {a.get('vendor_display', '?'):>12s}  {b.get('vendor_display', '?'):>12s}")
+        click.echo(f"  {'=' * 56}")
+
+        def _fmt(val):
+            if val is None:
+                return "?"
+            if isinstance(val, float):
+                return f"{val:.1f}"
+            return str(val)
+
+        click.echo(f"  {'Weighted Score':30s} {_fmt(a.get('weighted_score')):>12s}  {_fmt(b.get('weighted_score')):>12s}")
+        click.echo(f"  {'Confidence':30s} {_fmt(a.get('confidence')):>12s}  {_fmt(b.get('confidence')):>12s}")
+        click.echo(f"  {'Eval Count':30s} {_fmt(a.get('eval_count')):>12s}  {_fmt(b.get('eval_count')):>12s}")
+        click.echo(f"  {'Category':30s} {_fmt(a.get('category')):>12s}  {_fmt(b.get('category')):>12s}")
+        if a.get("price_range") or b.get("price_range"):
+            click.echo(f"  {'Price Range':30s} {_fmt(a.get('price_range')):>12s}  {_fmt(b.get('price_range')):>12s}")
+    click.echo()
+
+
+# ── Benchmark (org benchmarking against peers) ──────────────────────────
+
+@main.command()
+@click.option("--vertical", required=True, help="Industry vertical")
+@click.option("--org-size", default=None, help="Organization size range (e.g., 200-500)")
+@click.option("--metric", default=None, help="Specific metric (budget, headcount, tools)")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def benchmark(vertical, org_size, metric, api_url, api_key, json_output):
+    """How does your org compare to peers in your vertical?"""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    import httpx
+
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    params = {"vertical": vertical}
+    if org_size:
+        params["org_size"] = org_size
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(
+            f"{api_url.rstrip('/')}/api/v1/benchmark",
+            params=params,
+            headers=headers,
+        )
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  Benchmark: {data.get('vertical', vertical)}")
+    click.echo(f"  {'=' * 50}")
+    platform = data.get("platform", {})
+    click.echo(f"  Total contributions:  {platform.get('total_contributions', 0)}")
+    click.echo(f"  Unique vendors:       {platform.get('unique_vendors', 0)}")
+    click.echo(f"  Unique techniques:    {platform.get('unique_techniques', 0)}")
+    proof = data.get("proof", {})
+    if proof.get("merkle_root"):
+        click.echo(f"  Merkle root:          {proof['merkle_root'][:16]}...")
+    click.echo()
+
+
+# ── Remediation (what worked when peers got hit) ────────────────────────
+
+@main.command()
+@click.option("--threat", default=None, help="Threat name (e.g., lockbit, apt29)")
+@click.option("--techniques", default=None, help="MITRE technique IDs (comma-separated)")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def remediation(threat, techniques, api_url, api_key, json_output):
+    """What remediation worked when peers got hit by this threat?"""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    import httpx
+
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    params = {}
+    if threat:
+        params["threat"] = threat
+    if techniques:
+        params["techniques"] = techniques
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(
+            f"{api_url.rstrip('/')}/api/v1/remediation",
+            params=params,
+            headers=headers,
+        )
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  Remediation Intelligence")
+    click.echo(f"  {'=' * 50}")
+    if data.get("threat"):
+        click.echo(f"  Threat: {data['threat']}")
+    click.echo(f"  Total attack reports: {data.get('total_attack_reports', 0)}")
+    rem = data.get("remediation", {})
+    by_cat = rem.get("by_category", {})
+    if by_cat:
+        click.echo(f"\n  By category:")
+        for cat, effs in by_cat.items():
+            total = sum(effs.values())
+            click.echo(f"    {cat}: {total} actions")
+    sev = rem.get("severity_distribution", {})
+    if sev:
+        click.echo(f"\n  Severity distribution:")
+        for level, count in sev.items():
+            click.echo(f"    {level}: {count}")
+    techs = data.get("techniques")
+    if techs:
+        click.echo(f"\n  Techniques:")
+        for t in techs:
+            click.echo(f"    {t['technique_id']}: {t['frequency']}x observed")
+    proof = data.get("proof", {})
+    if proof.get("merkle_root"):
+        click.echo(f"\n  Merkle root: {proof['merkle_root'][:16]}...")
+    click.echo()
+
+
+# ── Coverage (detection gap analysis) ───────────────────────────────────
+
+@main.command()
+@click.option("--tools", required=True, help="Your tools (comma-separated)")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def coverage(tools, api_url, api_key, json_output):
+    """What are your detection gaps based on your tool stack?"""
+    api_url = _get_api_url(api_url)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    import httpx
+
+    headers = {}
+    key = _get_api_key(api_key)
+    if key:
+        headers["X-API-Key"] = key
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(
+            f"{api_url.rstrip('/')}/api/v1/coverage",
+            params={"tools": tools},
+            headers=headers,
+        )
+
+    if resp.status_code != 200:
+        click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if json_output:
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    click.echo(f"\n  Coverage Analysis")
+    click.echo(f"  {'=' * 50}")
+    click.echo(f"  Tools: {', '.join(data.get('tools', []))}")
+    click.echo(f"  Total techniques: {data.get('total_techniques', 0)}")
+    click.echo(f"  Covered: {data.get('covered', 0)}")
+    click.echo(f"  Gaps: {data.get('gaps', 0)}")
+    click.echo(f"  Coverage: {data.get('coverage_pct', 0)}%")
+    gap_details = data.get("gap_details", [])
+    if gap_details:
+        click.echo(f"\n  Top detection gaps:")
+        for g in gap_details[:10]:
+            catchers = ", ".join(g.get("caught_by", [])[:3])
+            click.echo(f"    {g['technique_id']}: {g.get('frequency', 0)}x observed — caught by: {catchers or 'none'}")
+    proof = data.get("proof", {})
+    if proof.get("merkle_root"):
+        click.echo(f"\n  Merkle root: {proof['merkle_root'][:16]}...")
+    click.echo()
+
+
+# ── Match (IOC matching against collective) ─────────────────────────────
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True))
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def match(file, api_url, api_key, json_output):
+    """Check if your IOCs match known campaigns in the collective."""
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL configured. Run: nur init")
+        raise SystemExit(1)
+    import httpx
+
+    contribs = load_file(file)
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
+
+    try:
+        from .keystore import get_or_create_keypair, sign_request
+        _, priv_key = get_or_create_keypair()
+    except Exception:
+        priv_key = None
+
+    all_matches = []
+    for c in contribs:
+        clean = anonymize(c)
+        from .client import _serialize
+        payload = _serialize(clean)
+
+        if priv_key:
+            body_bytes = json.dumps(payload, sort_keys=True).encode()
+            headers["X-Signature"] = sign_request(body_bytes, priv_key)
+
+        with httpx.Client(timeout=30) as http:
+            resp = http.post(f"{api_url.rstrip('/')}/analyze", json=payload, headers=headers)
+
+        if resp.status_code != 200:
+            click.echo(f"  Error: {resp.status_code} {resp.text[:200]}")
+            continue
+
+        result = resp.json()
+        intel = result.get("intelligence", {})
+        match_result = {
+            "contribution_id": result.get("contribution_id"),
+            "campaign_match": intel.get("campaign_match", False),
+            "shared_ioc_count": intel.get("shared_ioc_count", 0),
+            "ioc_type_distribution": intel.get("ioc_type_distribution", {}),
+            "coverage_score": intel.get("coverage_score"),
+            "detection_gaps": intel.get("detection_gaps", []),
+        }
+        if result.get("receipt"):
+            match_result["proof"] = {
+                "commitment_hash": result["receipt"].get("commitment_hash"),
+                "merkle_root": result["receipt"].get("merkle_root"),
+            }
+        all_matches.append(match_result)
+
+    if json_output:
+        click.echo(json.dumps({"matches": all_matches, "total": len(all_matches)}, indent=2))
+        return
+
+    click.echo(f"\n  IOC Match Results")
+    click.echo(f"  {'=' * 50}")
+    click.echo(f"  Files processed: {len(all_matches)}")
+    for i, m in enumerate(all_matches, 1):
+        click.echo(f"\n  Match {i}:")
+        click.echo(f"    Campaign match: {'Yes' if m.get('campaign_match') else 'No'}")
+        click.echo(f"    Shared IOCs: {m.get('shared_ioc_count', 0)}")
+        ioc_dist = m.get("ioc_type_distribution", {})
+        if ioc_dist:
+            click.echo(f"    IOC types: {', '.join(f'{k}={v}' for k, v in ioc_dist.items())}")
+        if m.get("coverage_score") is not None:
+            click.echo(f"    Coverage: {int(m['coverage_score'] * 100)}%")
+        gaps = m.get("detection_gaps", [])
+        if gaps:
+            click.echo(f"    Detection gaps: {len(gaps)}")
+            for g in gaps[:5]:
+                click.echo(f"      - {g.get('technique_id', '?')}")
+    click.echo()
+
+
 # ── Slack Integration ────────────────────────────────────────────────────
 
 @main.command("integrate-slack")
