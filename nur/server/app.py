@@ -2665,6 +2665,16 @@ window.addEventListener('scroll', function() {
             },
         }
 
+    # ── Vendor metadata API (used by /contribute form) ───────────────
+
+    @app.get("/api/v1/vendor-meta")
+    async def vendor_metadata(vendor: str):
+        """Get category and competitors for a vendor."""
+        from ..vendor_metadata import get_category, get_competitors
+        cat = get_category(vendor)
+        competitors = get_competitors(vendor, cat)
+        return {"vendor": vendor, "category": cat, "competitors": competitors}
+
     # ── Web contribute form (mobile-first, no auth) ──────────────────
 
     @app.get("/contribute", response_class=HTMLResponse)
@@ -2752,8 +2762,12 @@ window.addEventListener('scroll', function() {
       <option value="waf">WAF</option>
       <option value="ndr">NDR</option>
       <option value="soar">SOAR</option>
+      <option value="compliance">Compliance</option>
+      <option value="security_awareness">Security Awareness</option>
+      <option value="mdr">MDR</option>
       <option value="other">Other</option>
     </select>
+    <div id="competitors-section" style="display:none;"></div>
 
     <label>Overall score <span class="required">*</span></label>
     <div class="score-display" id="overall-val">5</div>
@@ -2804,6 +2818,43 @@ window.addEventListener('scroll', function() {
   <a href="/" class="back-link">nur.saramena.us</a>
 </div>
 <script>
+// Auto-fill category and show competitors
+let vendorInput = document.querySelector('input[name="vendor"]');
+let categorySelect = document.querySelector('select[name="category"]');
+
+vendorInput.addEventListener('change', fetchVendorMeta);
+vendorInput.addEventListener('blur', fetchVendorMeta);
+
+async function fetchVendorMeta() {
+  let vendor = vendorInput.value.trim();
+  if (!vendor) return;
+
+  try {
+    let resp = await fetch('/api/v1/vendor-meta?vendor=' + encodeURIComponent(vendor));
+    let data = await resp.json();
+
+    // Auto-fill category
+    if (data.category && categorySelect) {
+      categorySelect.value = data.category;
+    }
+
+    // Show competitors
+    let compSection = document.getElementById('competitors-section');
+    if (data.competitors && data.competitors.length > 0) {
+      let html = '<label style="margin-top:16px;">Did you also evaluate? <span class="optional">(select any)</span></label>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">';
+      data.competitors.forEach(c => {
+        html += '<label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#111118;border:1px solid #1e1e2e;border-radius:6px;cursor:pointer;font-size:14px;">';
+        html += '<input type="checkbox" name="also_evaluated" value="' + c + '" style="width:auto;margin:0;">';
+        html += c + '</label>';
+      });
+      html += '</div>';
+      compSection.innerHTML = html;
+      compSection.style.display = 'block';
+    }
+  } catch(e) {}
+}
+
 function setBuy(val, el) {
   document.getElementById('would_buy').value = val;
   document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
@@ -2919,6 +2970,9 @@ async function submitVoice() {
             payload["data"]["support_quality"] = float(support_quality)
         if decision_factor:
             payload["data"]["decision_factor"] = decision_factor
+        also_evaluated = form.getlist("also_evaluated")
+        if also_evaluated:
+            payload["data"]["also_evaluated"] = list(also_evaluated)
 
         # Store through trustless pipeline
         db = get_db()

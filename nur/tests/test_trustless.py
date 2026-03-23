@@ -2303,3 +2303,36 @@ class TestWebContributeForm:
                 "email": "test@gmail.com",
             })
             assert resp.status_code == 400
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Vendor Metadata — category auto-fill + competitor suggestions
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestVendorMetadata:
+    def test_get_category(self):
+        from nur.vendor_metadata import get_category
+        assert get_category("CrowdStrike") == "edr"
+        assert get_category("Splunk") == "siem"
+        assert get_category("nonexistent") is None
+
+    def test_get_competitors(self):
+        from nur.vendor_metadata import get_competitors
+        comps = get_competitors("CrowdStrike")
+        assert "SentinelOne" in comps
+        assert "CrowdStrike" not in comps  # shouldn't include self
+
+    @pytest.fixture
+    def app(self):
+        import nur.server.app as app_mod
+        return app_mod.create_app("sqlite+aiosqlite://")
+
+    @pytest.mark.asyncio
+    async def test_vendor_meta_endpoint(self, app):
+        from httpx import AsyncClient, ASGITransport
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/vendor-meta?vendor=CrowdStrike")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["category"] == "edr"
+            assert "SentinelOne" in data["competitors"]
