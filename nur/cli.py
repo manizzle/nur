@@ -818,6 +818,38 @@ def scrape_sec(api_url, api_key, max_filings, json_output):
                 click.echo(f"      remediation: {rems}")
 
 
+# ── HHS Breach Portal scraper ───────────────────────────────────────────────
+
+@main.command("scrape-hhs")
+@click.option("--api-url", default=None, help="Server URL (default: from nur init)")
+@click.option("--api-key", default=None, help="API key (default: from nur init)")
+@click.option("--json", "json_output", is_flag=True, help="Output results as JSON")
+def scrape_hhs(api_url, api_key, json_output):
+    """Ingest HHS breach portal data — healthcare breaches (public)."""
+    import asyncio
+    from .feeds.hhs_breach import ingest_hhs_breaches
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL. Run: nur init")
+        return
+
+    results = asyncio.run(ingest_hhs_breaches(api_url, api_key))
+
+    if json_output:
+        click.echo(json.dumps(results, indent=2))
+    else:
+        click.echo("\n  HHS Breach Portal")
+        click.echo(f"  {'=' * 35}")
+        click.echo(f"  Breaches: {results['total']}")
+        click.echo(f"  Ingested: {results['ingested']}")
+        if results['breaches']:
+            click.echo("\n  Major breaches ingested:")
+            for b in results['breaches'][:5]:
+                click.echo(f"    {b['entity']} — {b['affected']:,} affected ({b['type']})")
+
+
 # ── Up (full loop — server + feeds + ready) ──────────────────────────────────
 
 @main.command()
@@ -3319,3 +3351,34 @@ def integrate_slack(webhook_url, api_url, api_key):
         click.echo("  When webhooks fire, you'll get remediation alerts in your channel.")
     else:
         click.echo(f"  Error: {resp.text[:200]}")
+
+
+# ── Lab Data Seeder ─────────────────────────────────────────────────────
+
+@main.command("seed-labs")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def seed_labs(api_url, api_key, json_output):
+    """Seed with MITRE ATT&CK Evals + AV-TEST lab data (public baseline)."""
+    import asyncio
+
+    from .feeds.mitre_evals import ingest_lab_data
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL. Run: nur init")
+        return
+
+    results = asyncio.run(ingest_lab_data(api_url, api_key))
+
+    if json_output:
+        click.echo(json.dumps(results, indent=2))
+    else:
+        click.echo("\n  Lab Data Seeder")
+        click.echo(f"  {'=' * 35}")
+        click.echo(f"  MITRE ATT&CK Evals: {results['mitre_ingested']} ingested")
+        click.echo(f"  AV-TEST results:    {results['avtest_ingested']} ingested")
+        click.echo(f"  Errors:             {results['errors']}")
+        click.echo("\n  Lab baseline established. Practitioner evals build on top.")
