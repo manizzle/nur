@@ -112,12 +112,19 @@ async def search_edgar_filings(
                 hits = data.get("hits", {}).get("hits", [])
                 for hit in hits[:max_results]:
                     source = hit.get("_source", {})
+                    # Handle fields that may be lists or strings
+                    names = source.get("display_names", ["Unknown"])
+                    company = names[0] if isinstance(names, list) and names else str(names)
+                    ciks = source.get("ciks", [""])
+                    cik = ciks[0] if isinstance(ciks, list) and ciks else str(ciks)
+                    # accession number is in 'adsh' field
+                    acc = str(source.get("adsh", ""))
                     filings.append({
-                        "company": source.get("display_names", ["Unknown"])[0] if source.get("display_names") else "Unknown",
-                        "cik": source.get("entity_id", ""),
-                        "filing_date": source.get("file_date", ""),
-                        "accession_number": source.get("file_num", ""),
-                        "form_type": source.get("form_type", ""),
+                        "company": company,
+                        "cik": cik,
+                        "filing_date": str(source.get("file_date", "")),
+                        "accession_number": acc,
+                        "form_type": str(source.get("form", "")),
                     })
     except Exception as e:
         print(f"EDGAR search error: {e}")
