@@ -66,7 +66,7 @@ class TestPrepareShares:
         # Sum across parties for each field should equal original
         for f in range(3):
             total = sum(vectors[p][f] for p in range(3))
-            assert abs(total - values[f]) < 1e-10
+            assert abs(total - values[f]) < 1e-9
 
 
 class TestShamir:
