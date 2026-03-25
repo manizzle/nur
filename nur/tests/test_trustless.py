@@ -2336,3 +2336,30 @@ class TestVendorMetadata:
             data = resp.json()
             assert data["category"] == "edr"
             assert "SentinelOne" in data["competitors"]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Scrape Dedup Layer
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestScrapedItemDedup:
+    @pytest.mark.asyncio
+    async def test_scrape_stats_endpoint(self):
+        from httpx import AsyncClient, ASGITransport
+        app = await _make_proof_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/api/v1/scrape-stats")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "total" in data
+            assert "by_source" in data
+
+
+class TestSOC2Scraper:
+    def test_subprocessor_to_payload(self):
+        from nur.feeds.soc2_subprocessors import SubprocessorEntry, subprocessor_to_eval_payload
+        entry = SubprocessorEntry(company="Notion", subprocessor="CrowdStrike", purpose="endpoint security")
+        payload = subprocessor_to_eval_payload(entry)
+        assert payload["data"]["vendor"] == "CrowdStrike"
+        assert payload["data"]["chose_this_vendor"] is True
+        assert "soc2" in payload["data"]["source"]

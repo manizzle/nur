@@ -195,3 +195,14 @@ class VendorProfile(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class ScrapedItem(Base):
+    """Tracks scraped items for dedup — prevents re-ingestion."""
+    __tablename__ = "scraped_items"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # SHA-256 hash of content
+    source: Mapped[str] = mapped_column(String(100), nullable=False)  # sec-edgar, hhs, pacer, soc2, mitre
+    source_id: Mapped[str | None] = mapped_column(String(500), nullable=True)  # accession number, case number, URL
+    ingested_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON blob

@@ -3415,6 +3415,12 @@ function submitQuick() {
 </html>'''
         return _quick_html
 
+    @app.get("/api/v1/scrape-stats")
+    async def scrape_stats():
+        """Stats on scraped data sources."""
+        db = get_db()
+        return await db.get_scrape_stats()
+
     return app
 
 

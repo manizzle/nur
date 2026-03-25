@@ -884,6 +884,38 @@ def scrape_pacer(api_url, api_key, max_cases, json_output):
                 click.echo(f"    {c['case']} ({c['court']}, {c['date']})")
 
 
+# ── SOC 2 Subprocessor scraper ─────────────────────────────────────────────
+
+@main.command("scrape-soc2")
+@click.option("--api-url", default=None)
+@click.option("--api-key", default=None)
+@click.option("--json", "json_output", is_flag=True)
+def scrape_soc2(api_url, api_key, json_output):
+    """Scrape SOC 2 subprocessor lists — verified tool usage data."""
+    import asyncio
+    from .feeds.soc2_subprocessors import scrape_all_and_ingest
+
+    api_url = _get_api_url(api_url)
+    api_key = _get_api_key(api_key)
+    if not api_url:
+        click.echo("  No server URL. Run: nur init")
+        return
+
+    results = asyncio.run(scrape_all_and_ingest(api_url, api_key))
+
+    if json_output:
+        click.echo(json.dumps(results, indent=2))
+    else:
+        click.echo("\n  SOC 2 Subprocessor Scraper")
+        click.echo(f"  {'=' * 35}")
+        click.echo(f"  Companies scraped: {results['companies_scraped']}")
+        click.echo(f"  Entries found: {results['entries_found']}")
+        click.echo(f"  Ingested: {results['ingested']}")
+        click.echo(f"  Unique vendors detected: {len(results['vendors_found'])}")
+        if results['vendors_found']:
+            click.echo(f"  Vendors: {', '.join(sorted(results['vendors_found']))}")
+
+
 # ── Up (full loop — server + feeds + ready) ──────────────────────────────────
 
 @main.command()

@@ -362,6 +362,41 @@ class Database:
                 })
         return remediations
 
+    # ── Scrape dedup ────────────────────────────────────────────────────
+
+    async def is_scraped(self, content_hash: str) -> bool:
+        """Check if an item has already been scraped and ingested."""
+        from .models import ScrapedItem
+        async with self.session() as s:
+            result = await s.execute(
+                select(ScrapedItem).where(ScrapedItem.id == content_hash)
+            )
+            return result.scalar_one_or_none() is not None
+
+    async def mark_scraped(self, content_hash: str, source: str, source_id: str = "", metadata: dict | None = None) -> None:
+        """Mark an item as scraped to prevent re-ingestion."""
+        from .models import ScrapedItem
+        async with self.session() as s:
+            existing = await s.execute(select(ScrapedItem).where(ScrapedItem.id == content_hash))
+            if existing.scalar_one_or_none():
+                return
+            s.add(ScrapedItem(
+                id=content_hash,
+                source=source,
+                source_id=source_id,
+                metadata_json=json.dumps(metadata) if metadata else None,
+            ))
+
+    async def get_scrape_stats(self) -> dict:
+        """Get counts of scraped items by source."""
+        from .models import ScrapedItem
+        async with self.session() as s:
+            result = await s.execute(
+                select(ScrapedItem.source, func.count(ScrapedItem.id)).group_by(ScrapedItem.source)
+            )
+            stats = {row[0]: row[1] for row in result.all()}
+        return {"total": sum(stats.values()), "by_source": stats}
+
     # ── Aggregate refresh ────────────────────────────────────────────────
 
     async def _refresh_aggregate(self, vendor: str | None) -> None:
