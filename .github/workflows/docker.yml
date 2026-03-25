@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: Build & Push & Deploy
 
 on:
   workflow_run:
@@ -15,7 +15,6 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    # Only build if CI passed (or if this is a release)
     if: ${{ github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
@@ -48,3 +47,29 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Deploy to production
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /home/admin/nur
+            docker compose pull nur
+            docker compose up -d nur
+            echo "Waiting 90s for app startup..."
+            sleep 90
+            docker restart nur-caddy-1
+            sleep 15
+            # Verify
+            for i in 1 2 3 4 5; do
+              HTTP=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:80/health || echo "000")
+              if [ "$HTTP" = "200" ] || [ "$HTTP" = "308" ]; then
+                echo "Deploy verified: HTTP $HTTP"
+                exit 0
+              fi
+              echo "Attempt $i: HTTP $HTTP, waiting..."
+              sleep 10
+            done
+            echo "WARNING: Deploy may not be healthy yet"
