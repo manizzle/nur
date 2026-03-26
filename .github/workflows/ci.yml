@@ -47,3 +47,44 @@ jobs:
 
       - name: Lint
         run: ruff check nur/
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Production Image
+        run: docker build -t nur-smoke .
+
+      - name: Boot Production Stack And Verify Health
+        env:
+          COMPOSE_PROJECT_NAME: nurci
+          NUR_IMAGE: nur-smoke
+          NUR_PORT: "18000"
+          POSTGRES_PASSWORD: nur
+        run: |
+          set -euo pipefail
+
+          cleanup() {
+            docker compose -f docker-compose.prod.yml down -v || true
+          }
+          trap cleanup EXIT
+
+          docker compose -f docker-compose.prod.yml up -d postgres nur-prod
+
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://localhost:18000/health >/dev/null; then
+              echo "Backend healthy on attempt $i/30"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "--- docker compose ps ---"
+          docker compose -f docker-compose.prod.yml ps -a
+          echo "--- nur-prod logs ---"
+          docker compose -f docker-compose.prod.yml logs --tail=200 nur-prod
+          echo "--- postgres logs ---"
+          docker compose -f docker-compose.prod.yml logs --tail=100 postgres
+          exit 1

@@ -104,17 +104,23 @@ def get_proof_engine() -> ProofEngine:
 async def _feed_ingest_loop(app: FastAPI):
     """Background task: scrape public feeds every hour (if NUR_AUTO_INGEST=1)."""
     port = getattr(app.state, "port", 8000)
+    # Let the HTTP server finish booting before the first scrape/ingest cycle.
+    await asyncio.sleep(5)
     while True:
         try:
             from ..feeds import scrape_all, bundle_iocs, ingest_to_server
 
-            results = scrape_all()
+            results = await asyncio.to_thread(scrape_all)
             total = 0
             for feed_name, iocs in results.items():
                 if not iocs:
                     continue
                 bundles = bundle_iocs(iocs, feed_name)
-                count = ingest_to_server(f"http://127.0.0.1:{port}", bundles)
+                count = await asyncio.to_thread(
+                    ingest_to_server,
+                    f"http://127.0.0.1:{port}",
+                    bundles,
+                )
                 total += count
             if total > 0:
                 print(f"  [feed-ingest] Ingested {total} bundles from public feeds")
@@ -254,12 +260,14 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     from .routes.vendors import router as vendors_router
     app.include_router(vendors_router)
 
-    # Conditionally include FL router
-    try:
-        from ..fl.server import router as fl_router
-        app.include_router(fl_router)
-    except ImportError:
-        pass  # FL module not available (missing numpy)
+    # FL routes are opt-in. They depend on numpy and are not required for the
+    # production API, so keep them out of the default server boot path.
+    if os.environ.get("NUR_ENABLE_FL") == "1":
+        try:
+            from ..fl.server import router as fl_router
+            app.include_router(fl_router)
+        except ImportError:
+            pass  # FL module not available in this install
 
     # ── Root ──────────────────────────────────────────────────────────
 

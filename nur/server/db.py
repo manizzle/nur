@@ -15,7 +15,7 @@ from typing import Any, AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession, async_sessionmaker, create_async_engine,
 )
-from sqlalchemy import select, func, text
+from sqlalchemy import literal, select, func, text
 
 from .models import (
     Base, Contribution, IOCHash, AttackTechnique, AggregatedScore,
@@ -23,6 +23,8 @@ from .models import (
 
 
 class Database:
+    _PG_SCHEMA_LOCK_ID = 5131602  # "NUR" as a stable advisory lock key
+
     def __init__(self, url: str = "sqlite+aiosqlite:///nur.db"):
         engine_kwargs: dict = {"echo": False}
         if "postgresql" in url:
@@ -36,6 +38,13 @@ class Database:
     async def init(self) -> None:
         """Create all tables and add any missing columns."""
         async with self.engine.begin() as conn:
+            if self.engine.dialect.name == "postgresql":
+                # Multiple uvicorn workers can race on fresh boot. Serialize
+                # schema creation/migration so only one worker mutates DDL.
+                await conn.execute(
+                    text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                    {"lock_id": self._PG_SCHEMA_LOCK_ID},
+                )
             await conn.run_sync(Base.metadata.create_all)
             # Auto-add columns that were added after initial table creation.
             # create_all won't ALTER existing tables, so we detect and add missing cols.
@@ -47,6 +56,26 @@ class Database:
         from sqlalchemy import inspect as sa_inspect
         log = logging.getLogger("nur.db")
 
+        def _default_sql(col, dialect) -> str | None:
+            """Compile a safe SQL default for schema upgrades when available."""
+            server_default = getattr(col, "server_default", None)
+            if server_default is not None and getattr(server_default, "arg", None) is not None:
+                arg = server_default.arg
+                if hasattr(arg, "compile"):
+                    return str(arg.compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
+                if isinstance(arg, str):
+                    return arg
+
+            default = getattr(col, "default", None)
+            if default is not None and getattr(default, "is_scalar", False):
+                return str(
+                    literal(default.arg).compile(
+                        dialect=dialect,
+                        compile_kwargs={"literal_binds": True},
+                    )
+                )
+            return None
+
         def _sync_add_missing(sync_conn):
             inspector = sa_inspect(sync_conn)
             for table in Base.metadata.sorted_tables:
@@ -56,10 +85,32 @@ class Database:
                 for col in table.columns:
                     if col.name not in existing:
                         col_type = col.type.compile(sync_conn.dialect)
-                        nullable = "NULL" if col.nullable else "NOT NULL"
-                        log.info("Adding column %s.%s (%s)", table.name, col.name, col_type)
+                        default_sql = _default_sql(col, sync_conn.dialect)
+                        add_nullable = col.nullable
+                        if not add_nullable and default_sql is None:
+                            # Existing rows would make `ADD COLUMN ... NOT NULL` fail.
+                            # Add the column as nullable so startup migrations remain safe.
+                            add_nullable = True
+                            log.warning(
+                                "Adding column %s.%s as NULLABLE during upgrade; "
+                                "no server-side default is available",
+                                table.name,
+                                col.name,
+                            )
+                        nullable = "NULL" if add_nullable else "NOT NULL"
+                        default_clause = f" DEFAULT {default_sql}" if default_sql is not None else ""
+                        log.info(
+                            "Adding column %s.%s (%s%s)",
+                            table.name,
+                            col.name,
+                            col_type,
+                            default_clause,
+                        )
                         sync_conn.execute(
-                            text(f'ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type} {nullable}')
+                            text(
+                                f"ALTER TABLE {table.name} ADD COLUMN "
+                                f"{col.name} {col_type}{default_clause} {nullable}"
+                            )
                         )
 
         await conn.run_sync(_sync_add_missing)
