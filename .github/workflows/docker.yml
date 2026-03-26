@@ -37,6 +37,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ github.sha }}
             type=sha,prefix=
             type=ref,event=tag
 
@@ -65,9 +66,14 @@ jobs:
             fi
             DOMAIN=$(grep '^NUR_DOMAIN=' .env | cut -d= -f2)
             echo "NUR_DOMAIN=$DOMAIN"
+            TARGET_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+            echo "TARGET_IMAGE=$TARGET_IMAGE"
 
             # ── Save current image for rollback ─────────────────────────────
-            PREV_IMAGE=$(docker inspect --format='{{.Config.Image}}' nur-nur-prod-1 2>/dev/null || echo "")
+            PREV_IMAGE=$(docker inspect --format='{{index .RepoDigests 0}}' nur-nur-prod-1 2>/dev/null || true)
+            if [ -z "$PREV_IMAGE" ] || [ "$PREV_IMAGE" = "<no value>" ]; then
+              PREV_IMAGE=$(docker inspect --format='{{.Config.Image}}' nur-nur-prod-1 2>/dev/null || echo "")
+            fi
             if [ -n "$PREV_IMAGE" ]; then
               echo "Saved rollback image: $PREV_IMAGE"
             else
@@ -135,6 +141,7 @@ jobs:
               echo "║  ROLLING BACK to: $PREV_IMAGE"
               echo "╚══════════════════════════════════════════╝"
               echo ""
+              NUR_IMAGE="$PREV_IMAGE" docker compose pull nur-prod || true
               NUR_IMAGE="$PREV_IMAGE" docker compose up -d --no-deps nur-prod
 
               if verify_site "Rollback" 10 5; then
@@ -157,8 +164,8 @@ jobs:
             docker compose up -d postgres caddy
 
             # ── Deploy the app ──────────────────────────────────────────────
-            docker compose pull nur-prod
-            docker compose up -d --no-deps nur-prod
+            NUR_IMAGE="$TARGET_IMAGE" docker compose pull nur-prod
+            NUR_IMAGE="$TARGET_IMAGE" docker compose up -d --no-deps nur-prod
             echo "Waiting for app startup..."
 
             # ── Verify end-to-end: backend + HTTPS ──────────────────────────
