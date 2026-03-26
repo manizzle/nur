@@ -3018,6 +3018,7 @@ a{{color:#4ecdc4;text-decoration:none}}</style></head>
 
     @app.post("/contribute")
     async def contribute_web_form(request: Request):
+      try:
         form = await request.form()
         vendor = str(form.get("vendor", "")).strip()
         category = str(form.get("category", "")).strip()
@@ -3090,6 +3091,10 @@ a{{color:#4ecdc4;text-decoration:none}}</style></head>
             url=f"/contribute/thanks?receipt={receipt_id}&vendor={urllib.parse.quote(vendor)}&score={payload['data'].get('overall_score', '')}",
             status_code=303,
         )
+      except Exception:
+        import logging
+        logging.getLogger("nur").exception("POST /contribute failed")
+        return _contribute_error("Something went wrong — please try again.", status_code=500)
 
     @app.post("/contribute/voice")
     async def contribute_voice(request: Request):

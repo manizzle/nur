@@ -28,9 +28,35 @@ class Database:
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def init(self) -> None:
-        """Create all tables."""
+        """Create all tables and add any missing columns."""
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # Auto-add columns that were added after initial table creation.
+            # create_all won't ALTER existing tables, so we detect and add missing cols.
+            await self._add_missing_columns(conn)
+
+    async def _add_missing_columns(self, conn) -> None:
+        """Inspect each table and ALTER TABLE ADD COLUMN for anything missing."""
+        import logging
+        from sqlalchemy import inspect as sa_inspect
+        log = logging.getLogger("nur.db")
+
+        def _sync_add_missing(sync_conn):
+            inspector = sa_inspect(sync_conn)
+            for table in Base.metadata.sorted_tables:
+                if not inspector.has_table(table.name):
+                    continue
+                existing = {c["name"] for c in inspector.get_columns(table.name)}
+                for col in table.columns:
+                    if col.name not in existing:
+                        col_type = col.type.compile(sync_conn.dialect)
+                        nullable = "NULL" if col.nullable else "NOT NULL"
+                        log.info("Adding column %s.%s (%s)", table.name, col.name, col_type)
+                        sync_conn.execute(
+                            text(f'ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type} {nullable}')
+                        )
+
+        await conn.run_sync(_sync_add_missing)
 
     async def close(self) -> None:
         await self.engine.dispose()
