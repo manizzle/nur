@@ -13,16 +13,17 @@ services:
     ports:
       - "${NUR_PORT:-8000}:8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
     environment:
       - NUR_DB_URL=postgresql+asyncpg://nur:${POSTGRES_PASSWORD:-nur}@postgres:5432/nur
       - NUR_API_KEY=${NUR_API_KEY:-}
       - NUR_MIN_K=${NUR_MIN_K:-3}
       - NUR_AUTO_INGEST=1
+      - NUR_ENABLE_FL=0
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
       - PULSEDIVE_API_KEY=${PULSEDIVE_API_KEY:-}
       - OTX_API_KEY=${OTX_API_KEY:-}

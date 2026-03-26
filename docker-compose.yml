@@ -20,6 +20,7 @@ services:
       - NUR_API_KEY=${NUR_API_KEY:-}
       - NUR_MIN_K=${NUR_MIN_K:-3}
       - NUR_AUTO_INGEST=${NUR_AUTO_INGEST:-0}
+      - NUR_ENABLE_FL=${NUR_ENABLE_FL:-0}
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
       - PULSEDIVE_API_KEY=${PULSEDIVE_API_KEY:-}
       - OTX_API_KEY=${OTX_API_KEY:-}
@@ -40,6 +41,7 @@ services:
       - NUR_API_KEY=${NUR_API_KEY:-}
       - NUR_MIN_K=${NUR_MIN_K:-3}
       - NUR_AUTO_INGEST=1
+      - NUR_ENABLE_FL=0
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
       - PULSEDIVE_API_KEY=${PULSEDIVE_API_KEY:-}
       - OTX_API_KEY=${OTX_API_KEY:-}
