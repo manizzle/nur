@@ -3099,34 +3099,51 @@ a{{color:#4ecdc4;text-decoration:none}}</style></head>
     @app.post("/contribute/voice")
     async def contribute_voice(request: Request):
         """Accept a voice recording for eval. Store audio for later processing."""
-        form = await request.form()
-        audio = form.get("audio")
+        try:
+            form = await request.form()
+            audio = form.get("audio")
 
-        # Store audio file
-        import uuid
-        audio_id = str(uuid.uuid4())[:8]
-        audio_dir = "/tmp/nur-voice-evals"
-        os.makedirs(audio_dir, exist_ok=True)
-        audio_path = f"{audio_dir}/{audio_id}.webm"
+            # Store audio file
+            import uuid
+            audio_id = str(uuid.uuid4())[:8]
+            audio_dir = "/tmp/nur-voice-evals"
+            os.makedirs(audio_dir, exist_ok=True)
+            audio_path = f"{audio_dir}/{audio_id}.webm"
 
-        if audio:
-            content = await audio.read()
-            with open(audio_path, "wb") as f:
-                f.write(content)
+            if audio:
+                content = await audio.read()
+                with open(audio_path, "wb") as f:
+                    f.write(content)
 
-        # Create a placeholder contribution
-        db = get_db()
-        engine = get_proof_engine()
-        payload = {"data": {"vendor": "voice-pending", "category": "pending", "notes_audio": audio_id, "source": "voice"}}
-        cid = await db.store_eval_record(payload)
-        receipt = engine.commit_contribution("voice-pending", "pending", {"audio_id": audio_id})
+            # Create a placeholder contribution
+            db = get_db()
+            payload = {"data": {"vendor": "voice-pending", "category": "pending", "notes_audio": audio_id, "source": "voice"}}
+            cid = await db.store_eval_record(payload)
 
-        # BDP tracking
-        profile = get_or_create_profile(None)
-        profile.contribution_types.add("voice_eval")
-        profile.total_contributions += 1
+            # Proof layer — don't fail the whole submission if proofs break
+            receipt_id = cid[:16] if cid else audio_id
+            try:
+                engine = get_proof_engine()
+                receipt = engine.commit_contribution("voice-pending", "pending", {"audio_id": audio_id})
+                receipt_id = receipt.receipt_id
+            except Exception:
+                import logging
+                logging.getLogger("nur").exception("Proof commit failed for voice contribution %s", audio_id)
 
-        return {"status": "accepted", "receipt_id": receipt.receipt_id, "audio_id": audio_id}
+            # BDP tracking
+            profile = get_or_create_profile(None)
+            profile.contribution_types.add("voice_eval")
+            profile.total_contributions += 1
+
+            return {"status": "accepted", "receipt_id": receipt_id, "audio_id": audio_id}
+        except Exception:
+            import logging
+            logging.getLogger("nur").exception("POST /contribute/voice failed")
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Something went wrong — please try the form below."},
+            )
 
     @app.get("/contribute/thanks", response_class=HTMLResponse)
     async def contribute_thanks(receipt: str = "", vendor: str = "", score: str = ""):
