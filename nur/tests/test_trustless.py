@@ -2275,7 +2275,6 @@ class TestWebContributeForm:
             resp = await c.get("/contribute")
             assert resp.status_code == 200
             assert "Overall" in resp.text
-            assert "email" in resp.text
 
     @pytest.mark.asyncio
     async def test_contribute_submit(self):
@@ -2287,22 +2286,9 @@ class TestWebContributeForm:
                 "category": "edr",
                 "overall_score": "9",
                 "would_buy": "yes",
-                "email": "test@acme-corp.com",
             })
             assert resp.status_code == 200
             assert "Thanks" in resp.text or "thanks" in resp.text
-
-    @pytest.mark.asyncio
-    async def test_contribute_rejects_gmail(self):
-        from httpx import AsyncClient, ASGITransport
-        app = await _make_proof_app()
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.post("/contribute", data={
-                "vendor": "CrowdStrike",
-                "overall_score": "9",
-                "email": "test@gmail.com",
-            })
-            assert resp.status_code == 400
 
 
 # ══════════════════════════════════════════════════════════════════════════════

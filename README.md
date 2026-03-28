@@ -15,9 +15,9 @@
 
 ---
 
-The Blind for security — give one eval, get forty back.
+Every company is an algorithm — 20+ decision points, all starving for data. nur is the data layer that feeds vendor selection and threat response with cryptographically verified practitioner intelligence.
 
-Attackers share everything. Defenders share nothing. nur fixes that. A social network for security intelligence where the integration shares and the human gets remediation back.
+Attackers share everything. Defenders share nothing. nur fixes that. Every handoff between decisions is a data contract — nur fills those contracts with real practitioner intelligence, not vendor marketing. The integration shares and the human gets remediation back.
 
 - **Wartime** — under attack? Upload IOCs, get remediation steps that your peers actually used. Not a vendor's whitepaper — what real practitioners did when they got hit by the same threat actor.
 - **Peacetime** — evaluating tools? Get real practitioner benchmarks: pricing, support quality, detection rates, and what people actually chose and why.
@@ -41,6 +41,13 @@ nur report incident.json
 
 Or contribute via web — no CLI needed:
 **[nur.saramena.us/contribute](https://nur.saramena.us/contribute)** — rate your security tool in 60 seconds
+
+Local image smoke test:
+
+```bash
+scripts/smoke-image.sh
+scripts/smoke-image.sh --image ghcr.io/manizzle/nur:<sha> --pull
+```
 
 ---
 
@@ -142,6 +149,19 @@ New threat actors not in any database? Three orgs hash the same name independent
 <summary>Security hardening</summary>
 
 Work email required · keypair auth · signed requests · rate limiting · min-k enforcement · payload limits · AWS Secrets Manager
+
+</details>
+
+<details>
+<summary>CI/CD pipeline</summary>
+
+| Stage | What |
+|-------|------|
+| Test | pytest across Python 3.11/3.12/3.13 with coverage reporting |
+| Lint | ruff check on every push/PR |
+| Security | bandit static analysis, Dependabot dependency scanning, Trivy container scanning |
+| Build | Docker image → GitHub Container Registry |
+| Deploy | Auto-deploy to production with health checks and automated rollback |
 
 </details>
 

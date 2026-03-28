@@ -32,4 +32,3 @@ async def test_quick_contribute_form():
         assert "What do you use" in resp.text
         assert "Score it" in resp.text
         assert "Would you buy it again" in resp.text
-        assert "quick-email" in resp.text

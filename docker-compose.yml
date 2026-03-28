@@ -20,6 +20,7 @@ services:
       - NUR_API_KEY=${NUR_API_KEY:-}
       - NUR_MIN_K=${NUR_MIN_K:-3}
       - NUR_AUTO_INGEST=${NUR_AUTO_INGEST:-0}
+      - NUR_ENABLE_FL=${NUR_ENABLE_FL:-0}
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
       - PULSEDIVE_API_KEY=${PULSEDIVE_API_KEY:-}
       - OTX_API_KEY=${OTX_API_KEY:-}
@@ -40,6 +41,7 @@ services:
       - NUR_API_KEY=${NUR_API_KEY:-}
       - NUR_MIN_K=${NUR_MIN_K:-3}
       - NUR_AUTO_INGEST=1
+      - NUR_ENABLE_FL=0
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
       - PULSEDIVE_API_KEY=${PULSEDIVE_API_KEY:-}
       - OTX_API_KEY=${OTX_API_KEY:-}
@@ -71,6 +73,7 @@ services:
       - production
 
   # ── Caddy reverse proxy (HTTPS + domain) ─────────────────────
+  # NUR_UPSTREAM must match the production service name above
   caddy:
     image: caddy:2-alpine
     ports:
@@ -78,6 +81,7 @@ services:
       - "443:443"
     environment:
       - NUR_DOMAIN=${NUR_DOMAIN:-localhost}
+      - NUR_UPSTREAM=nur-prod:8000
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy-data:/data

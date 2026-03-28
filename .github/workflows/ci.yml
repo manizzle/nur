@@ -14,26 +14,41 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache pip packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[all]"
-          pip install pytest hypothesis pytest-asyncio python-multipart httpx
+          pip install pytest pytest-cov hypothesis pytest-asyncio python-multipart httpx
 
-      - name: Run tests
-        run: pytest nur/tests/ -v --tb=short
+      - name: Run tests with coverage
+        run: pytest nur/tests/ -v --tb=short --cov=nur --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage.xml
 
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -47,3 +62,109 @@ jobs:
 
       - name: Lint
         run: ruff check nur/
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit security scan
+        run: bandit -r nur/ -ll -x nur/tests/ --format json --output bandit-report.json || true
+
+      - name: Display bandit results
+        run: bandit -r nur/ -ll -x nur/tests/ --format screen || true
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v7
+        with:
+          name: bandit-report
+          path: bandit-report.json
+          if-no-files-found: ignore
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build Production Image
+        run: docker build -t nur-smoke .
+
+      - name: Boot Production Stack And Verify Health
+        env:
+          COMPOSE_PROJECT_NAME: nurci
+          NUR_IMAGE: nur-smoke
+          NUR_PORT: "18000"
+          POSTGRES_PASSWORD: nur
+        run: |
+          set -euo pipefail
+          BASE_URL="http://localhost:18000"
+
+          smoke_check() {
+            curl -fsS --max-time 5 "$BASE_URL/health" >/dev/null
+
+            contribute_page="$(mktemp)"
+            curl -fsS --max-time 10 "$BASE_URL/contribute" -o "$contribute_page"
+            grep -q "Submit voice eval" "$contribute_page"
+
+            contribute_headers="$(mktemp)"
+            curl -sS --max-time 10 \
+              -D "$contribute_headers" \
+              -o /dev/null \
+              -X POST \
+              -F "vendor=CrowdStrike" \
+              -F "category=edr" \
+              -F "overall_score=8" \
+              -F "would_buy=yes" \
+              -F "support_quality=9" \
+              "$BASE_URL/contribute"
+            grep -q "^HTTP/.* 303" "$contribute_headers"
+            grep -qi "^location: /contribute/thanks?" "$contribute_headers"
+
+            voice_fixture="$(mktemp /tmp/nur-voice-smoke.XXXXXX.webm)"
+            printf 'smoke voice payload' > "$voice_fixture"
+            voice_response="$(mktemp)"
+            curl -fsS --max-time 10 \
+              -o "$voice_response" \
+              -X POST \
+              -F "audio=@$voice_fixture;type=audio/webm" \
+              "$BASE_URL/contribute/voice"
+            grep -q '"status":"accepted"' "$voice_response"
+            grep -q '"receipt_id":' "$voice_response"
+            grep -q '"audio_id":' "$voice_response"
+          }
+
+          cleanup() {
+            docker compose -f docker-compose.prod.yml down -v || true
+          }
+          trap cleanup EXIT
+
+          docker compose -f docker-compose.prod.yml up -d postgres nur-prod
+
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 5 "$BASE_URL/health" >/dev/null; then
+              echo "Backend healthy on attempt $i/30"
+              break
+            fi
+            sleep 2
+          done
+
+          if smoke_check; then
+            echo "Smoke checks passed"
+            exit 0
+          fi
+
+          echo "--- docker compose ps ---"
+          docker compose -f docker-compose.prod.yml ps -a
+          echo "--- nur-prod logs ---"
+          docker compose -f docker-compose.prod.yml logs --tail=200 nur-prod
+          echo "--- postgres logs ---"
+          docker compose -f docker-compose.prod.yml logs --tail=100 postgres
+          exit 1
