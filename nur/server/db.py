@@ -15,7 +15,7 @@ from typing import Any, AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession, async_sessionmaker, create_async_engine,
 )
-from sqlalchemy import select, func, text
+from sqlalchemy import literal, select, func, text
 
 from .models import (
     Base, Contribution, IOCHash, AttackTechnique, AggregatedScore,
@@ -23,14 +23,97 @@ from .models import (
 
 
 class Database:
+    _PG_SCHEMA_LOCK_ID = 5131602  # "NUR" as a stable advisory lock key
+
     def __init__(self, url: str = "sqlite+aiosqlite:///nur.db"):
-        self.engine = create_async_engine(url, echo=False)
+        engine_kwargs: dict = {"echo": False}
+        if "postgresql" in url:
+            engine_kwargs.update(
+                pool_size=10, max_overflow=5,
+                pool_pre_ping=True, pool_recycle=300,
+            )
+        self.engine = create_async_engine(url, **engine_kwargs)
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def init(self) -> None:
-        """Create all tables."""
+        """Create all tables and add any missing columns."""
         async with self.engine.begin() as conn:
+            if self.engine.dialect.name == "postgresql":
+                # Multiple uvicorn workers can race on fresh boot. Serialize
+                # schema creation/migration so only one worker mutates DDL.
+                await conn.execute(
+                    text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                    {"lock_id": self._PG_SCHEMA_LOCK_ID},
+                )
             await conn.run_sync(Base.metadata.create_all)
+            # Auto-add columns that were added after initial table creation.
+            # create_all won't ALTER existing tables, so we detect and add missing cols.
+            await self._add_missing_columns(conn)
+
+    async def _add_missing_columns(self, conn) -> None:
+        """Inspect each table and ALTER TABLE ADD COLUMN for anything missing."""
+        import logging
+        from sqlalchemy import inspect as sa_inspect
+        log = logging.getLogger("nur.db")
+
+        def _default_sql(col, dialect) -> str | None:
+            """Compile a safe SQL default for schema upgrades when available."""
+            server_default = getattr(col, "server_default", None)
+            if server_default is not None and getattr(server_default, "arg", None) is not None:
+                arg = server_default.arg
+                if hasattr(arg, "compile"):
+                    return str(arg.compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
+                if isinstance(arg, str):
+                    return arg
+
+            default = getattr(col, "default", None)
+            if default is not None and getattr(default, "is_scalar", False):
+                return str(
+                    literal(default.arg).compile(
+                        dialect=dialect,
+                        compile_kwargs={"literal_binds": True},
+                    )
+                )
+            return None
+
+        def _sync_add_missing(sync_conn):
+            inspector = sa_inspect(sync_conn)
+            for table in Base.metadata.sorted_tables:
+                if not inspector.has_table(table.name):
+                    continue
+                existing = {c["name"] for c in inspector.get_columns(table.name)}
+                for col in table.columns:
+                    if col.name not in existing:
+                        col_type = col.type.compile(sync_conn.dialect)
+                        default_sql = _default_sql(col, sync_conn.dialect)
+                        add_nullable = col.nullable
+                        if not add_nullable and default_sql is None:
+                            # Existing rows would make `ADD COLUMN ... NOT NULL` fail.
+                            # Add the column as nullable so startup migrations remain safe.
+                            add_nullable = True
+                            log.warning(
+                                "Adding column %s.%s as NULLABLE during upgrade; "
+                                "no server-side default is available",
+                                table.name,
+                                col.name,
+                            )
+                        nullable = "NULL" if add_nullable else "NOT NULL"
+                        default_clause = f" DEFAULT {default_sql}" if default_sql is not None else ""
+                        log.info(
+                            "Adding column %s.%s (%s%s)",
+                            table.name,
+                            col.name,
+                            col_type,
+                            default_clause,
+                        )
+                        sync_conn.execute(
+                            text(
+                                f"ALTER TABLE {table.name} ADD COLUMN "
+                                f"{col.name} {col_type}{default_clause} {nullable}"
+                            )
+                        )
+
+        await conn.run_sync(_sync_add_missing)
 
     async def close(self) -> None:
         await self.engine.dispose()
@@ -52,12 +135,18 @@ class Database:
         # Support both wire format {"context": {}, "data": {...}} and flat format {"vendor": ...}
         d = data.get("data", data)
         ctx = data.get("context", {})
+        # Normalize vendor name against canonical VENDORS list
+        vendor = d.get("vendor")
+        if vendor and isinstance(vendor, str):
+            from ..vendors import VENDORS
+            _vendor_lookup = {v.lower(): v for v in VENDORS}
+            vendor = _vendor_lookup.get(vendor.strip().lower(), vendor.strip())
         contrib = Contribution(
             contrib_type="eval",
             industry=ctx.get("industry"),
             org_size=ctx.get("org_size"),
             role=ctx.get("role"),
-            vendor=d.get("vendor"),
+            vendor=vendor,
             category=d.get("category"),
             overall_score=d.get("overall_score"),
             detection_rate=d.get("detection_rate"),
@@ -70,6 +159,12 @@ class Database:
             top_strength=d.get("top_strength"),
             top_friction=d.get("top_friction"),
             notes=d.get("notes"),
+            annual_cost=d.get("annual_cost"),
+            support_quality=d.get("support_quality"),
+            decision_factor=d.get("decision_factor"),
+            also_evaluated=json.dumps(d["also_evaluated"]) if d.get("also_evaluated") else None,
+            replacing=d.get("replacing"),
+            source=d.get("source", ctx.get("source")),
         )
         async with self.session() as s:
             s.add(contrib)
@@ -150,6 +245,11 @@ class Database:
     # ── Query helpers ────────────────────────────────────────────────────
 
     async def get_vendor_aggregate(self, vendor: str) -> dict | None:
+        # Normalize to canonical name so lookups match stored aggregates
+        if vendor and isinstance(vendor, str):
+            from ..vendors import VENDORS
+            _vendor_lookup = {v.lower(): v for v in VENDORS}
+            vendor = _vendor_lookup.get(vendor.strip().lower(), vendor.strip())
         async with self.session() as s:
             result = await s.execute(
                 select(AggregatedScore).where(AggregatedScore.vendor == vendor)
@@ -233,6 +333,76 @@ class Database:
                 "by_type": {r[0]: r[1] for r in by_type.all()},
                 "unique_vendors": unique_vendors.scalar() or 0,
             }
+
+    async def get_contributions(
+        self,
+        source: str | None = None,
+        vendor: str | None = None,
+        category: str | None = None,
+        contrib_type: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> dict:
+        """Query contributions with filters. Returns anonymized records (no PII)."""
+        async with self.session() as s:
+            stmt = select(Contribution).order_by(Contribution.received_at.desc())
+            count_stmt = select(func.count(Contribution.id))
+
+            if source:
+                stmt = stmt.where(Contribution.source == source)
+                count_stmt = count_stmt.where(Contribution.source == source)
+            if vendor:
+                stmt = stmt.where(Contribution.vendor == vendor)
+                count_stmt = count_stmt.where(Contribution.vendor == vendor)
+            if category:
+                stmt = stmt.where(Contribution.category == category)
+                count_stmt = count_stmt.where(Contribution.category == category)
+            if contrib_type:
+                stmt = stmt.where(Contribution.contrib_type == contrib_type)
+                count_stmt = count_stmt.where(Contribution.contrib_type == contrib_type)
+
+            total = (await s.execute(count_stmt)).scalar() or 0
+            result = await s.execute(stmt.offset(offset).limit(limit))
+            rows = result.scalars().all()
+
+            # Source breakdown for this filter set
+            source_stmt = select(
+                Contribution.source, func.count().label("count"),
+            ).group_by(Contribution.source)
+            if vendor:
+                source_stmt = source_stmt.where(Contribution.vendor == vendor)
+            if category:
+                source_stmt = source_stmt.where(Contribution.category == category)
+            if contrib_type:
+                source_stmt = source_stmt.where(Contribution.contrib_type == contrib_type)
+            source_counts = {r[0] or "unknown": r[1] for r in (await s.execute(source_stmt)).all()}
+
+        return {
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "by_source": source_counts,
+            "contributions": [
+                {
+                    "id": r.id,
+                    "contrib_type": r.contrib_type,
+                    "received_at": r.received_at.isoformat() if r.received_at else None,
+                    "source": r.source,
+                    "vendor": r.vendor,
+                    "category": r.category,
+                    "overall_score": r.overall_score,
+                    "would_buy": r.would_buy,
+                    "annual_cost": r.annual_cost,
+                    "support_quality": r.support_quality,
+                    "decision_factor": r.decision_factor,
+                    "replacing": r.replacing,
+                    "also_evaluated": json.loads(r.also_evaluated) if r.also_evaluated else None,
+                    "industry": r.industry,
+                    "org_size": r.org_size,
+                }
+                for r in rows
+            ],
+        }
 
     # ── Aggregate refresh ────────────────────────────────────────────────
 
