@@ -10,3 +10,7 @@ build/
 .nur/
 nur.pem
 .gstack/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+.beads-credential-key
