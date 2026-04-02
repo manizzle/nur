@@ -1,6 +1,6 @@
 <h1 align="center">nur</h1>
 
-<p align="center"><strong>A social network for security intelligence. Product = protocol + users.</strong></p>
+<p align="center"><strong>Practitioners anonymously share what security tools they actually use, and get back what's working for orgs like theirs — no vendor bias, cryptographic privacy.</strong></p>
 
 <p align="center">
   <img src="demo/nur-demo.gif?v=5" alt="nur demo" width="750" />
@@ -15,16 +15,21 @@
 
 ---
 
-Every company is an algorithm — 20+ decision points, all starving for data. nur is the data layer that feeds vendor selection and threat response with cryptographically verified practitioner intelligence.
+## The problem
 
-Attackers share everything. Defenders share nothing. nur fixes that. Every handoff between decisions is a data contract — nur fills those contracts with real practitioner intelligence, not vendor marketing. The integration shares and the human gets remediation back.
+- **Gartner is expensive and vendor-biased.** A Magic Quadrant subscription costs six figures. The rankings are pay-to-play.
+- **G2 and Forrester are gamed.** Vendors incentivize reviews. You can't tell real signal from noise.
+- **So CISOs DM each other on Signal hoping for truth.** Unscalable, unstructured, and limited to whoever you happen to know.
 
-- **Wartime** — under attack? Upload IOCs, get remediation steps that your peers actually used. Not a vendor's whitepaper — what real practitioners did when they got hit by the same threat actor.
-- **Peacetime** — evaluating tools? Get real practitioner benchmarks: pricing, support quality, detection rates, and what people actually chose and why.
+## How it works
 
-**Why trust it?** Math, not promises. The trustless aggregation protocol commits to every value, proves every aggregate, and discards individual data. The protocol IS the product. [Legal analysis →](COMPLIANCE.md)
+1. **Contribute an anonymous eval** — rate your security tool in 60 seconds. Your individual scores are committed and then discarded.
+2. **Get back aggregate peer intelligence** — see what practitioners at similar orgs chose, what they paid, and whether they'd buy it again.
+3. **Cryptographic privacy** — Pedersen commitments and Merkle proofs ensure your identity is never exposed. You get a receipt proving your eval was counted.
 
-**Data model:** Query data (threat models, IOCs, stacks) flows in. Response data (tool intel, remediation, pricing) flows back. 10 users = interesting. 100 = useful. 1,000 = indispensable.
+## Who it's for
+
+CISOs and security practitioners at utilities, energy, telecom, and critical infrastructure orgs who participate in ISACs. If you've ever asked a peer "what EDR are you running?" — this replaces that conversation with data from hundreds of practitioners.
 
 > [nur.saramena.us](https://nur.saramena.us) — [dashboard](https://nur.saramena.us/dashboard) · [admin](https://nur.saramena.us/admin/dashboard) · [docs](https://nur.saramena.us/guide) · [register](https://nur.saramena.us/register)
 
@@ -75,7 +80,9 @@ All fields committed, aggregated, individual values discarded. Competitive with 
 
 ---
 
-## Example: wartime
+## Examples
+
+**Under attack?** Upload IOCs, get remediation steps that your peers actually used.
 
 ```bash
 $ nur report lockbit_iocs.json
@@ -89,7 +96,7 @@ $ nur report lockbit_attack_map.json
   Best Remediation: containment (87% success rate)
 ```
 
-## Example: peacetime
+**Evaluating tools?** Get real practitioner benchmarks, not vendor marketing.
 
 ```bash
 $ nur eval --vendor crowdstrike       # price, support, detection, decision intel
@@ -100,7 +107,7 @@ $ nur threat-model --stack crowdstrike,splunk,okta --vertical healthcare
 
 ---
 
-## Trustless deep dive
+## Technical details — how the protocol works
 
 <details>
 <summary>Proof verification chain</summary>

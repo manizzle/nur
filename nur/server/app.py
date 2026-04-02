@@ -591,8 +591,8 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
     <div class="hero-grid">
       <div>
         <h1>nur</h1>
-        <div class="hero-subtitle">collective security intelligence</div>
-        <p class="hero-copy">Every company is an algorithm &mdash; 20+ decisions, all starving for data. nur is the data layer that feeds them.</p>
+        <div class="hero-subtitle">what security tools actually work</div>
+        <p class="hero-copy">Practitioners anonymously share vendor evaluations and get back what peers with similar stacks are using. No vendor bias, cryptographic privacy.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/register">Get Started <span>&rarr;</span></a>
           <a class="btn btn-secondary" href="/dashboard">Dashboard</a>
@@ -619,43 +619,43 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
   <section class="section">
     <div class="section-heading">
       <span class="section-label">How It Works</span>
-      <h2>Contribute once. Query forever. Verify every result.</h2>
-      <p>nur is designed so industries can exchange signal without turning raw incident data into another product for someone else.</p>
+      <h2>60 seconds in, peer intelligence back.</h2>
+      <p>Rate a security tool. Get back what hundreds of practitioners at similar orgs chose, paid, and whether they'd buy it again.</p>
     </div>
     <div class="card-grid">
       <article class="card">
-        <h3>Contribute</h3>
-        <p>Upload anonymized evals, attack maps, or IOCs. Your data is committed, aggregated, and individual values are discarded.</p>
+        <h3>1. Rate a tool</h3>
+        <p>Score your security vendor in 60 seconds &mdash; detection, price, support. Your individual scores are committed and then discarded.</p>
       </article>
       <article class="card">
-        <h3>Query</h3>
-        <p>Get vendor benchmarks, detection gaps, and remediation intel &mdash; all from aggregate histograms, never individual data.</p>
+        <h3>2. Get peer intel</h3>
+        <p>See aggregate benchmarks from real practitioners: what they chose, what they paid, and what they'd buy again. No vendor marketing.</p>
       </article>
       <article class="card">
-        <h3>Verify</h3>
-        <p>Every aggregate comes with a cryptographic proof. Merkle trees, commitment hashes, server signatures. Math, not promises.</p>
+        <h3>3. Privacy built in</h3>
+        <p>Cryptographic commitments ensure your identity is never exposed. You get a receipt proving your eval was counted. Math, not promises.</p>
       </article>
     </div>
   </section>
 
   <section class="section" style="border-top:1px solid #1e1e2e;">
     <div class="section-heading">
-      <span class="section-label">Why It Matters</span>
-      <h2>Your company is an algorithm.</h2>
-      <p>20+ decisions run your org &mdash; vendor selection, threat triage, budget approval, compliance review. Every handoff between them is a data contract. Most of those contracts are empty today.</p>
+      <span class="section-label">The Problem</span>
+      <h2>Vendor intel is broken.</h2>
+      <p>The tools that should help you pick security vendors are either expensive, gamed, or unscalable.</p>
     </div>
     <div class="card-grid">
       <article class="card">
-        <h3>Vendor Selection</h3>
-        <p>The &ldquo;Select Vendor&rdquo; diamond needs detection rates, pricing, and support data from real practitioners &mdash; not Gartner quadrants.</p>
+        <h3>Gartner is pay-to-play</h3>
+        <p>A Magic Quadrant subscription costs six figures. The rankings are vendor-funded. You're reading marketing disguised as research.</p>
       </article>
       <article class="card">
-        <h3>Threat Response</h3>
-        <p>The &ldquo;Accept / Mitigate / Transfer&rdquo; diamond needs what peers actually did when they got hit &mdash; not a vendor whitepaper.</p>
+        <h3>G2 is gamed</h3>
+        <p>Vendors incentivize reviews with gift cards and swag. You can't tell real signal from noise. Forrester has the same problem.</p>
       </article>
       <article class="card">
-        <h3>Every Handoff</h3>
-        <p>nur fills data contracts with cryptographically verified intelligence. Each receipt is a signed data contract between your org and the collective.</p>
+        <h3>Signal DMs don't scale</h3>
+        <p>CISOs DM each other hoping for truth. It works, but it's limited to whoever you happen to know. nur makes that conversation data-driven.</p>
       </article>
     </div>
   </section>
@@ -1360,7 +1360,7 @@ nur report incident.json</pre>
 
 <!-- ── Footer ─────────────────────────────────────────────── -->
 <div class="dash-footer">
-  <a href="/">nur</a> &bull; a social network for security intelligence &bull; product = protocol + users &bull;
+  <a href="/">nur</a> &bull; what security tools actually work &mdash; peer intelligence, no vendor bias &bull;
   <a href="https://github.com/manizzle/nur">open source</a>
 </div>
 
@@ -2584,7 +2584,7 @@ nur report incident.json</pre>
 
 <div class="guide-header">
   <h1>nur <span>guide</span></h1>
-  <p>a social network for security intelligence &mdash; give one eval, get forty back</p>
+  <p>share what tools you use, get back what's working for orgs like yours &mdash; give one eval, get forty back</p>
 </div>
 
 <div class="guide-nav">
@@ -2749,7 +2749,7 @@ NUR_SMTP_PASS=your_smtp_password</pre>
 </div>
 
 <div class="guide-footer">
-  <a href="/">nur</a> &bull; a social network for security intelligence &bull; product = protocol + users &bull;
+  <a href="/">nur</a> &bull; what security tools actually work &mdash; peer intelligence, no vendor bias &bull;
   <a href="https://github.com/manizzle/nur">open source</a>
 </div>
 
@@ -2919,12 +2919,22 @@ window.addEventListener('scroll', function() {
   .privacy-note strong { color: #a1a1aa; }
   .back-link { display: block; text-align: center; margin-top: 16px; color: #71717a; font-size: 13px; text-decoration: none; }
   .back-link:hover { color: #22c55e; }
+  .value-prop { margin-bottom: 24px; padding: 16px; background: rgba(34, 197, 94, 0.04); border: 1px solid #1e1e2e; border-radius: 10px; }
+  .vp-item { font-size: 14px; color: #a1a1aa; line-height: 1.7; padding: 4px 0; }
+  .vp-item strong { color: #e4e4e7; }
+  .vp-icon { margin-right: 6px; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>nur <span>eval</span></h1>
-  <p class="subtitle">Rate your security tool in 60 seconds. Anonymous + cryptographic receipt.</p>
+  <p class="subtitle">Share a 60-second vendor eval. Get back what your peers chose and why.</p>
+
+  <div class="value-prop">
+    <div class="vp-item"><span class="vp-icon">&#128274;</span> <strong>Anonymous by default</strong> &mdash; your individual scores are committed, then discarded</div>
+    <div class="vp-item"><span class="vp-icon">&#128200;</span> <strong>See what similar orgs use</strong> &mdash; real practitioner data, not vendor marketing</div>
+    <div class="vp-item"><span class="vp-icon">&#10003;</span> <strong>No vendor bias</strong> &mdash; crowdsourced from practitioners, not pay-to-play rankings</div>
+  </div>
 
   %%VOICE_SECTION%%
 
