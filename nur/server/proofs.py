@@ -8,8 +8,9 @@ and aggregated. The server MUST prove:
 3. No contributions were excluded or fabricated
 4. The contributor count is real (Merkle tree binds it)
 
-Individual numeric values are aggregated into running sums and then
-DISCARDED. The server retains only: commitments + aggregates + proofs.
+Individual numeric values are aggregated into running sums. For BDP-aware
+queries, the structured per-contribution values and optional contributor
+profile IDs are also retained in-memory alongside the proof data.
 
 Usage:
     engine = ProofEngine()
@@ -24,6 +25,7 @@ import json
 import time
 from dataclasses import dataclass, field
 
+from ..behavioral_dp import BehavioralProfile, bdp_weighted_aggregate
 from ..vci.platform import build_merkle_tree, get_merkle_proof, verify_merkle_proof
 
 
@@ -168,6 +170,8 @@ class _AggBucket:
     bool_counts: dict = field(default_factory=dict)  # field_name -> true_count
     total_count: int = 0
     commitment_hashes: list = field(default_factory=list)
+    per_contribution_values: list[dict] = field(default_factory=list)
+    contributor_profile_ids: list[str] = field(default_factory=list)
 
 
 NUMERIC_FIELDS = [
@@ -214,16 +218,17 @@ class ProofEngine:
 
         STORED                          DISCARDED
         ──────                          ─────────
-        commitment hashes (SHA-256)     individual scores
-        running sums per vendor         per-org attribution
-        technique freq counters         free-text notes
-        Merkle tree                     sigma rules, action strings
-        blind category hashes           raw IOC values
+        commitment hashes (SHA-256)     per-org attribution
+        running sums per vendor         free-text notes
+        BDP value snapshots (optional)  sigma rules, action strings
+        technique freq counters         raw IOC values
+        Merkle tree
+        blind category hashes
 
     On contribution:
     1. Translator extracts structured fields, drops free text
     2. commit_*() hashes data, updates running sums, adds to Merkle tree
-    3. Individual values discarded — only commitment hash retained
+    3. Structured values may be kept in-memory for BDP-weighted queries
     4. Receipt returned (commitment hash + Merkle proof + signature)
 
     On query:
@@ -274,12 +279,15 @@ class ProofEngine:
         vendor: str,
         category: str,
         values: dict,
+        contributor_profile_id: str | None = None,
     ) -> ContributionReceipt:
         """
         Commit a contribution: hash it, update aggregates, return receipt.
 
-        The individual values are used to update running sums then discarded.
-        Only the commitment hash is retained.
+        The structured values update running sums. When available, the
+        sanitized per-contribution values and contributor profile ID are kept
+        in-memory for BDP-weighted aggregation. The Merkle/receipt path stores
+        only the commitment hash.
         """
         # Compute contribution hash (binding — can't change after this)
         canonical = json.dumps(
@@ -318,6 +326,8 @@ class ProofEngine:
 
         bucket.total_count += 1
         bucket.commitment_hashes.append(commitment_hash)
+        bucket.per_contribution_values.append(dict(values))
+        bucket.contributor_profile_ids.append(contributor_profile_id or "")
 
         # Add to Merkle tree
         leaf_index = len(self._commitments)
@@ -615,14 +625,57 @@ class ProofEngine:
                 return self._format_aggregate(bucket)
         return None
 
-    def _format_aggregate(self, bucket: _AggBucket) -> dict:
+    def _format_aggregate(
+        self,
+        bucket: _AggBucket,
+        *,
+        profiles: dict[str, BehavioralProfile] | None = None,
+    ) -> dict:
         """Format an aggregate bucket into a response."""
         agg_values = {}
+        bdp_weighted = False
         for fld in NUMERIC_FIELDS:
             s = bucket.sums.get(fld)
             c = bucket.counts.get(fld, 0)
             if s is not None and c > 0:
-                agg_values[f"avg_{fld}"] = round(s / c, 2)
+                simple_avg = round(s / c, 2)
+                agg_values[f"avg_{fld}"] = simple_avg
+
+                if profiles is not None:
+                    agg_values[f"simple_avg_{fld}"] = simple_avg
+
+                if not profiles:
+                    continue
+
+                if not bucket.per_contribution_values or not bucket.contributor_profile_ids:
+                    continue
+
+                values_and_profiles: list[tuple[float, BehavioralProfile]] = []
+                missing_profile = False
+
+                for contribution, profile_id in zip(
+                    bucket.per_contribution_values,
+                    bucket.contributor_profile_ids,
+                ):
+                    val = contribution.get(fld)
+                    if val is None:
+                        continue
+
+                    profile = profiles.get(profile_id)
+                    if profile is None:
+                        missing_profile = True
+                        break
+
+                    values_and_profiles.append((float(val), profile))
+
+                if missing_profile or len(values_and_profiles) != c:
+                    continue
+
+                weighted = bdp_weighted_aggregate(values_and_profiles)
+                if weighted.get("aggregate") is not None:
+                    agg_values[f"avg_{fld}"] = weighted["aggregate"]
+                    agg_values[f"simple_avg_{fld}"] = weighted["simple_average"]
+                    bdp_weighted = True
 
         for fld in BOOL_FIELDS:
             tc = bucket.bool_counts.get(fld, 0)
@@ -634,12 +687,17 @@ class ProofEngine:
         for ch in bucket.commitment_hashes:
             self._usage_counts[ch] = self._usage_counts.get(ch, 0) + 1
 
-        return {
+        result = {
             "vendor": bucket.vendor,
             "category": bucket.category,
             "contributor_count": bucket.total_count,
             **agg_values,
         }
+
+        if profiles is not None:
+            result["bdp_weighted"] = bdp_weighted
+
+        return result
 
     def prove_aggregate(self, vendor: str, category: str | None = None) -> AggregateProof | None:
         """Generate a cryptographic proof for an aggregate."""
@@ -697,25 +755,27 @@ class ProofEngine:
         self,
         vendor: str,
         category: str | None = None,
-        profiles: dict | None = None,
+        profiles: dict[str, BehavioralProfile] | None = None,
     ) -> dict | None:
         """Get aggregate using BDP credibility-weighted averaging.
-
-        TODO: Full BDP-weighted computation requires storing per-contribution
-        profile IDs in the aggregate buckets. For now, returns the standard
-        aggregate with a bdp_weighted flag.
         """
+        bucket = None
+        if category:
+            agg_id = self._agg_id(vendor, category)
+            bucket = self._aggregates.get(agg_id)
+        else:
+            for agg_id, maybe_bucket in self._aggregates.items():
+                if maybe_bucket.vendor.lower() == vendor.lower():
+                    bucket = maybe_bucket
+                    break
 
-        agg = self.get_aggregate(vendor, category)
-        if not agg:
+        if not bucket:
             return None
 
-        if not profiles:
-            agg["bdp_weighted"] = False
-            return agg
-
-        agg["bdp_weighted"] = True
-        return agg
+        return self._format_aggregate(
+            bucket,
+            profiles=profiles if profiles is not None else {},
+        )
 
     def list_aggregates(self) -> list[dict]:
         """List all aggregate buckets with stats."""

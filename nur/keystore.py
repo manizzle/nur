@@ -3,17 +3,29 @@ Org-local key management for HMAC-based IOC hashing.
 
 Stores a 256-bit secret at ~/.nur/key — auto-generated on first use,
 never transmitted. Each org's HMAC hashes are unique, defeating rainbow tables.
+
+Salt rotation: IOC hashes include a time-based rotating salt to defeat
+precomputed rainbow tables. IPv4 only has 2^32 values — without rotation,
+an attacker who obtains the HMAC key could brute-force all IPs offline.
+The salt rotates every NUR_SALT_ROTATION_INTERVAL seconds (default 900 = 15 min).
+Both PSI parties must share the same salt window for intersection to work.
 """
 from __future__ import annotations
 
 import hmac
 import hashlib
+import os
 import secrets
+import time
 from pathlib import Path
 
 _NUR_DIR = Path.home() / ".nur"
 _KEY_PATH = _NUR_DIR / "key"
 _BUDGET_PATH = _NUR_DIR / "budget.json"
+
+# Salt rotation interval in seconds — configurable via environment variable.
+# Default: 900 seconds (15 minutes).
+SALT_ROTATION_INTERVAL: int = int(os.environ.get("NUR_SALT_ROTATION_INTERVAL", "900"))
 
 
 def _ensure_dir() -> None:
@@ -31,12 +43,37 @@ def get_or_create_key() -> bytes:
     return key
 
 
+def get_salt_window(interval_seconds: int | None = None) -> int:
+    """Return the current salt window ID: floor(now / interval).
+
+    Both PSI parties must use the same window for intersection to match.
+    """
+    interval = interval_seconds if interval_seconds is not None else SALT_ROTATION_INTERVAL
+    return int(time.time()) // interval
+
+
+def get_current_salt(interval_seconds: int | None = None) -> str:
+    """Return a deterministic time-based salt string for the current rotation window.
+
+    The salt is NOT secret — its purpose is to invalidate precomputed rainbow
+    tables by changing every *interval_seconds* (default 15 min).  Both parties
+    in a PSI session must agree on the same window for hashes to match.
+    """
+    window = get_salt_window(interval_seconds)
+    return f"nur-salt-v1-{window}"
+
+
 def derive_session_key(base_key: bytes, session_id: str) -> bytes:
     """Derive a session-specific HMAC key to prevent cross-submission IOC correlation."""
     return hashlib.sha256(base_key + session_id.encode()).digest()
 
 
-def hmac_ioc(value: str, secret: bytes | None = None, session_id: str | None = None) -> str:
+def hmac_ioc(
+    value: str,
+    secret: bytes | None = None,
+    session_id: str | None = None,
+    salt: str | None = None,
+) -> str:
     """
     HMAC-SHA256 of the normalized IOC value using org-local secret.
 
@@ -46,13 +83,21 @@ def hmac_ioc(value: str, secret: bytes | None = None, session_id: str | None = N
     If *session_id* is provided, derives a session-specific key first so
     the same IOC hashes differently in each submission, preventing
     cross-submission correlation.
+
+    If *salt* is provided (typically from ``get_current_salt()``), it is
+    prepended to the normalized value before HMAC-ing.  This defeats
+    precomputed rainbow tables because the salt rotates every 15 minutes
+    by default.  When *salt* is ``None``, behaviour is unchanged for
+    backward compatibility.
     """
     if secret is None:
         secret = get_or_create_key()
     if session_id is not None:
         secret = derive_session_key(secret, session_id)
-    normalized = value.strip().lower().encode()
-    return hmac.new(secret, normalized, hashlib.sha256).hexdigest()
+    normalized = value.strip().lower()
+    if salt is not None:
+        normalized = salt + normalized
+    return hmac.new(secret, normalized.encode(), hashlib.sha256).hexdigest()
 
 
 def load_budget() -> dict:

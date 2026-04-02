@@ -225,8 +225,9 @@ async def test_contribute_form_open_with_master_key():
 
 @pytest.mark.asyncio
 async def test_voice_submit_open_with_master_key():
-    """POST /contribute/voice stays public even when API clients require a key."""
+    """POST /contribute/voice stays public when NUR_ENABLE_VOICE=1 and API key is set."""
     os.environ["NUR_API_KEY"] = "test-secret-key"
+    os.environ["NUR_ENABLE_VOICE"] = "1"
     try:
         app, db = await _make_app()
         async with AsyncClient(
@@ -243,3 +244,24 @@ async def test_voice_submit_open_with_master_key():
         assert data["audio_id"]
     finally:
         os.environ.pop("NUR_API_KEY", None)
+        os.environ.pop("NUR_ENABLE_VOICE", None)
+
+
+# ── Test 14: Voice endpoint returns 404 when NUR_ENABLE_VOICE is not set ───
+
+@pytest.mark.asyncio
+async def test_voice_endpoint_disabled_by_default():
+    """POST /contribute/voice returns 404 when NUR_ENABLE_VOICE is not set."""
+    os.environ.pop("NUR_ENABLE_VOICE", None)
+    try:
+        app, db = await _make_app()
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test",
+        ) as c:
+            resp = await c.post(
+                "/contribute/voice",
+                files={"audio": ("eval.webm", b"voice-bytes", "audio/webm")},
+            )
+        assert resp.status_code == 404
+    finally:
+        pass

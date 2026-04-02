@@ -245,9 +245,13 @@ def hash_ioc(value: str) -> str:
 
 
 def hmac_hash_ioc(value: str, secret: bytes | None = None, session_id: str | None = None) -> str:
-    """HMAC-SHA256 of IOC value with org-local secret. Rainbow-table resistant."""
-    from .keystore import hmac_ioc
-    return hmac_ioc(value, secret=secret, session_id=session_id)
+    """HMAC-SHA256 of IOC value with org-local secret + rotating salt.
+
+    The salt rotates on a configurable interval (default 15 min) to defeat
+    precomputed rainbow tables against the small IPv4 address space.
+    """
+    from .keystore import hmac_ioc, get_current_salt
+    return hmac_ioc(value, secret=secret, session_id=session_id, salt=get_current_salt())
 
 
 def _hash_ioc_entries(
@@ -255,13 +259,17 @@ def _hash_ioc_entries(
     hmac_secret: bytes | None = None,
 ) -> IOCBundle:
     import uuid
+    from .keystore import get_current_salt
+
     session_id = str(uuid.uuid4())
+    salt = get_current_salt()
 
     hashed = []
     for ioc in bundle.iocs:
         if ioc.value_raw and not ioc.value_hash:
             if hmac_secret is not None:
-                h = hmac_hash_ioc(ioc.value_raw, secret=hmac_secret, session_id=session_id)
+                from .keystore import hmac_ioc
+                h = hmac_ioc(ioc.value_raw, secret=hmac_secret, session_id=session_id, salt=salt)
             else:
                 h = hash_ioc(ioc.value_raw)
             ioc = ioc.model_copy(update={"value_hash": h})

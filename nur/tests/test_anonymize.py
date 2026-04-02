@@ -129,6 +129,20 @@ class TestHMACHashing:
         key = b"test_key_32_bytes_exactly_here!!"
         assert hmac_ioc("  Evil.Com  ", secret=key) == hmac_ioc("evil.com", secret=key)
 
+    def test_hmac_with_salt_rotation(self, monkeypatch):
+        """hmac_hash_ioc from anonymize uses rotating salt — different windows differ."""
+        from nur.anonymize import hmac_hash_ioc
+        import time as time_mod
+
+        key = b"test_key_32_bytes_exactly_here!!"
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_000_000.0)
+        h1 = hmac_hash_ioc("8.8.8.8", secret=key)
+
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_001_000.0)
+        h2 = hmac_hash_ioc("8.8.8.8", secret=key)
+
+        assert h1 != h2  # different salt windows produce different hashes
+
 
 # ── Context bucketing ────────────────────────────────────────────────────────
 

@@ -172,7 +172,10 @@ def create_app(db_url: str = "sqlite+aiosqlite:///nur.db") -> FastAPI:
 
     # ── API key + signature auth middleware ──────────────────────────────
     master_key = os.environ.get("NUR_API_KEY")
-    public_web_write_paths = {"/contribute", "/contribute/voice"}
+    voice_enabled = os.environ.get("NUR_ENABLE_VOICE", "0") == "1"
+    public_web_write_paths = {"/contribute"}
+    if voice_enabled:
+        public_web_write_paths.add("/contribute/voice")
 
     @app.middleware("http")
     async def api_key_auth(request: Request, call_next):
@@ -1941,7 +1944,12 @@ nur report incident.json</pre>
         from .proofs import translate_eval
         engine = get_proof_engine()
         vendor, category, values = translate_eval(body)
-        receipt = engine.commit_contribution(vendor, category, values)
+        receipt = engine.commit_contribution(
+            vendor,
+            category,
+            values,
+            contributor_profile_id=_bdp_profile.participant_id,
+        )
         return {"status": "accepted", "contribution_id": cid, "receipt": receipt.to_dict()}
 
     @app.post("/contribute/attack-map")
@@ -2300,7 +2308,12 @@ nur report incident.json</pre>
         elif contrib_type == "attack_map":
             return await analyze_attack_map(body, db, engine=engine)
         elif contrib_type == "eval":
-            return await analyze_eval_record(body, db, engine=engine)
+            return await analyze_eval_record(
+                body,
+                db,
+                engine=engine,
+                contributor_profile_id=_bdp_profile.participant_id,
+            )
         else:
             raise HTTPException(status_code=400, detail="Unknown contribution type")
 
@@ -2913,21 +2926,7 @@ window.addEventListener('scroll', function() {
   <h1>nur <span>eval</span></h1>
   <p class="subtitle">Rate your security tool in 60 seconds. Anonymous + cryptographic receipt.</p>
 
-  <!-- Voice recording option -->
-  <div id="voice-section" style="margin-bottom:24px;padding:20px;background:#111118;border:1px solid #1e1e2e;border-radius:12px;text-align:center;">
-    <p style="color:#a1a1aa;font-size:14px;margin-bottom:12px;">Don't want to type? Just tell us.</p>
-    <button type="button" id="voice-btn" onclick="toggleRecording()" style="width:100%;padding:16px;background:#1e1e2e;color:#e4e4e7;border:2px solid #333;border-radius:8px;font-size:16px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;">
-      Tap to record your eval
-    </button>
-    <p id="voice-status" style="color:#555;font-size:12px;margin-top:8px;display:none;"></p>
-    <p style="color:#555;font-size:11px;margin-top:8px;">Example: "I use CrowdStrike for EDR, pay about 50K a year, support is great, 9 out of 10, would buy again"</p>
-    <div id="voice-done" style="display:none;margin-top:12px;">
-      <p style="color:#22c55e;font-weight:600;margin-bottom:8px;">Recorded!</p>
-      <button type="button" id="voice-submit" onclick="submitVoice()" style="width:100%;padding:14px;background:#22c55e;color:#0a0a0f;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">Submit voice eval</button>
-    </div>
-  </div>
-
-  <div style="text-align:center;color:#555;font-size:13px;margin-bottom:20px;">— or fill out the form below —</div>
+  %%VOICE_SECTION%%
 
   <form method="post" action="/contribute" id="evalForm">
     <label>What tool are you evaluating? <span class="required">*</span></label>
@@ -3074,7 +3073,30 @@ function setBuy(val, el) {
   el.classList.add('selected');
 }
 
-// Voice recording
+%%VOICE_JS%%
+</script>
+</body>
+</html>"""
+        _html = _html.replace("%%VENDOR_OPTIONS%%", _vendor_options)
+
+        # Voice recording UI — only shown when NUR_ENABLE_VOICE=1
+        if voice_enabled:
+            _voice_html = """<!-- Voice recording option -->
+  <div id="voice-section" style="margin-bottom:24px;padding:20px;background:#111118;border:1px solid #1e1e2e;border-radius:12px;text-align:center;">
+    <p style="color:#a1a1aa;font-size:14px;margin-bottom:12px;">Don't want to type? Just tell us.</p>
+    <button type="button" id="voice-btn" onclick="toggleRecording()" style="width:100%;padding:16px;background:#1e1e2e;color:#e4e4e7;border:2px solid #333;border-radius:8px;font-size:16px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;">
+      Tap to record your eval
+    </button>
+    <p id="voice-status" style="color:#555;font-size:12px;margin-top:8px;display:none;"></p>
+    <p style="color:#555;font-size:11px;margin-top:8px;">Example: "I use CrowdStrike for EDR, pay about 50K a year, support is great, 9 out of 10, would buy again"</p>
+    <div id="voice-done" style="display:none;margin-top:12px;">
+      <p style="color:#22c55e;font-weight:600;margin-bottom:8px;">Recorded!</p>
+      <button type="button" id="voice-submit" onclick="submitVoice()" style="width:100%;padding:14px;background:#22c55e;color:#0a0a0f;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">Submit voice eval</button>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:#555;font-size:13px;margin-bottom:20px;">&mdash; or fill out the form below &mdash;</div>"""
+            _voice_js = """// Voice recording
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
@@ -3136,11 +3158,14 @@ async function submitVoice() {
     document.getElementById('voice-submit').textContent = 'Submit voice eval';
     document.getElementById('voice-submit').disabled = false;
   }
-}
-</script>
-</body>
-</html>"""
-        return _html.replace("%%VENDOR_OPTIONS%%", _vendor_options)
+}"""
+        else:
+            _voice_html = ""
+            _voice_js = ""
+
+        _html = _html.replace("%%VOICE_SECTION%%", _voice_html)
+        _html = _html.replace("%%VOICE_JS%%", _voice_js)
+        return _html
 
     def _contribute_error(message: str, status_code: int = 400) -> HTMLResponse:
         from fastapi.responses import HTMLResponse
@@ -3234,7 +3259,14 @@ a{{color:#4ecdc4;text-decoration:none}}</style></head>
 
     @app.post("/contribute/voice")
     async def contribute_voice(request: Request):
-        """Accept a voice recording for eval. Store audio for later processing."""
+        """Accept a voice recording for eval. Store audio for later processing.
+
+        Gated by NUR_ENABLE_VOICE=1 — disabled by default because storing
+        voice biometrics conflicts with the trustless positioning.
+        """
+        if not voice_enabled:
+            raise HTTPException(status_code=404, detail="Voice recording is disabled")
+
         try:
             form = await request.form()
             audio = form.get("audio")

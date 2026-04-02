@@ -290,7 +290,13 @@ async def analyze_attack_map(data: dict[str, Any], db: Database, *, engine: Proo
     }
 
 
-async def analyze_eval_record(data: dict[str, Any], db: Database, *, engine: ProofEngine | None = None) -> dict:
+async def analyze_eval_record(
+    data: dict[str, Any],
+    db: Database,
+    *,
+    engine: ProofEngine | None = None,
+    contributor_profile_id: str | None = None,
+) -> dict:
     """Analyze an eval record — aggregates only, no individual contribution details."""
     # Store the contribution
     cid = await db.store_eval_record(data)
@@ -305,7 +311,12 @@ async def analyze_eval_record(data: dict[str, Any], db: Database, *, engine: Pro
     receipt_dict = None
     if engine is not None:
         vendor_t, category_t, values_t = translate_eval(data)
-        receipt = engine.commit_contribution(vendor_t, category_t, values_t)
+        receipt = engine.commit_contribution(
+            vendor_t,
+            category_t,
+            values_t,
+            contributor_profile_id=contributor_profile_id,
+        )
         receipt_dict = receipt.to_dict()
 
     if not vendor:

@@ -64,6 +64,19 @@ class TestHmacIoc:
         with_session = ks.hmac_ioc("evil.com", secret=secret, session_id="sess-1")
         assert without != with_session
 
+    def test_with_salt_differs_from_without(self):
+        secret = b"k" * 32
+        without = ks.hmac_ioc("8.8.8.8", secret=secret)
+        with_salt = ks.hmac_ioc("8.8.8.8", secret=secret, salt="nur-salt-v1-123")
+        assert without != with_salt
+
+    def test_same_salt_deterministic(self):
+        secret = b"k" * 32
+        salt = "nur-salt-v1-999"
+        a = ks.hmac_ioc("evil.com", secret=secret, salt=salt)
+        b = ks.hmac_ioc("evil.com", secret=secret, salt=salt)
+        assert a == b
+
 
 # ── derive_session_key ────────────────────────────────────────────────
 
@@ -132,3 +145,43 @@ class TestGetPublicKeyHex:
         hexstr = ks.get_public_key_hex()
         assert len(hexstr) == 64
         assert all(c in "0123456789abcdef" for c in hexstr)
+
+
+# ── Salt rotation ────────────────────────────────────────────────────
+
+
+class TestSaltRotation:
+    def test_salt_deterministic_within_window(self, monkeypatch):
+        """Same time window produces the same salt."""
+        import time as time_mod
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_000_100.0)
+        a = ks.get_current_salt()
+        b = ks.get_current_salt()
+        assert a == b
+
+    def test_salt_changes_between_windows(self, monkeypatch):
+        """Different time windows produce different salts."""
+        import time as time_mod
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_000_000.0)
+        salt_a = ks.get_current_salt(interval_seconds=900)
+
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_000_901.0)
+        salt_b = ks.get_current_salt(interval_seconds=900)
+        assert salt_a != salt_b
+
+    def test_salt_interval_configurable(self, monkeypatch):
+        """Different interval values produce different window IDs."""
+        import time as time_mod
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_000_500.0)
+        salt_15m = ks.get_current_salt(interval_seconds=900)
+        salt_5m = ks.get_current_salt(interval_seconds=300)
+        # 500s: 900-interval window = 1888888, 300-interval window = 5666668
+        # Different intervals means different window IDs means different salts
+        assert salt_15m != salt_5m
+
+    def test_get_salt_window_returns_int(self, monkeypatch):
+        import time as time_mod
+        monkeypatch.setattr(time_mod, "time", lambda: 1_700_000_000.0)
+        window = ks.get_salt_window()
+        assert isinstance(window, int)
+        assert window == 1_700_000_000 // ks.SALT_ROTATION_INTERVAL

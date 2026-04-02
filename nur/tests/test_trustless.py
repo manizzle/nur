@@ -1776,6 +1776,127 @@ class TestBDPPrivacyPreservation:
         assert len(set(weights)) > 1  # not all identical
 
 
+class TestBDPIntegration:
+    """BDP-weighted aggregation in ProofEngine."""
+
+    def _trusted_profile(self, participant_id: str):
+        from nur.behavioral_dp import BehavioralProfile
+
+        return BehavioralProfile(
+            participant_id=participant_id,
+            contributed_vendors={"crowdstrike"},
+            queried_vendors={"crowdstrike"},
+            integration_sources={"splunk"},
+            query_types={"report", "simulate", "threat-model"},
+            contribution_types={"eval", "ioc_bundle"},
+            total_contributions=10,
+            iocs_matched=5,
+        )
+
+    def _poisoner_profile(self, participant_id: str):
+        from nur.behavioral_dp import BehavioralProfile
+
+        return BehavioralProfile(
+            participant_id=participant_id,
+            contributed_vendors={"crowdstrike"},
+            queried_vendors={"sentinelone"},
+            query_types={"search"},
+            contribution_types={"eval"},
+            total_contributions=1,
+        )
+
+    def test_bdp_aggregate_suppresses_poisoner(self, monkeypatch):
+        import nur.behavioral_dp as behavioral_dp
+        from nur.server.proofs import ProofEngine
+
+        monkeypatch.setattr(
+            behavioral_dp,
+            "add_laplace_noise",
+            lambda features, epsilon=2.0: features,
+        )
+
+        engine = ProofEngine()
+        profiles = {}
+        trusted_scores = [9.1, 8.9, 9.0]
+
+        for idx, score in enumerate(trusted_scores, start=1):
+            participant_id = f"trusted-{idx}"
+            profiles[participant_id] = self._trusted_profile(participant_id)
+            engine.commit_contribution(
+                "CrowdStrike",
+                "edr",
+                {"overall_score": score},
+                contributor_profile_id=participant_id,
+            )
+
+        poisoner_id = "poisoner-1"
+        profiles[poisoner_id] = self._poisoner_profile(poisoner_id)
+        engine.commit_contribution(
+            "CrowdStrike",
+            "edr",
+            {"overall_score": 1.0},
+            contributor_profile_id=poisoner_id,
+        )
+
+        simple_agg = engine.get_aggregate("CrowdStrike")
+        bdp_agg = engine.get_bdp_aggregate("CrowdStrike", profiles=profiles)
+        trusted_avg = sum(trusted_scores) / len(trusted_scores)
+
+        assert bdp_agg is not None
+        assert bdp_agg["bdp_weighted"] is True
+        assert bdp_agg["simple_avg_overall_score"] == simple_agg["avg_overall_score"]
+        assert abs(bdp_agg["avg_overall_score"] - trusted_avg) < abs(
+            simple_agg["avg_overall_score"] - trusted_avg
+        )
+        assert bdp_agg["avg_overall_score"] > simple_agg["avg_overall_score"]
+
+    def test_get_aggregate_unchanged(self):
+        from nur.server.proofs import ProofEngine
+
+        engine = ProofEngine()
+        engine.commit_contribution(
+            "CrowdStrike",
+            "edr",
+            {"overall_score": 9.0},
+            contributor_profile_id="trusted-1",
+        )
+        engine.commit_contribution(
+            "CrowdStrike",
+            "edr",
+            {"overall_score": 7.0},
+            contributor_profile_id="trusted-2",
+        )
+
+        agg = engine.get_aggregate("CrowdStrike")
+
+        assert agg["avg_overall_score"] == pytest.approx(8.0, abs=0.01)
+        assert "bdp_weighted" not in agg
+        assert "simple_avg_overall_score" not in agg
+
+    def test_bdp_aggregate_without_profiles_falls_back(self):
+        from nur.server.proofs import ProofEngine
+
+        engine = ProofEngine()
+        engine.commit_contribution(
+            "CrowdStrike",
+            "edr",
+            {"overall_score": 9.0},
+            contributor_profile_id="trusted-1",
+        )
+        engine.commit_contribution(
+            "CrowdStrike",
+            "edr",
+            {"overall_score": 7.0},
+            contributor_profile_id="trusted-2",
+        )
+
+        agg = engine.get_bdp_aggregate("CrowdStrike")
+
+        assert agg["bdp_weighted"] is False
+        assert agg["avg_overall_score"] == pytest.approx(8.0, abs=0.01)
+        assert agg["simple_avg_overall_score"] == pytest.approx(8.0, abs=0.01)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Expanded eval metrics: price, support, performance, decision intelligence
 # ══════════════════════════════════════════════════════════════════════════════

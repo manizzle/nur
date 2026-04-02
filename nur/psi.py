@@ -47,7 +47,14 @@ class PSIClient:
 
     @staticmethod
     def _hash_to_point(value: str) -> bytes:
-        """Hash an IOC value to a curve point (simplified: hash-and-encode)."""
+        """Hash an IOC value to a curve point (simplified: hash-and-encode).
+
+        NOTE: PSI uses ECDH scalar multiplication on curve points, NOT the
+        HMAC-based hashing used by the anonymization layer.  The rotating
+        salt added to ``keystore.hmac_ioc()`` does NOT affect PSI — both
+        parties hash raw IOC values to the same curve point here regardless
+        of the current salt window.
+        """
         ec = _ensure_crypto()
         from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1
         from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
