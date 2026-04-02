@@ -11,6 +11,12 @@ build/
 nur.pem
 .gstack/
 
+# Internal strategy & sensitive docs (not public)
+docs/strategy/
+docs/yc-application.md
+TODOS.md
+.env
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 .beads-credential-key
