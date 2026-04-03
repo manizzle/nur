@@ -18,7 +18,7 @@ nur
 
 ### Describe what your company does in 50 characters or less
 
-Anonymized peer intelligence for security teams
+Peer-verified security intelligence for CISOs and IR firms
 
 ### Company URL
 
