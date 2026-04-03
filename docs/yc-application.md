@@ -40,6 +40,8 @@ The protocol makes contribution effortless and privacy mathematical. The server 
 
 Think Bloomberg Terminal for cybersecurity — where the community is worth more than the data. Bloomberg's most-used feature is chat between traders. nur's equivalent is the peer intelligence layer: a practitioner who contributed 30 vendor evals is more credible than a random Gartner analyst.
 
+nur is the only platform where IR firms can share intelligence from privileged engagements without risking attorney-client privilege waiver — the data transmitted is threat intelligence by construction, not incident details. For in-house security teams, nur provides programmatic proof (via HIPAA Safe Harbor verification) that shared data meets federal de-identification standards. This turns "we anonymize your data" from a vendor claim into a verifiable legal position backed by open source code.
+
 The wedge is vendor evaluation. The platform expands to incident response intelligence, threat data sharing, and cyber insurance underwriting — every domain where practitioners have data and peers need it.
 
 ### Where do you live now, and where would the company be based after YC?
@@ -92,6 +94,8 @@ I've lived this problem on both sides. During incident response, I couldn't get 
 
 The security industry has a fundamental information asymmetry: attackers share everything (tools, techniques, infrastructure), defenders share nothing. Not because they don't want to — because there's no easy, incentive-aligned way to do it. ISACs tried legal agreements. Threat intel platforms tried centralization. Both failed. nur makes contribution effortless (SIEM webhook, web form) and immediately rewarding (you get back aggregate peer intelligence the moment you contribute).
 
+There's a deeper structural problem: IR firms retained by law firms can't share what they learn because forensic reports are attorney work product — sharing risks privilege waiver. In-house teams need board approval, NDA review, and data classification before sharing anything externally. The legal friction is as much a barrier as the technical one. nur solves both: the protocol ensures what's shared is threat intelligence by construction, not privileged material, and programmatic de-identification verification gives legal teams the proof they need to approve sharing.
+
 ### Who are your competitors? What do you understand about your business that they don't?
 
 Competitors:
@@ -102,7 +106,7 @@ Competitors:
 - ISACs (FS-ISAC, E-ISAC): Structurally failing. Hub-and-spoke model, stale PDF reports, declining participation. MS-ISAC just lost federal support.
 - Informal Slack/Signal groups: Work but don't scale. No privacy guarantees. Depends on who you know.
 
-What we understand: the sharing problem isn't a technology problem or a legal problem — it's an incentive and effort problem. Everyone focused on building trust through legal agreements (ISACs) or centralized platforms (Cyware). We make contribution effortless (connect your SIEM, data flows automatically) and immediately rewarding (you see peer intelligence the moment you contribute). The cryptographic protocol is the moat underneath — but the hook is the value, not the math.
+What we understand: the sharing problem isn't a technology problem or a legal problem — it's an incentive and effort problem. Everyone focused on building trust through legal agreements (ISACs) or centralized platforms (Cyware). We make contribution effortless (connect your SIEM, data flows automatically) and immediately rewarding (you see peer intelligence the moment you contribute). The cryptographic protocol is the moat underneath — but the hook is the value, not the math. And critically: we're the only platform that provides programmatic proof of regulatory compliance — our `verify_safe_harbor()` function lets a GC verify that contributed data meets HIPAA de-identification standards before it leaves the network. No other platform offers this.
 
 ### How do or will you make money?
 

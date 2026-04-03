@@ -179,6 +179,66 @@ The `nur.deidentify` module provides `verify_gdpr_recital26()` — a function th
 
 ---
 
+## Enterprise Data Sharing Playbook
+
+This section addresses the two most common enterprise scenarios where legal friction blocks intelligence sharing — and how nur resolves each.
+
+### Scenario 1: IR Firms Working with Law Firms
+
+**The privilege problem.** When a company experiences a breach, its outside counsel typically retains an incident response firm under a separate engagement letter. This structure exists to preserve attorney-client privilege: the IR firm's forensic report is classified as attorney work product — privileged communication prepared "in anticipation of litigation" ([Morrison Foerster, "Six Considerations to Preserve Privilege"](https://www.mofo.com/resources/insights/231010-six-considerations-to-preserve-privilege)).
+
+The consequence is severe: sharing forensic findings broadly — even sanitized summaries — risks waiving privilege over the entire engagement ([American Bar Association, "Attorney-Client Privilege and Work Product Considerations Following Cyber Incidents"](https://www.americanbar.org/groups/tort_trial_insurance_practice/resources/tortsource/2024-spring/attorney-client-privilege-work-product-considerations-following-cyber-incidents/)). This is why IR firms currently **cannot** share learnings across engagements, even when the same threat actor hits multiple clients. The legal rules governing confidentiality actively undermine collective defense ([Lawfare, "Do the Legal Rules Governing the Confidentiality of Cyber Incident Response Undermine Cybersecurity?"](https://www.lawfaremedia.org/article/do-legal-rules-governing-confidentiality-cyber-incident-response-undermine-cybersecurity)).
+
+**What can vs. cannot be shared under privilege:**
+
+| Can share (privilege-safe) | Cannot share (privilege risk) |
+|---|---|
+| IOC hashes (IP addresses, file hashes, domains) | Forensic report conclusions |
+| MITRE technique IDs observed | Which systems were compromised |
+| Vendor tools that detected/missed the attack | Timeline of the breach |
+| Generic remediation categories ("isolated hosts") | Specific remediation actions taken |
+| Detection rates / time-to-detect buckets | Client identity, scope of damage |
+
+**Why nur preserves privilege:**
+
+1. **No client-identifying information leaves.** The nur protocol transmits numeric scores, categorical labels, and hashed IOC values — none of which identify the client or the engagement.
+2. **No forensic report content is shared.** nur's client-side translators strip free-text notes, remediation narratives, and incident timelines before transmission. What crosses the network boundary is structured threat intelligence, not incident details.
+3. **What's shared is threat intelligence, not incident details.** IOC hashes, MITRE technique IDs, and detection rate buckets are the same categories of information that CISA, E-ISAC, and sector ISACs already encourage sharing.
+4. **CISA 2015 explicitly protects this sharing** with both liability safe harbor and non-waiver of privilege. The statute provides that sharing cyber threat indicators "shall not constitute a waiver of any applicable privilege or protection provided by law."
+5. **`verify_safe_harbor()` provides programmatic proof** that nothing privileged was transmitted. The function scans the contribution payload against all 18 HIPAA Safe Harbor identifiers and returns a structured pass/fail result — auditable evidence that the data leaving the organization contains no privileged material.
+
+**The value proposition for IR firms:** An IR firm can contribute intelligence from every engagement — building credibility and reputation on the platform — without ever risking privilege waiver. The law firm retains full control over the forensic report and engagement details. What flows to nur is the collective intelligence that makes the entire security community stronger: which techniques were observed, which tools caught them, and what remediation categories proved effective.
+
+### Scenario 2: In-House Security Teams Sharing Externally
+
+In-house security teams face a different but equally complex set of legal requirements before sharing any security data externally.
+
+**Legal and organizational requirements:**
+
+1. **In-house privilege is weaker.** Several jurisdictions — including France, Austria, Italy, and Sweden — do not recognize communications with in-house attorneys as privileged. Even in the United States, the scope of in-house privilege is narrower than outside counsel privilege and subject to closer scrutiny.
+2. **Board/executive/CISO approval is required.** NIST SP 800-150 ("Guide to Cyber Threat Information Sharing") recommends that organizations establish formal policies governing what threat information can be shared, with whom, and under what conditions — including executive-level approval for external sharing ([NIST SP 800-150](https://nvlpubs.nist.gov/nistpubs/specialpublications/nist.sp.800-150.pdf)).
+3. **Vendor NDA restrictions.** Many security vendor agreements restrict sharing of evaluation data, test results, or product performance metrics. Sharing detailed benchmark results externally may violate these agreements.
+4. **Data classification requirements.** The Traffic Light Protocol (TLP) — RED, AMBER, GREEN, CLEAR — governs how shared threat intelligence can be redistributed. Organizations must classify data before sharing and ensure recipients respect those classifications ([UK Government, "Cyber Threat Intelligence Information Sharing Guide"](https://www.gov.uk/government/publications/cyber-threat-intelligence-information-sharing/cyber-threat-intelligence-information-sharing-guide)).
+5. **STIX/TAXII standardization expectations.** Enterprise consumers of threat intelligence increasingly expect data in standard formats (STIX for structure, TAXII for transport) to integrate with their existing security infrastructure.
+
+**How nur addresses each requirement:**
+
+| Requirement | How nur addresses it |
+|---|---|
+| Legal review of data leaving the org | Client-side translation runs locally — review what's transmitted before it goes |
+| PII scrubbing verification | `verify_safe_harbor()` provides programmatic proof of de-identification |
+| No client/customer data exposure | nur doesn't collect customer data — only security operational data |
+| Vendor NDA compliance | nur transmits scores and categories, not product internals or test methodologies |
+| Board/CISO awareness | nur contribution is auditable — cryptographic receipts prove exactly what was shared |
+| STIX/TAXII standardization | nur's data model maps to standard threat intel formats |
+| CISA 2015 safe harbor | nur usage qualifies — sharing for "cybersecurity purpose" with PII removed |
+
+### Summary
+
+In both scenarios, nur's architecture resolves the fundamental tension: organizations want to share intelligence but can't because sharing risks legal exposure. nur eliminates this tension by construction — the data that crosses the network boundary is, by regulatory definition, not personally identifiable (HIPAA Safe Harbor), not privileged material (no forensic report content), and explicitly protected (CISA 2015 safe harbor). The `verify_safe_harbor()` function provides programmatic proof that compliance teams can present to legal counsel, auditors, or regulators.
+
+---
+
 ## Data Flow Certification
 
 The following diagram shows exactly what crosses organizational boundaries:
