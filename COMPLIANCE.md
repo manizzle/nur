@@ -111,6 +111,74 @@ The **Cybersecurity Information Sharing Act of 2015** (extended through Septembe
 
 ---
 
+## De-identification Standards
+
+> "Genuinely unsettled territory... if there's anything that's like regulatory in terms of how to actually make something not personally identifiable, that's very interesting — that basically gives legal standing to some of my code."
+
+nur's anonymization engine was designed for cybersecurity data, but the de-identification controls map directly to healthcare and privacy regulation standards. This section documents that mapping.
+
+### HIPAA Safe Harbor (45 CFR §164.514(b))
+
+HIPAA's Safe Harbor method requires removal of 18 specific identifier types. The following table maps each identifier to nur's technical controls:
+
+| # | Identifier | CFR Reference | nur Handling | Code Reference | Status |
+|---|-----------|---------------|-------------|---------------|--------|
+| 1 | Names | §164.514(b)(2)(i)(A) | `strip_pii()` removes titled names; `bucket_context_dict()` strips org_name | `anonymize._TITLE_NAME` regex | **Removed** |
+| 2 | Geographic data (sub-state) | §164.514(b)(2)(i)(B) | Not collected — nur does not ingest sub-state geographic data | No geographic fields in data model | **N/A** |
+| 3 | Dates (except year) | §164.514(b)(2)(i)(C) | `strip_timing` in maximum privacy mode removes timestamps | `privacy.PRIVACY_LEVELS['maximum']` | **Removed** |
+| 4 | Phone numbers | §164.514(b)(2)(i)(D) | `strip_pii()` removes via regex | `anonymize._PHONE` regex | **Removed** |
+| 5 | Fax numbers | §164.514(b)(2)(i)(E) | `strip_pii()` — same phone regex covers fax patterns | `anonymize._PHONE` regex | **Removed** |
+| 6 | Email addresses | §164.514(b)(2)(i)(F) | `strip_pii()` removes via regex | `anonymize._EMAIL` regex | **Removed** |
+| 7 | SSN | §164.514(b)(2)(i)(G) | `strip_safe_harbor()` removes SSN patterns | `deidentify._SSN` regex | **Removed** |
+| 8 | Medical record numbers | §164.514(b)(2)(i)(H) | `strip_safe_harbor()` removes MRN patterns | `deidentify._MEDICAL_RECORD` regex | **Removed** |
+| 9 | Health plan beneficiary numbers | §164.514(b)(2)(i)(I) | `strip_safe_harbor()` removes beneficiary ID patterns | `deidentify._HEALTH_PLAN` regex | **Removed** |
+| 10 | Account numbers | §164.514(b)(2)(i)(J) | `strip_safe_harbor()` removes account numbers with context | `deidentify._ACCOUNT_NUM` regex | **Removed** |
+| 11 | Certificate/license numbers | §164.514(b)(2)(i)(K) | `strip_security()` removes certificate serials | `anonymize._CERT_SERIAL` regex | **Removed** |
+| 12 | Vehicle identifiers | §164.514(b)(2)(i)(L) | `strip_safe_harbor()` removes VIN patterns | `deidentify._VIN` regex | **Removed** |
+| 13 | Device identifiers | §164.514(b)(2)(i)(M) | `strip_safe_harbor()` removes device serial/UDI patterns | `deidentify._DEVICE_SERIAL` regex | **Removed** |
+| 14 | Web URLs | §164.514(b)(2)(i)(N) | `strip_pii()` removes URLs via regex | `anonymize._URL` regex | **Removed** |
+| 15 | IP addresses | §164.514(b)(2)(i)(O) | `strip_security()` removes IPv4/IPv6; IOC IPs are HMAC-hashed | `anonymize._IPV4`, `_IPV6` regexes | **Removed** |
+| 16 | Biometric identifiers | §164.514(b)(2)(i)(P) | Not collected — nur is text-only, no biometric data | No biometric fields in data model | **N/A** |
+| 17 | Full-face photographs | §164.514(b)(2)(i)(Q) | Not collected — nur is text-only, no image data | No image fields in data model | **N/A** |
+| 18 | Other unique identifying numbers | §164.514(b)(2)(i)(R) | `strip_security()` removes AWS account IDs, API keys | `anonymize._API_KEY`, `_AWS_ACCOUNT` regexes | **Removed** |
+
+**Why nur's data flow clears Safe Harbor:** The data transmitted to nur consists of numeric scores, categorical labels, boolean flags, MITRE ATT&CK technique IDs, and HMAC-SHA256 hashed IOC values. None of these are PHI identifiers under any of the 18 Safe Harbor categories. The anonymization pipeline runs client-side before any data crosses the network boundary — the server never receives raw PII.
+
+**Programmatic verification:** The `nur.deidentify` module provides `verify_safe_harbor()` — a function that scans any contribution dict for residual PII patterns and returns a structured compliance result mapping each of the 18 identifiers to its pass/fail status. This enables automated compliance verification as part of the contribution pipeline.
+
+### HIPAA Expert Determination (45 CFR §164.514(a))
+
+The Expert Determination method is an alternative path to de-identification that requires a qualified statistical or scientific expert to certify that the risk of re-identification is "very small." This is a higher bar than Safe Harbor but provides stronger legal protection.
+
+nur's architecture makes a strong case for Expert Determination:
+
+- **Individual values are discarded** — the server retains only Pedersen commitment hashes and running aggregate sums, not per-contributor data
+- **Aggregate-only responses** — all query results come from histogram aggregation and template logic, never individual contributions
+- **Pedersen commitments** — contributions are cryptographically committed with information-theoretically hiding properties; the server cannot extract individual values from commitments
+- **Behavioral Differential Privacy (BDP)** — contributions are weighted by credibility scoring, making it impossible to determine any single contributor's exact input from the aggregate output
+- **No join path** — billing identity and contribution data are architecturally separated with no database join between them
+
+**Action item:** Obtaining formal Expert Determination certification from a qualified expert (per 45 CFR §164.514(a)(1)) is a future milestone. The technical architecture supports it; the remaining step is engaging a HIPAA-qualified statistician to formally certify the re-identification risk as "very small."
+
+### GDPR Recital 26 — Re-identification Risk
+
+GDPR Recital 26 provides that data protection principles do not apply to anonymous information — "information which does not relate to an identified or identifiable natural person or to personal data rendered anonymous in such a manner that the data subject is not or no longer identifiable." The standard is whether identification is **"reasonably likely"** considering "all the means reasonably likely to be used" by the controller or another person.
+
+nur's technical controls address each re-identification vector:
+
+| Re-identification Vector | nur Mitigation | Assessment |
+|------------------------|----------------|------------|
+| **Direct identification** (names, org identifiers) | `strip_pii()` removes names; `bucket_context_dict()` replaces org names with industry buckets | Impossible — no names or org identifiers in transmitted data |
+| **Indirect identification via linkage** (combining quasi-identifiers) | Industry, org_size, and role_tier are coarse categorical buckets with k-anonymity guarantees | Mitigated — bucketing ensures each combination maps to many organizations |
+| **Timing correlation** (linking contribution timing to known events) | `strip_timing` in maximum mode removes timestamps; submission times not linked to events | Mitigated — no temporal fingerprinting possible |
+| **Contribution pattern analysis** (reconstructing individual inputs from outputs) | BDP credibility weighting; Pedersen commitments; individual values discarded; aggregate-only responses | Mitigated — mathematically infeasible to reconstruct individual contributions |
+
+**On vendor self-certification:** A valid criticism of de-identification claims is: "Who's certifying impossible? The vendor." nur addresses this directly — the anonymization engine is **open source**. The certification is not a vendor assertion; it is verifiable code that any party can audit, test, and validate independently. The `verify_safe_harbor()` and `verify_gdpr_recital26()` functions in `nur.deidentify` provide programmatic proof that can be run by compliance teams, auditors, or regulators against any contribution payload.
+
+The `nur.deidentify` module provides `verify_gdpr_recital26()` — a function that returns a structured assessment of re-identification risk across all four vectors, suitable for inclusion in Data Protection Impact Assessments (DPIAs).
+
+---
+
 ## Data Flow Certification
 
 The following diagram shows exactly what crosses organizational boundaries:
